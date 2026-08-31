@@ -1,0 +1,209 @@
+export type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded";
+export type GroupStatus = "open" | "full" | "in_progress" | "completed" | "cancelled";
+export type DriverStatus = "available" | "on_trip" | "maintenance" | "off_duty";
+export type CheckInStatus = "pending" | "checked_in" | "no_show";
+
+export interface ItineraryDay {
+  day: number;
+  title: string;
+  description: string;
+  activities: string[];
+}
+
+export interface Destination {
+  id: string;
+  title: string;
+  slug: string;
+  tagline: string;
+  description: string;
+  location: string;
+  durationDays: number;
+  durationNights: number;
+  pricePerPax: number;
+  coverImage: string;
+  galleryImages: string[];
+  inclusions: string[];
+  exclusions: string[];
+  highlights: string[];
+  itinerary: ItineraryDay[];
+  rating: number;
+  totalReviews: number;
+  isPopular?: boolean;
+  meetingPoint: string;
+  maxGroupCapacity: number; // 6
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BookingGroup {
+  id: string;
+  tripId: string;
+  groupNumber: number;
+  capacity: number; // Max 6
+  currentParticipants: number;
+  status: GroupStatus;
+  driverId?: string;
+  driver?: Driver;
+  notes?: string;
+  participants?: Participant[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Trip {
+  id: string;
+  destinationId: string;
+  destination?: Destination;
+  departureDate: string;
+  returnDate: string;
+  pricePerPax: number;
+  maxGroups: number;
+  status: "scheduled" | "ongoing" | "completed" | "cancelled";
+  groups: BookingGroup[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Participant {
+  id: string;
+  tripId: string;
+  trip?: Trip;
+  bookingGroupId: string;
+  bookingGroup?: BookingGroup;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  nationality: string;
+  identityNumber: string; // KTP / Paspor
+  dateOfBirth?: string;
+  gender?: "male" | "female" | "other";
+  roomPreference?: "single" | "shared" | "none";
+  healthNotes?: string;
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phone: string;
+  };
+  hasInsurance: boolean;
+  insuranceFee: number;
+  totalAmount: number;
+  paymentStatus: PaymentStatus;
+  checkInStatus: CheckInStatus;
+  paymentId?: string;
+  payment?: Payment;
+  bookingCode: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Driver {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  licenseNumber: string;
+  vehicleModel: string;
+  plateNumber: string;
+  passengerCapacity: number; // 6
+  status: DriverStatus;
+  rating: number;
+  totalTrips: number;
+  photoUrl: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Payment {
+  id: string;
+  participantId: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  snapToken?: string;
+  redirectUrl?: string;
+  paymentMethod?: "qris" | "bank_transfer" | "credit_card" | "gopay" | "cstore";
+  transactionTime?: string;
+  settlementTime?: string;
+  externalTransactionId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Article {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  coverImage: string;
+  category: "Travel Tips" | "Destinations" | "Community Story" | "Budget Travel" | "Guide";
+  author: {
+    name: string;
+    avatar: string;
+    role: string;
+  };
+  readTimeMinutes: number;
+  publishedAt: string;
+  views: number;
+  isFeatured?: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
+  tags: string[];
+}
+
+export interface AuditLog {
+  id: string;
+  adminEmail: string;
+  action: "MOVE_PARTICIPANT" | "CREATE_DESTINATION" | "UPDATE_TRIP" | "CREATE_DRIVER" | "UPDATE_PAYMENT" | "DELETE_RECORD";
+  targetResource: string;
+  targetId: string;
+  details: string;
+  ipAddress?: string;
+  createdAt: string;
+}
+
+export interface AdminMetrics {
+  totalRevenue: number;
+  revenueGrowthPercentage: number;
+  activeTripsCount: number;
+  averageOccupancyRate: number; // e.g. 84.5%
+  totalParticipants: number;
+  totalBookings: number;
+  availableSeats: number;
+  pendingPaymentsCount: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    totalPages?: number;
+  };
+}
+
+export interface CreateBookingPayload {
+  tripId: string;
+  destinationId: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  nationality: string;
+  identityNumber: string;
+  dateOfBirth?: string;
+  gender?: "male" | "female" | "other";
+  roomPreference?: "single" | "shared" | "none";
+  healthNotes?: string;
+  hasInsurance: boolean;
+  captchaToken: string;
+}
+
+export interface MoveParticipantPayload {
+  participantId: string;
+  currentGroupId: string;
+  targetGroupId: string;
+  reason?: string;
+}
