@@ -1,4 +1,4 @@
-Berdasarkan spesifikasi teknis dan domain model pada [README.md](file:///d:/project/trip-sharing-backend/README.md), berikut adalah ringkasan deskripsi, pemetaan halaman/fitur frontend, serta alur kerja (*flow*) sistem:
+Berikut adalah ringkasan deskripsi, pemetaan halaman/fitur frontend, serta alur kerja (*flow*) sistem:
 
 ---
 
