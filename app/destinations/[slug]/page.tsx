@@ -56,7 +56,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [identityNumber, setIdentityNumber] = useState("");
   const [nationality, setNationality] = useState("Indonesia");
-  const [roomPref, setRoomPref] = useState<"shared" | "private">("shared");
+  const [roomPref, setRoomPref] = useState<"shared" | "single" | "none">("shared");
   const [healthNotes, setHealthNotes] = useState("");
   const [hasInsurance, setHasInsurance] = useState(true);
 
@@ -67,7 +67,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
   const [createdParticipantId, setCreatedParticipantId] = useState<string>("");
 
   const insuranceFee = hasInsurance ? 50000 : 0;
-  const privateRoomFee = roomPref === "private" ? 350000 : 0;
+  const privateRoomFee = roomPref === "single" ? 350000 : 0;
   const totalAmount = destination.pricePerPax + insuranceFee + privateRoomFee;
 
   const handleOpenPayment = async (e: React.FormEvent) => {
@@ -422,7 +422,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
 
                   <label
                     className={`flex flex-col p-3 rounded-xl border cursor-pointer text-xs ${
-                      roomPref === "private"
+                      roomPref === "single"
                         ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d] font-bold"
                         : "border-slate-200 text-slate-600"
                     }`}
@@ -432,8 +432,8 @@ export default function DestinationDetailPage({ params }: PageProps) {
                       <input
                         type="radio"
                         name="roomPref"
-                        checked={roomPref === "private"}
-                        onChange={() => setRoomPref("private")}
+                        checked={roomPref === "single"}
+                        onChange={() => setRoomPref("single")}
                         className="accent-[#00677d]"
                       />
                     </div>
@@ -497,7 +497,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                     <span>+ {formatCurrency(50000)}</span>
                   </div>
                 )}
-                {roomPref === "private" && (
+                {roomPref === "single" && (
                   <div className="flex justify-between text-slate-600">
                     <span>Private Room Upgrade:</span>
                     <span>+ {formatCurrency(350000)}</span>

@@ -25,7 +25,7 @@ export default function NewBlogArticlePage() {
 
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState("Tips & Trik");
+  const [category, setCategory] = useState<"Travel Tips" | "Destinations" | "Community Story" | "Budget Travel" | "Guide">("Travel Tips");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [coverImage, setCoverImage] = useState(
@@ -66,8 +66,12 @@ export default function NewBlogArticlePage() {
         excerpt,
         content,
         coverImage,
-        authorName: "Admin Editorial",
-        readingTimeMinutes: 4,
+        author: {
+          name: "Admin Editorial",
+          avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+          role: "Editor",
+        },
+        readTimeMinutes: 4,
         tags: tags.split(",").map((t) => t.trim()),
       });
 
@@ -137,13 +141,14 @@ export default function NewBlogArticlePage() {
                   </label>
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => setCategory(e.target.value as "Travel Tips" | "Destinations" | "Community Story" | "Budget Travel" | "Guide")}
                     className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-[#00677d] focus:outline-none"
                   >
-                    <option value="Tips & Trik">Tips & Trik</option>
-                    <option value="Destinasi">Destinasi</option>
-                    <option value="Cerita Komunitas">Cerita Komunitas</option>
-                    <option value="Panduan Wisata">Panduan Wisata</option>
+                    <option value="Travel Tips">Travel Tips</option>
+                    <option value="Destinations">Destinations</option>
+                    <option value="Community Story">Community Story</option>
+                    <option value="Budget Travel">Budget Travel</option>
+                    <option value="Guide">Guide</option>
                   </select>
                 </div>
               </div>

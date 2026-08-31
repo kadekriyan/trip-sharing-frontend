@@ -150,7 +150,7 @@ export default function BlogCMSAdminPage() {
                   </td>
 
                   <td className="px-5 py-4 font-medium text-slate-700">
-                    {art.authorName}
+                    {art.author.name}
                   </td>
 
                   <td className="px-5 py-4 text-slate-500">

@@ -28,7 +28,7 @@ export default function AddParticipantPage() {
   const [gender, setGender] = useState<"male" | "female" | "other">("male");
   const [selectedDestination, setSelectedDestination] = useState(MOCK_DESTINATIONS[0].id);
   const [selectedGroup, setSelectedGroup] = useState("grp-01");
-  const [roomPref, setRoomPref] = useState<"shared" | "private">("shared");
+  const [roomPref, setRoomPref] = useState<"shared" | "single" | "none">("shared");
   const [hasInsurance, setHasInsurance] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "pending">("paid");
   const [healthNotes, setHealthNotes] = useState("");
@@ -37,7 +37,7 @@ export default function AddParticipantPage() {
 
   const destination = MOCK_DESTINATIONS.find((d) => d.id === selectedDestination) || MOCK_DESTINATIONS[0];
   const insuranceFee = hasInsurance ? 50000 : 0;
-  const privateRoomFee = roomPref === "private" ? 350000 : 0;
+  const privateRoomFee = roomPref === "single" ? 350000 : 0;
   const totalAmount = destination.pricePerPax + insuranceFee + privateRoomFee;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -259,11 +259,11 @@ export default function AddParticipantPage() {
                 </label>
                 <select
                   value={roomPref}
-                  onChange={(e) => setRoomPref(e.target.value as "shared" | "private")}
+                  onChange={(e) => setRoomPref(e.target.value as "shared" | "single" | "none")}
                   className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-[#00677d] focus:outline-none"
                 >
                   <option value="shared">Twin Sharing (Standard)</option>
-                  <option value="private">Private Deluxe (+ Rp 350.000)</option>
+                  <option value="single">Single / Private Room (+ Rp 350.000)</option>
                 </select>
               </div>
 

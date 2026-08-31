@@ -227,7 +227,7 @@ export default function ParticipantsManagementPage() {
                     </td>
 
                     <td className="px-5 py-4 text-slate-600 space-y-0.5">
-                      <span>Kamar: <strong>{p.roomPreference === "private" ? "Private" : "Twin"}</strong></span>
+                      <span>Kamar: <strong>{p.roomPreference === "single" ? "Single / Private" : "Twin"}</strong></span>
                       {p.hasInsurance && (
                         <span className="text-[10px] text-emerald-600 font-semibold block">
                           ✓ Asuransi Aktif

@@ -44,11 +44,11 @@ export default function NewDriverPage() {
         licenseNumber,
         vehicleModel,
         plateNumber: plateNumber.toUpperCase(),
-        capacity: 6,
-        status: "active",
+        passengerCapacity: 6,
+        status: "available",
         photoUrl,
         rating: 5.0,
-        totalTripsCompleted: 0,
+        totalTrips: 0,
       });
 
       setFeedback({ type: "success", message: "Driver dan armada berhasil didaftarkan!" });

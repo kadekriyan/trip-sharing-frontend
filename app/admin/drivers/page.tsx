@@ -72,7 +72,7 @@ export default function DriversAdminPage() {
           <div>
             <span className="text-xs text-slate-500 font-bold uppercase">Driver Ready / Siap Jalan</span>
             <span className="font-heading font-extrabold text-xl text-emerald-700 block">
-              {drivers.filter((d) => d.status === "active").length} Driver
+              {drivers.filter((d) => d.status === "available").length} Driver
             </span>
           </div>
         </Card>
@@ -131,16 +131,16 @@ export default function DriversAdminPage() {
                     <div className="flex items-center gap-1 text-xs text-slate-500">
                       <Star className="h-3.5 w-3.5 fill-[#ff7f50] text-[#ff7f50]" />
                       <span className="font-bold text-slate-800">{driver.rating}</span>
-                      <span>({driver.totalTripsCompleted} Trip Selesai)</span>
+                      <span>({driver.totalTrips} Trip Selesai)</span>
                     </div>
                   </div>
                 </div>
 
                 <Badge
-                  variant={driver.status === "active" ? "success" : "azure"}
+                  variant={driver.status === "available" ? "success" : "azure"}
                   className="text-[10px]"
                 >
-                  {driver.status === "active" ? "Siap Bertugas" : "Sedang di Perjalanan"}
+                  {driver.status === "available" ? "Siap Bertugas" : "Sedang di Perjalanan"}
                 </Badge>
               </div>
 
@@ -157,7 +157,7 @@ export default function DriversAdminPage() {
                 </div>
                 <div className="flex items-center justify-between text-slate-600">
                   <span className="text-slate-400">Kapasitas:</span>
-                  <strong className="text-slate-800">{driver.capacity} Penumpang</strong>
+                  <strong className="text-slate-800">{driver.passengerCapacity} Penumpang</strong>
                 </div>
                 <div className="flex items-center justify-between text-slate-600">
                   <span className="text-slate-400">Nomor SIM:</span>
