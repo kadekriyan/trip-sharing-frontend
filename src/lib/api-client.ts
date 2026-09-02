@@ -1,16 +1,35 @@
 import type { ApiResponse } from "@/src/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 export class ApiError extends Error {
   statusCode: number;
-  errors?: Record<string, string[]>;
+  errors?: Record<string, string[]> | unknown;
 
-  constructor(message: string, statusCode: number = 500, errors?: Record<string, string[]>) {
+  constructor(message: string, statusCode: number = 500, errors?: Record<string, string[]> | unknown) {
     super(message);
     this.name = "ApiError";
     this.statusCode = statusCode;
     this.errors = errors;
+  }
+}
+
+export function setAuthToken(token: string) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("auth_token", token);
+  }
+}
+
+export function getAuthToken(): string | null {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("auth_token");
+  }
+  return null;
+}
+
+export function removeAuthToken() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("auth_token");
   }
 }
 
@@ -26,7 +45,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   if (params) {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
+      if (value !== undefined && value !== null && value !== "") {
         searchParams.append(key, String(value));
       }
     });
@@ -36,17 +55,15 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     }
   }
 
-  const defaultHeaders: HeadersInit = {
+  const defaultHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
   };
 
   // Attach token if stored in localStorage (for client-side admin/user session)
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      (defaultHeaders as Record<string, string>)["Authorization"] = `Bearer ${token}`;
-    }
+  const token = getAuthToken();
+  if (token) {
+    defaultHeaders["Authorization"] = `Bearer ${token}`;
   }
 
   try {
@@ -54,7 +71,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       ...customConfig,
       headers: {
         ...defaultHeaders,
-        ...headers,
+        ...((headers as Record<string, string>) || {}),
       },
     });
 
@@ -64,7 +81,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       throw new ApiError(
         data?.message || `Request failed with status ${response.status}`,
         response.status,
-        data?.errors
+        data?.details || data?.errors
       );
     }
 

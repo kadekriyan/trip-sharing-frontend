@@ -1,4 +1,4 @@
-import type { Destination, Trip, Driver, Participant, Article, AdminMetrics } from "@/src/types";
+import type { Destination, Trip, Driver, Participant, Article, AdminMetrics, AuditLog } from "@/src/types";
 
 export const MOCK_DRIVERS: Driver[] = [
   {
@@ -435,3 +435,27 @@ export const MOCK_ADMIN_METRICS: AdminMetrics = {
   availableSeats: 16,
   pendingPaymentsCount: 6,
 };
+
+export const MOCK_AUDIT_LOGS: AuditLog[] = [
+  {
+    id: "log-01",
+    adminEmail: "admin@tripsharing.id",
+    action: "MOVE_PARTICIPANT",
+    targetResource: "BookingGroup",
+    targetId: "grp-02",
+    details: "Memindahkan peserta Elena Jenkins (TRV-8921) dari Grup 1 ke Grup 2.",
+    ipAddress: "180.252.164.12",
+    createdAt: "2026-09-02T12:00:00.000Z",
+  },
+  {
+    id: "log-02",
+    adminEmail: "admin@tripsharing.id",
+    action: "CREATE_DESTINATION",
+    targetResource: "Destination",
+    targetId: "dest-01",
+    details: "Membuat paket destinasi Bromo Sunrise & Midnight Safari.",
+    ipAddress: "180.252.164.12",
+    createdAt: "2026-09-01T10:00:00.000Z",
+  },
+];
+

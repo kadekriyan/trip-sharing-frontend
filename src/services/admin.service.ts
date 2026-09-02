@@ -1,6 +1,21 @@
 import { apiClient } from "@/src/lib/api-client";
-import type { AdminMetrics, Participant, Driver, Destination, Article, MoveParticipantPayload } from "@/src/types";
-import { MOCK_ADMIN_METRICS, MOCK_PARTICIPANTS, MOCK_DRIVERS, MOCK_DESTINATIONS, MOCK_ARTICLES } from "./mockData";
+import type {
+  AdminMetrics,
+  Participant,
+  Driver,
+  Destination,
+  Article,
+  AuditLog,
+  MoveParticipantPayload,
+} from "@/src/types";
+import {
+  MOCK_ADMIN_METRICS,
+  MOCK_PARTICIPANTS,
+  MOCK_DRIVERS,
+  MOCK_DESTINATIONS,
+  MOCK_ARTICLES,
+  MOCK_AUDIT_LOGS,
+} from "./mockData";
 
 export const adminService = {
   async getMetrics(): Promise<AdminMetrics> {
@@ -13,10 +28,16 @@ export const adminService = {
     return MOCK_ADMIN_METRICS;
   },
 
-  async getParticipants(): Promise<Participant[]> {
+  async getParticipants(params?: { status?: string; search?: string; tripId?: string }): Promise<Participant[]> {
     try {
-      const res = await apiClient.get<Participant[]>("/admin/participants");
-      if (res.success && res.data) return res.data;
+      const res = await apiClient.get<Participant[]>("/admin/participants", {
+        params: {
+          status: params?.status,
+          search: params?.search,
+          tripId: params?.tripId,
+        },
+      });
+      if (res.success && Array.isArray(res.data)) return res.data;
     } catch {
       // Fallback
     }
@@ -25,13 +46,32 @@ export const adminService = {
 
   async addParticipantManual(participant: Partial<Participant>): Promise<Participant> {
     try {
-      const res = await apiClient.post<Participant>("/admin/participants", participant);
+      const res = await apiClient.post<Participant>("/admin/participants/manual", {
+        tripId: participant.tripId,
+        bookingGroupId: participant.bookingGroupId,
+        fullName: participant.fullName,
+        email: participant.email,
+        phoneNumber: participant.phoneNumber,
+        nationality: participant.nationality || "Indonesia",
+        identityNumber: participant.identityNumber,
+        gender: participant.gender || "male",
+        roomPreference: participant.roomPreference || "shared",
+        hasInsurance: Boolean(participant.hasInsurance),
+        insuranceFee: participant.insuranceFee || 50000,
+        totalAmount: participant.totalAmount || 900000,
+        paymentStatus: participant.paymentStatus || "paid",
+        healthNotes: participant.healthNotes || "",
+      });
       if (res.success && res.data) return res.data;
-    } catch {
-      // Fallback
+    } catch (err) {
+      if (err instanceof Error && err.name === "ApiError") {
+        throw err;
+      }
     }
+
+    // Fallback simulation
     const newP: Participant = {
-      id: `part-${Date.now()}`,
+      id: `part-manual-${Date.now()}`,
       tripId: participant.tripId || "trip-01",
       bookingGroupId: participant.bookingGroupId || "grp-01",
       fullName: participant.fullName || "Peserta Baru",
@@ -46,7 +86,7 @@ export const adminService = {
       totalAmount: 900000,
       paymentStatus: participant.paymentStatus || "paid",
       checkInStatus: "pending",
-      bookingCode: `MANUAL-${Math.floor(1000 + Math.random() * 9000)}`,
+      bookingCode: `TRV-MAN-${Math.floor(1000 + Math.random() * 9000)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -56,13 +96,15 @@ export const adminService = {
 
   async moveParticipant(payload: MoveParticipantPayload): Promise<{ success: boolean; message: string }> {
     try {
-      const res = await apiClient.patch<{ success: boolean; message: string }>(
-        `/admin/participants/${payload.participantId}/move`,
+      const res = await apiClient.post<{ success: boolean; message: string }>(
+        "/admin/participants/move-group",
         payload
       );
-      if (res.success) return res.data;
-    } catch {
-      // Fallback
+      if (res.success) return res.data || { success: true, message: res.message || "Peserta berhasil dipindahkan." };
+    } catch (err) {
+      if (err instanceof Error && err.name === "ApiError") {
+        throw err;
+      }
     }
 
     const p = MOCK_PARTICIPANTS.find((item) => item.id === payload.participantId);
@@ -77,7 +119,7 @@ export const adminService = {
   async getDrivers(): Promise<Driver[]> {
     try {
       const res = await apiClient.get<Driver[]>("/admin/drivers");
-      if (res.success && res.data) return res.data;
+      if (res.success && Array.isArray(res.data)) return res.data;
     } catch {
       // Fallback
     }
@@ -86,53 +128,77 @@ export const adminService = {
 
   async addDriver(driver: Partial<Driver>): Promise<Driver> {
     try {
-      const res = await apiClient.post<Driver>("/admin/drivers", driver);
+      const res = await apiClient.post<Driver>("/admin/drivers", {
+        fullName: driver.fullName,
+        phoneNumber: driver.phoneNumber,
+        licenseNumber: driver.licenseNumber,
+        vehicleModel: driver.vehicleModel,
+        plateNumber: driver.plateNumber,
+        passengerCapacity: driver.passengerCapacity || 6,
+        status: driver.status || "available",
+        photoUrl: driver.photoUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
+      });
       if (res.success && res.data) return res.data;
-    } catch {
-      // Fallback
+    } catch (err) {
+      if (err instanceof Error && err.name === "ApiError") {
+        throw err;
+      }
     }
-    const newDrv: Driver = {
+
+    const newDriver: Driver = {
       id: `drv-${Date.now()}`,
       fullName: driver.fullName || "Driver Baru",
-      phoneNumber: driver.phoneNumber || "+62 812-0000-0000",
-      licenseNumber: driver.licenseNumber || "SIM-B1-000000",
-      vehicleModel: driver.vehicleModel || "Toyota HiAce 6-Seater",
-      plateNumber: driver.plateNumber || "B 0000 XXX",
+      phoneNumber: driver.phoneNumber || "+62 812-3344-5566",
+      licenseNumber: driver.licenseNumber || "SIM-A-000",
+      vehicleModel: driver.vehicleModel || "Toyota HiAce (6-Seater VIP)",
+      plateNumber: driver.plateNumber || "N 1234 XY",
       passengerCapacity: 6,
       status: "available",
       rating: 5.0,
       totalTrips: 0,
-      photoUrl: driver.photoUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400",
-      notes: driver.notes,
+      photoUrl: driver.photoUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    MOCK_DRIVERS.unshift(newDrv);
-    return newDrv;
+    MOCK_DRIVERS.unshift(newDriver);
+    return newDriver;
+  },
+
+  async getDestinations(): Promise<Destination[]> {
+    try {
+      const res = await apiClient.get<Destination[]>("/admin/destinations");
+      if (res.success && Array.isArray(res.data)) return res.data;
+    } catch {
+      // Fallback
+    }
+    return MOCK_DESTINATIONS;
   },
 
   async addDestination(destination: Partial<Destination>): Promise<Destination> {
     try {
       const res = await apiClient.post<Destination>("/admin/destinations", destination);
       if (res.success && res.data) return res.data;
-    } catch {
-      // Fallback
+    } catch (err) {
+      if (err instanceof Error && err.name === "ApiError") {
+        throw err;
+      }
     }
+
     const newDest: Destination = {
       id: `dest-${Date.now()}`,
       title: destination.title || "Destinasi Baru",
-      slug: (destination.title || "destinasi-baru").toLowerCase().replace(/\s+/g, "-"),
-      tagline: destination.tagline || "Petualangan seru bersama teman baru",
-      description: destination.description || "Deskripsi destinasi",
+      slug: destination.slug || (destination.title || "destinasi").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      tagline: destination.tagline || "",
+      description: destination.description || "",
       location: destination.location || "Indonesia",
       durationDays: destination.durationDays || 2,
       durationNights: destination.durationNights || 1,
-      pricePerPax: destination.pricePerPax || 1000000,
+      pricePerPax: destination.pricePerPax || 850000,
       coverImage: destination.coverImage || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800",
       galleryImages: destination.galleryImages || [],
-      inclusions: destination.inclusions || ["Transport", "Tiket Wisata"],
+      inclusions: destination.inclusions || ["Armada AC", "Tiket Masuk", "Driver Guide"],
       exclusions: destination.exclusions || ["Pengeluaran Pribadi"],
-      highlights: destination.highlights || ["Spot Foto"],
+      highlights: destination.highlights || ["Wisata Terbaik"],
       itinerary: destination.itinerary || [],
       rating: 5.0,
       totalReviews: 0,
@@ -148,7 +214,7 @@ export const adminService = {
   async getArticles(): Promise<Article[]> {
     try {
       const res = await apiClient.get<Article[]>("/admin/blogs");
-      if (res.success && res.data) return res.data;
+      if (res.success && Array.isArray(res.data)) return res.data;
     } catch {
       // Fallback
     }
@@ -159,28 +225,46 @@ export const adminService = {
     try {
       const res = await apiClient.post<Article>("/admin/blogs", article);
       if (res.success && res.data) return res.data;
-    } catch {
-      // Fallback
+    } catch (err) {
+      if (err instanceof Error && err.name === "ApiError") {
+        throw err;
+      }
     }
+
     const newArt: Article = {
       id: `art-${Date.now()}`,
       title: article.title || "Artikel Baru",
-      slug: (article.title || "artikel-baru").toLowerCase().replace(/\s+/g, "-"),
-      excerpt: article.excerpt || "Ringkasan artikel",
-      content: article.content || "Konten artikel...",
+      slug: article.slug || (article.title || "artikel").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      excerpt: article.excerpt || "",
+      content: article.content || "",
       coverImage: article.coverImage || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800",
       category: article.category || "Travel Tips",
-      author: {
-        name: "Admin Trip Sharing",
-        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200",
-        role: "Editorial Team",
+      author: article.author || {
+        name: "Admin Editorial",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+        role: "Editor",
       },
-      readTimeMinutes: 3,
+      readTimeMinutes: article.readTimeMinutes || 4,
       publishedAt: new Date().toISOString(),
       views: 0,
-      tags: article.tags || ["Trip Sharing", "Travel"],
+      tags: article.tags || ["Trip Sharing"],
     };
     MOCK_ARTICLES.unshift(newArt);
     return newArt;
+  },
+
+  async getAuditLogs(params?: { page?: number; limit?: number }): Promise<AuditLog[]> {
+    try {
+      const res = await apiClient.get<AuditLog[]>("/admin/audit-logs", {
+        params: {
+          page: params?.page,
+          limit: params?.limit,
+        },
+      });
+      if (res.success && Array.isArray(res.data)) return res.data;
+    } catch {
+      // Fallback
+    }
+    return MOCK_AUDIT_LOGS;
   },
 };
