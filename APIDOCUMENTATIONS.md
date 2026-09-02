@@ -8,8 +8,8 @@ Dokumen ini merupakan referensi spesifikasi teknis RESTful API lengkap untuk pla
 
 ### 1.1 Base URL
 ```
-Development: http://localhost:5000/api/v1
-Production:  https://api.tripsharing.id/api/v1
+Development: http://localhost:5000/api
+Production:  https://api.tripsharing.id/api
 ```
 
 ### 1.2 Headers Standar
@@ -66,7 +66,7 @@ Authorization: Bearer <jwt_access_token>   # (Wajib untuk rute yang diproteksi)
 
 ```mermaid
 graph LR
-    API[REST API v1] --> Auth[1. Auth & Profile]
+    API[REST API Base: /api] --> Auth[1. Auth & Profile]
     API --> Dest[2. Destinations & Trips]
     API --> Booking[3. Bookings & Auto-Grouping]
     API --> Payment[4. Midtrans Snap & Webhook]
