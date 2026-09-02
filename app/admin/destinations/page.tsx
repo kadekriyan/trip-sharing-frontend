@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -17,11 +17,31 @@ import { Badge } from "@/src/components/ui/badge";
 import { Card } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { MOCK_DESTINATIONS, MOCK_TRIPS } from "@/src/services/mockData";
+import { adminService } from "@/src/services/admin.service";
 import { formatCurrency, formatDuration } from "@/src/lib/utils";
+import type { Destination } from "@/src/types";
 
 export default function DestinationsAdminPage() {
-  const [destinations] = useState(MOCK_DESTINATIONS);
+  const [destinations, setDestinations] = useState<Destination[]>(MOCK_DESTINATIONS);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const data = await adminService.getDestinations();
+        if (isMounted && data.length > 0) {
+          setDestinations(data);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filtered = destinations.filter(
     (d) =>
@@ -59,7 +79,7 @@ export default function DestinationsAdminPage() {
           <div>
             <span className="text-xs text-slate-500 font-bold uppercase">Total Destinasi Aktif</span>
             <span className="font-heading font-extrabold text-xl text-[#191c1e] block">
-              {destinations.length} Paket
+              {destinations.length} Lokasi
             </span>
           </div>
         </Card>
@@ -69,124 +89,91 @@ export default function DestinationsAdminPage() {
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-bold uppercase">Total Grup Terjadwal</span>
+            <span className="text-xs text-slate-500 font-bold uppercase">Jadwal Trip Berjalan</span>
             <span className="font-heading font-extrabold text-xl text-[#191c1e] block">
-              {MOCK_TRIPS.reduce((acc, t) => acc + t.groups.length, 0)} Grup Armada
+              {MOCK_TRIPS.length} Jadwal
             </span>
           </div>
         </Card>
 
         <Card className="p-4 border border-slate-100 shadow-stitch-card flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-sky-100 text-[#00a3c4] flex items-center justify-center">
-            <Clock className="h-5 w-5" />
+            <Star className="h-5 w-5" />
           </div>
           <div>
-            <span className="text-xs text-slate-500 font-bold uppercase">Kapasitas Maksimal</span>
-            <span className="font-heading font-extrabold text-xl text-[#00677d] block">
-              6 Pax / Mobil
+            <span className="text-xs text-slate-500 font-bold uppercase">Rata-rata Rating Wisata</span>
+            <span className="font-heading font-extrabold text-xl text-[#191c1e] block">
+              ⭐ 4.9 / 5.0
             </span>
           </div>
         </Card>
       </div>
 
-      {/* Search Bar */}
-      <div className="rounded-2xl bg-white p-4 shadow-stitch-card border border-slate-100 flex items-center justify-between">
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Cari nama destinasi atau lokasi..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-10 text-xs"
-          />
+      {/* Destinations List Card */}
+      <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Cari judul destinasi atau lokasi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-slate-50 border-slate-200"
+            />
+          </div>
         </div>
-        <span className="text-xs font-semibold text-slate-400">
-          Total: {filtered.length} Destinasi
-        </span>
-      </div>
 
-      {/* Destinations Table */}
-      <div className="rounded-2xl bg-white shadow-stitch-card border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-200">
-              <tr>
-                <th className="px-5 py-3.5">Destinasi & Foto</th>
-                <th className="px-5 py-3.5">Lokasi</th>
-                <th className="px-5 py-3.5">Durasi</th>
-                <th className="px-5 py-3.5">Harga (Per Pax)</th>
-                <th className="px-5 py-3.5">Kapasitas Grup</th>
-                <th className="px-5 py-3.5">Rating & Review</th>
-                <th className="px-5 py-3.5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((dest) => (
-                <tr key={dest.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-16 rounded-lg overflow-hidden shrink-0 border border-slate-200">
-                        <Image
-                          src={dest.coverImage}
-                          alt={dest.title}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <span className="font-bold text-slate-800 text-sm block">
-                          {dest.title}
-                        </span>
-                        <span className="text-[11px] text-slate-400 truncate block max-w-xs">
-                          {dest.tagline}
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-5 py-4 font-medium text-slate-600">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 text-[#00677d]" />
-                      <span>{dest.location}</span>
-                    </div>
-                  </td>
-
-                  <td className="px-5 py-4 font-medium text-slate-600">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((dest) => (
+            <Card
+              key={dest.id}
+              className="overflow-hidden border border-slate-100 shadow-stitch-card hover:shadow-stitch-hover transition-all flex flex-col justify-between"
+            >
+              <div>
+                <div className="relative aspect-video w-full">
+                  <Image
+                    src={dest.coverImage}
+                    alt={dest.title}
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-[#5cd5f8]" />
                     {formatDuration(dest.durationDays, dest.durationNights)}
-                  </td>
+                  </div>
+                </div>
 
-                  <td className="px-5 py-4 font-bold text-[#a43c12] text-sm">
+                <div className="p-5 space-y-2">
+                  <span className="text-[11px] font-bold text-[#00677d] flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {dest.location}
+                  </span>
+                  <h3 className="font-heading font-bold text-base text-[#191c1e] line-clamp-1">
+                    {dest.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                    {dest.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-5 pt-0 border-t border-slate-100 mt-4 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Mulai dari</span>
+                  <span className="font-heading font-extrabold text-[#a43c12] text-sm">
                     {formatCurrency(dest.pricePerPax)}
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <Badge variant="azure" className="text-[10px] font-bold">
-                      Maks 6 Orang / Grup
-                    </Badge>
-                  </td>
-
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1 text-slate-700 font-bold">
-                      <Star className="h-3.5 w-3.5 fill-[#ff7f50] text-[#ff7f50]" />
-                      <span>{dest.rating}</span>
-                      <span className="text-slate-400 font-normal">({dest.totalReviews})</span>
-                    </div>
-                  </td>
-
-                  <td className="px-5 py-4 text-right">
-                    <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1">
-                      <Link href={`/destinations/${dest.slug}`}>
-                        Pratinjau
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Link>
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                </div>
+                <Button asChild size="sm" variant="outline" className="text-xs gap-1">
+                  <Link href={`/destinations/${dest.slug}`}>
+                    Lihat Detail <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            </Card>
+          ))}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

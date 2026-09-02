@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -20,17 +20,43 @@ import {
   MOCK_TRIPS,
   MOCK_DRIVERS,
 } from "@/src/services/mockData";
+import { adminService } from "@/src/services/admin.service";
 import {
   formatCurrency,
   formatDate,
   calculateOccupancyPercent,
   getPaymentBadge,
 } from "@/src/lib/utils";
+import type { AdminMetrics, Participant } from "@/src/types";
 
 export default function AdminOverviewPage() {
-  const metrics = MOCK_ADMIN_METRICS;
-  const recentBookings = MOCK_PARTICIPANTS.slice(0, 5);
+  const [metrics, setMetrics] = useState<AdminMetrics>(MOCK_ADMIN_METRICS);
+  const [recentBookings, setRecentBookings] = useState<Participant[]>(MOCK_PARTICIPANTS.slice(0, 5));
   const activeTrip = MOCK_TRIPS[0];
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadAdminData() {
+      try {
+        const [met, parts] = await Promise.all([
+          adminService.getMetrics(),
+          adminService.getParticipants(),
+        ]);
+        if (isMounted) {
+          setMetrics(met);
+          if (parts.length > 0) {
+            setRecentBookings(parts.slice(0, 5));
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    loadAdminData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -98,183 +124,213 @@ export default function AdminOverviewPage() {
           </div>
         </Card>
 
-        {/* Metric 3: Active Trips */}
-        <Card className="p-5 border border-slate-100 shadow-stitch-card relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Trip Aktif
-            </span>
-            <div className="h-9 w-9 rounded-xl bg-sky-100 text-[#00a3c4] flex items-center justify-center">
-              <Calendar className="h-5 w-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="font-heading font-extrabold text-xl sm:text-2xl text-[#191c1e] block">
-              {metrics.activeTripsCount} Jadwal
-            </span>
-            <span className="text-[11px] text-slate-400 mt-1 block">
-              Bromo, Komodo, & Bali
-            </span>
-          </div>
-        </Card>
-
-        {/* Metric 4: Average Occupancy Rate */}
+        {/* Metric 3: Active Trips & Average Occupancy */}
         <Card className="p-5 border border-slate-100 shadow-stitch-card relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Rata-rata Okupansi
             </span>
-            <div className="h-9 w-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-xl bg-sky-100 text-[#00a3c4] flex items-center justify-center">
               <Car className="h-5 w-5" />
             </div>
           </div>
           <div className="mt-3">
-            <span className="font-heading font-extrabold text-xl sm:text-2xl text-emerald-700 block">
+            <span className="font-heading font-extrabold text-xl sm:text-2xl text-[#00677d] block">
               {metrics.averageOccupancyRate}%
             </span>
             <span className="text-[11px] text-slate-400 mt-1 block">
-              Efisiensi kapasitas 6-pax/mobil
+              {metrics.activeTripsCount} Trip Aktif Berjalan
+            </span>
+          </div>
+        </Card>
+
+        {/* Metric 4: Available Seats */}
+        <Card className="p-5 border border-slate-100 shadow-stitch-card relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Kursi Tersedia
+            </span>
+            <div className="h-9 w-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
+              <Calendar className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <span className="font-heading font-extrabold text-xl sm:text-2xl text-[#a43c12] block">
+              {metrics.availableSeats} Kursi
+            </span>
+            <span className="text-[11px] text-slate-400 mt-1 block">
+              Siap di-booking traveler
             </span>
           </div>
         </Card>
       </div>
 
-      {/* Group Occupancy Real-Time Visualizer */}
-      <div className="rounded-2xl bg-white p-6 shadow-stitch-card border border-slate-100 space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      {/* Middle Section: 6-Seater Vehicle Capacity Monitor */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2">
+            <h2 className="font-heading font-bold text-lg text-[#191c1e] flex items-center gap-2">
               <Car className="h-5 w-5 text-[#00677d]" />
-              Real-time Group Occupancy Monitor (Kapasitas Maks 6 / Mobil)
+              Pantauan Okupansi Armada 6-Seater (Live Group Capacity)
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Pantau keterisian kursi grup trip yang akan berangkat minggu ini.
+            <p className="text-xs text-slate-500">
+              Sistem membatasi maksimal 6 peserta per mobil/grup. Grup baru otomatis dibuat jika kapasitas penuh.
             </p>
           </div>
-          <Badge variant="azure" className="text-xs font-bold">
-            Jadwal: {formatDate(activeTrip.departureDate)}
+          <Badge variant="azure" className="text-xs">
+            {activeTrip.groups.length} Grup Armada Terbentuk
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {activeTrip.groups.map((grp) => {
-            const percent = calculateOccupancyPercent(grp.currentParticipants, grp.capacity);
-            const remaining = grp.capacity - grp.currentParticipants;
-            const driver = grp.driver || MOCK_DRIVERS[0];
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {activeTrip.groups.map((group) => {
+            const isFull = group.currentParticipants >= group.capacity;
+            const remaining = group.capacity - group.currentParticipants;
+            const driver = group.driver || MOCK_DRIVERS[0];
 
             return (
-              <div
-                key={grp.id}
-                className="p-4 rounded-xl bg-slate-50/70 border border-slate-200/80 space-y-3"
+              <Card
+                key={group.id}
+                className="p-6 border border-slate-100 shadow-stitch-card space-y-4 bg-white"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-heading font-bold text-sm text-slate-800">
-                      Grup {grp.groupNumber} - {driver.vehicleModel}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#00677d] uppercase tracking-wider">
+                      Grup Mobil {group.groupNumber}
                     </span>
-                    <Badge
-                      variant={grp.currentParticipants >= 6 ? "warning" : "success"}
-                      className="text-[10px]"
-                    >
-                      {grp.currentParticipants >= 6 ? "Penuh" : "Open Slot"}
-                    </Badge>
+                    <h3 className="font-heading font-bold text-base text-[#191c1e] mt-0.5">
+                      {driver.vehicleModel} ({driver.plateNumber})
+                    </h3>
                   </div>
-                  <span className="font-bold text-xs text-[#00677d]">
-                    {grp.currentParticipants}/{grp.capacity} Kursi
+                  <Badge variant={isFull ? "destructive" : "azure"} className="font-bold">
+                    {isFull ? "Grup Penuh (6/6)" : `${remaining} Kursi Tersedia`}
+                  </Badge>
+                </div>
+
+                {/* Visual 6-Seat Grid */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-slate-500 font-semibold">
+                    <span>Visual Kursi (Maks 6 Orang):</span>
+                    <span>{group.currentParticipants} / {group.capacity} Terisi</span>
+                  </div>
+
+                  <div className="grid grid-cols-6 gap-2">
+                    {Array.from({ length: 6 }).map((_, i) => {
+                      const isOccupied = i < group.currentParticipants;
+                      return (
+                        <div
+                          key={i}
+                          className={`h-12 rounded-xl flex flex-col items-center justify-center text-[10px] font-bold border transition-all ${
+                            isOccupied
+                              ? "bg-[#00677d] text-white border-[#00677d] shadow-sm"
+                              : "bg-slate-50 text-slate-400 border-dashed border-slate-300"
+                          }`}
+                        >
+                          <Users className="h-3.5 w-3.5 mb-0.5" />
+                          <span>K-{i + 1}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Occupancy Progress Bar */}
+                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mt-3">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#00a3c4] to-[#00677d] rounded-full"
+                      style={{
+                        width: `${calculateOccupancyPercent(group.currentParticipants, group.capacity)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Driver & Action Footer */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">
+                    Driver: <strong>{driver.fullName}</strong> (SIM: {driver.licenseNumber})
                   </span>
+                  <Link
+                    href="/admin/participants"
+                    className="text-[#00677d] font-bold hover:underline flex items-center gap-1"
+                  >
+                    Kelola Peserta <ChevronRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
-
-                <div className="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#00a3c4] to-[#00677d] rounded-full transition-all duration-500"
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                  <span>Plat: <strong>{driver.plateNumber}</strong> ({driver.fullName})</span>
-                  <span>Sisa: <strong>{remaining} Kursi Kosong</strong></span>
-                </div>
-              </div>
+              </Card>
             );
           })}
         </div>
       </div>
 
-      {/* Recent Bookings Table */}
-      <div className="rounded-2xl bg-white p-6 shadow-stitch-card border border-slate-100 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      {/* Bottom Section: Recent Bookings Table */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-heading font-bold text-base text-[#191c1e]">
-              Daftar Pemesanan Terbaru (Recent Bookings)
+            <h2 className="font-heading font-bold text-lg text-[#191c1e]">
+              Pemesanan & Peserta Terbaru
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Data peserta yang baru mendaftar ke platform.
+            <p className="text-xs text-slate-500">
+              Roster peserta yang baru mendaftar melalui web atau offline booking.
             </p>
           </div>
           <Button asChild variant="outline" size="sm" className="gap-1 text-xs">
             <Link href="/admin/participants">
-              Kelola Semua Peserta
-              <ChevronRight className="h-3.5 w-3.5" />
+              Lihat Semua Peserta <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3">Kode Booking</th>
-                <th className="px-4 py-3">Nama Traveler</th>
-                <th className="px-4 py-3">No. WhatsApp</th>
-                <th className="px-4 py-3">Grup Assign</th>
-                <th className="px-4 py-3">Total Biaya</th>
-                <th className="px-4 py-3">Status Bayar</th>
-                <th className="px-4 py-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {recentBookings.map((p) => {
-                const statusBadge = getPaymentBadge(p.paymentStatus);
-                return (
-                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-4 py-3.5 font-mono font-bold text-[#00677d]">
-                      {p.bookingCode}
-                    </td>
-                    <td className="px-4 py-3.5 font-bold text-slate-800">
-                      {p.fullName}
-                      <span className="block text-[11px] font-normal text-slate-400">
-                        {p.nationality}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-slate-600">{p.phoneNumber}</td>
-                    <td className="px-4 py-3.5 font-semibold text-slate-700">
-                      Grup {p.bookingGroupId === "grp-01" ? "1" : "2"} (Toyota HiAce)
-                    </td>
-                    <td className="px-4 py-3.5 font-bold text-[#a43c12]">
-                      {formatCurrency(p.totalAmount)}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${statusBadge.className}`}
-                      >
-                        {statusBadge.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <Button asChild size="sm" variant="ghost" className="h-8 text-xs text-[#00677d]">
-                        <Link href="/admin/participants">
-                          Detail / Pindah
-                          <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-                        </Link>
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Card className="overflow-hidden border border-slate-100 shadow-stitch-card">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-5 py-3.5">Kode Booking</th>
+                  <th className="px-5 py-3.5">Nama Traveler</th>
+                  <th className="px-5 py-3.5">No. WhatsApp</th>
+                  <th className="px-5 py-3.5">Grup Armada</th>
+                  <th className="px-5 py-3.5">Total Bayar</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5">Tanggal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {recentBookings.map((b) => {
+                  const statusBadge = getPaymentBadge(b.paymentStatus);
+                  return (
+                    <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-5 py-3.5 font-mono font-bold text-[#00677d]">
+                        {b.bookingCode}
+                      </td>
+                      <td className="px-5 py-3.5 font-bold text-[#191c1e]">
+                        {b.fullName}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500">{b.phoneNumber}</td>
+                      <td className="px-5 py-3.5">
+                        <Badge variant="azure" className="text-[10px]">
+                          Grup {b.bookingGroupId === "grp-01" ? "1" : "2"}
+                        </Badge>
+                      </td>
+                      <td className="px-5 py-3.5 font-heading font-bold text-[#191c1e]">
+                        {formatCurrency(b.totalAmount)}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${statusBadge.className}`}
+                        >
+                          {statusBadge.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-400">
+                        {formatDate(b.createdAt)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       </div>
     </div>
   );
