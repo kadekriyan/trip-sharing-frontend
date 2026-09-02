@@ -68,8 +68,11 @@ export interface Participant {
   id: string;
   tripId: string;
   trip?: Trip;
+  destinationId?: string;
+  destination?: Destination;
   bookingGroupId: string;
   bookingGroup?: BookingGroup;
+  group?: BookingGroup;
   fullName: string;
   email: string;
   phoneNumber: string;

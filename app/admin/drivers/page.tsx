@@ -4,35 +4,39 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Car,
   Plus,
   Search,
   Star,
   Phone,
   ShieldCheck,
+  Loader2,
+  PackageOpen,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Card } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
-import { MOCK_DRIVERS } from "@/src/services/mockData";
 import { adminService } from "@/src/services/admin.service";
 import type { Driver } from "@/src/types";
 
 export default function DriversAdminPage() {
-  const [drivers, setDrivers] = useState<Driver[]>(MOCK_DRIVERS);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
+      setIsLoading(true);
       try {
         const data = await adminService.getDrivers();
-        if (isMounted && data.length > 0) {
+        if (isMounted) {
           setDrivers(data);
         }
       } catch {
-        // Fallback
+        // Silently handled
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     }
     loadData();
@@ -64,133 +68,118 @@ export default function DriversAdminPage() {
         <Button asChild className="gap-2 shadow-sm">
           <Link href="/admin/drivers/new">
             <Plus className="h-4 w-4" />
-            + Daftarkan Driver Baru
+            Tambah Driver Baru
           </Link>
         </Button>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 border border-slate-100 shadow-stitch-card flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-teal-100 text-[#00677d] flex items-center justify-center">
-            <Car className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-500 font-bold uppercase">Total Mitra Driver</span>
-            <span className="font-heading font-extrabold text-xl text-[#191c1e] block">
-              {drivers.length} Orang
-            </span>
-          </div>
-        </Card>
-
-        <Card className="p-4 border border-slate-100 shadow-stitch-card flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-500 font-bold uppercase">Status Siap Jalan</span>
-            <span className="font-heading font-extrabold text-xl text-emerald-700 block">
-              {drivers.filter((d) => d.status === "available").length} Armada Siaga
-            </span>
-          </div>
-        </Card>
-
-        <Card className="p-4 border border-slate-100 shadow-stitch-card flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center">
-            <Star className="h-5 w-5" />
-          </div>
-          <div>
-            <span className="text-xs text-slate-500 font-bold uppercase">Rata-rata Rating</span>
-            <span className="font-heading font-extrabold text-xl text-[#191c1e] block">
-              ⭐ 4.95 / 5.0
-            </span>
-          </div>
-        </Card>
-      </div>
-
-      {/* Drivers List Card */}
+      {/* Main Table Card */}
       <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-6">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        {/* Search Bar */}
+        <div className="flex items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Cari nama driver, tipe mobil, atau plat nomor..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-slate-50 border-slate-200"
+              className="pl-9 h-10 text-xs bg-slate-50 border-slate-200"
             />
           </div>
+
+          <span className="text-xs text-slate-500 font-medium">
+            Total {filtered.length} Driver Terdaftar
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((drv) => (
-            <Card
-              key={drv.id}
-              className="p-6 border border-slate-100 shadow-stitch-card hover:shadow-stitch-hover transition-all space-y-4"
-            >
-              <div className="flex items-start gap-4">
-                <div className="relative h-14 w-14 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                  <Image
-                    src={drv.photoUrl}
-                    alt={drv.fullName}
-                    fill
-                    className="object-cover"
-                  />
+        {/* Drivers List */}
+        {isLoading ? (
+          <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-2">
+            <Loader2 className="h-6 w-6 text-[#00677d] animate-spin" />
+            <span>Memuat data driver...</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center bg-slate-50/50 rounded-xl border border-slate-200 space-y-3">
+            <PackageOpen className="h-8 w-8 text-slate-400 mx-auto" />
+            <p className="text-xs font-semibold text-slate-600">Belum ada mitra driver terdaftar.</p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/admin/drivers/new">Tambah Driver Pertama</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((driver) => (
+              <Card
+                key={driver.id}
+                className="p-5 border border-slate-100 shadow-stitch-card flex flex-col justify-between space-y-4"
+              >
+                <div className="flex items-start gap-3.5">
+                  <div className="relative h-14 w-14 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                    <Image
+                      src={driver.photoUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"}
+                      alt={driver.fullName}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="font-heading font-bold text-sm text-[#191c1e] truncate">
+                        {driver.fullName}
+                      </h3>
+                      <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                    </div>
+
+                    <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold mt-0.5">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                      <span>{driver.rating || 5.0}</span>
+                      <span className="text-slate-400 font-normal">({driver.totalTrips || 0} Trip)</span>
+                    </div>
+
+                    <a
+                      href={`https://wa.me/${driver.phoneNumber?.replace(/[^0-9]/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-[#00677d] font-bold hover:underline mt-1"
+                    >
+                      <Phone className="h-3 w-3" />
+                      {driver.phoneNumber}
+                    </a>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
+
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-heading font-bold text-sm text-[#191c1e] truncate">
-                      {drv.fullName}
-                    </h3>
-                    <Badge variant="success" className="text-[10px]">
-                      {drv.status}
-                    </Badge>
+                    <span className="text-slate-500">Armada Mobil:</span>
+                    <span className="font-bold text-slate-800">{driver.vehicleModel}</span>
                   </div>
-                  <span className="text-xs text-slate-400 font-mono block">
-                    {drv.licenseNumber}
-                  </span>
-                  <div className="flex items-center gap-1 text-[11px] text-amber-500 font-bold mt-1">
-                    <Star className="h-3.5 w-3.5 fill-current" />
-                    <span>{drv.rating}</span>
-                    <span className="text-slate-400 font-normal">({drv.totalTrips} trip sukses)</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Plat Nomor:</span>
+                    <span className="font-mono font-bold text-[#00677d]">{driver.plateNumber}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Kapasitas:</span>
+                    <span className="font-bold text-slate-800">{driver.passengerCapacity || 6} Kursi VIP</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Vehicle Specs Bar */}
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Tipe Kendaraan:</span>
-                  <strong className="text-slate-800">{drv.vehicleModel}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Nomor Polisi:</span>
-                  <span className="font-mono font-bold text-[#00677d]">{drv.plateNumber}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Kapasitas Maksimal:</span>
-                  <Badge variant="azure" className="text-[10px]">
-                    {drv.passengerCapacity} Kursi Traveler
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <Badge
+                    variant={driver.status === "available" ? "default" : "secondary"}
+                    className="capitalize text-[10px]"
+                  >
+                    {driver.status === "available" ? "Siap Bertugas" : driver.status}
                   </Badge>
-                </div>
-              </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                <a
-                  href={`https://wa.me/${drv.phoneNumber.replace(/[^0-9]/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1"
-                >
-                  <Phone className="h-3.5 w-3.5" />
-                  Hubungi WhatsApp
-                </a>
-                <span className="text-[10px] text-slate-400">Terverifikasi ✓</span>
-              </div>
-            </Card>
-          ))}
-        </div>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    SIM: {driver.licenseNumber}
+                  </span>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -1,6 +1,5 @@
 import { apiClient } from "@/src/lib/api-client";
 import type { Destination, BookingGroup } from "@/src/types";
-import { MOCK_DESTINATIONS, MOCK_TRIPS } from "./mockData";
 
 export interface DestinationFilterParams {
   search?: string;
@@ -28,44 +27,21 @@ export const destinationService = {
         return res.data;
       }
     } catch {
-      // Fallback to local mock data if backend not reachable yet
+      // Return empty array if backend is down or no data
     }
-
-    let results = [...MOCK_DESTINATIONS];
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      results = results.filter(
-        (d) =>
-          d.title.toLowerCase().includes(q) ||
-          d.location.toLowerCase().includes(q) ||
-          d.description.toLowerCase().includes(q)
-      );
-    }
-    if (filters?.location) {
-      results = results.filter((d) => d.location.toLowerCase().includes(filters.location!.toLowerCase()));
-    }
-    if (filters?.duration) {
-      results = results.filter((d) => d.durationDays === Number(filters.duration));
-    }
-    if (filters?.sortBy === "price_asc") {
-      results.sort((a, b) => a.pricePerPax - b.pricePerPax);
-    } else if (filters?.sortBy === "price_desc") {
-      results.sort((a, b) => b.pricePerPax - a.pricePerPax);
-    } else if (filters?.sortBy === "rating") {
-      results.sort((a, b) => b.rating - a.rating);
-    }
-
-    return results;
+    return [];
   },
 
   async getDestinationBySlug(slug: string): Promise<Destination | null> {
     try {
       const res = await apiClient.get<Destination>(`/destinations/${slug}`);
-      if (res.success && res.data) return res.data;
+      if (res.success && res.data) {
+        return res.data;
+      }
     } catch {
-      // Fallback
+      // Not found or network error
     }
-    return MOCK_DESTINATIONS.find((d) => d.slug === slug || d.id === slug) || null;
+    return null;
   },
 
   async getTripAvailability(tripId: string): Promise<BookingGroup[]> {
@@ -77,9 +53,8 @@ export const destinationService = {
         return res.data.groups;
       }
     } catch {
-      // Fallback
+      // Empty groups
     }
-    const trip = MOCK_TRIPS.find((t) => t.id === tripId);
-    return trip?.groups || [];
+    return [];
   },
 };

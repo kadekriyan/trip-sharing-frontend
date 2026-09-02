@@ -7,13 +7,13 @@ import {
   UserPlus,
   ArrowRightLeft,
   CheckCircle2,
-  ShieldCheck,
   AlertCircle,
   Phone,
   Mail,
+  Loader2,
+  PackageOpen,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
-import { Badge } from "@/src/components/ui/badge";
 import { Card } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import {
@@ -23,15 +23,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/src/components/ui/dialog";
-import { MOCK_PARTICIPANTS, MOCK_TRIPS } from "@/src/services/mockData";
 import { adminService } from "@/src/services/admin.service";
-import { getPaymentBadge } from "@/src/lib/utils";
+import { getPaymentBadge, formatCurrency } from "@/src/lib/utils";
 import type { Participant } from "@/src/types";
 
 export default function ParticipantsManagementPage() {
-  const [participants, setParticipants] = useState<Participant[]>(MOCK_PARTICIPANTS);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Move Participant Modal State
   const [movingParticipant, setMovingParticipant] = useState<Participant | null>(null);
@@ -39,17 +39,18 @@ export default function ParticipantsManagementPage() {
   const [moveReason, setMoveReason] = useState("");
   const [moveMessage, setMoveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const fetchParticipants = useCallback(async () => {
+  const reloadData = useCallback(async () => {
+    setIsLoading(true);
     try {
       const data = await adminService.getParticipants({
         status: statusFilter === "all" ? undefined : statusFilter,
         search: searchQuery || undefined,
       });
-      if (data.length > 0) {
-        setParticipants(data);
-      }
+      setParticipants(data);
     } catch {
-      // Fallback
+      // Silently handled
+    } finally {
+      setIsLoading(false);
     }
   }, [statusFilter, searchQuery]);
 
@@ -58,18 +59,22 @@ export default function ParticipantsManagementPage() {
     adminService
       .getParticipants({
         status: statusFilter === "all" ? undefined : statusFilter,
+        search: searchQuery || undefined,
       })
       .then((data) => {
-        if (isMounted && data.length > 0) {
+        if (isMounted) {
           setParticipants(data);
+          setIsLoading(false);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
     return () => {
       isMounted = false;
     };
-  }, [statusFilter]);
+  }, [statusFilter, searchQuery]);
 
   const filteredParticipants = participants.filter((p) => {
     if (statusFilter !== "all" && p.paymentStatus !== statusFilter) return false;
@@ -87,16 +92,6 @@ export default function ParticipantsManagementPage() {
   const handleExecuteMove = async () => {
     if (!movingParticipant) return;
 
-    // Check capacity of target group
-    const targetGroup = MOCK_TRIPS[0].groups.find((g) => g.id === targetGroupId);
-    if (targetGroup && targetGroup.currentParticipants >= targetGroup.capacity) {
-      setMoveMessage({
-        type: "error",
-        text: "Grup tujuan sudah penuh (Kapasitas Maksimal 6 Orang). Silakan pilih grup lain.",
-      });
-      return;
-    }
-
     try {
       const res = await adminService.moveParticipant({
         participantId: movingParticipant.id,
@@ -107,7 +102,7 @@ export default function ParticipantsManagementPage() {
 
       if (res.success) {
         setMoveMessage({ type: "success", text: res.message || "Peserta berhasil dipindahkan ke grup tujuan." });
-        await fetchParticipants();
+        await reloadData();
         setTimeout(() => {
           setMovingParticipant(null);
           setMoveMessage(null);
@@ -149,214 +144,201 @@ export default function ParticipantsManagementPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Cari nama, email, atau kode booking (TRV)..."
+              placeholder="Cari nama traveler, email, atau kode tiket..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-slate-50 border-slate-200"
+              className="pl-9 h-10 text-xs bg-slate-50 border-slate-200"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">Status:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 focus:border-[#00677d] focus:outline-none"
-            >
-              <option value="all">Semua Status</option>
-              <option value="paid">Lunas (Paid)</option>
-              <option value="pending">Menunggu (Pending)</option>
-            </select>
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {["all", "paid", "pending", "failed"].map((st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize whitespace-nowrap ${
+                  statusFilter === st
+                    ? "bg-[#00677d] text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {st === "all" ? "Semua Status" : st}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Participants Table */}
-        <div className="overflow-x-auto rounded-xl border border-slate-100">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              <tr>
-                <th className="px-5 py-3.5">Kode</th>
-                <th className="px-5 py-3.5">Nama & Kontak</th>
-                <th className="px-5 py-3.5">Identitas</th>
-                <th className="px-5 py-3.5">Grup Armada</th>
-                <th className="px-5 py-3.5">Preferensi</th>
-                <th className="px-5 py-3.5">Status</th>
-                <th className="px-5 py-3.5 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {filteredParticipants.map((p) => {
-                const statusBadge = getPaymentBadge(p.paymentStatus);
-                const isGroup1 = p.bookingGroupId === "grp-01" || p.bookingGroupId?.endsWith("01");
-
-                return (
-                  <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-3.5 font-mono font-bold text-[#00677d]">
-                      {p.bookingCode}
-                    </td>
-                    <td className="px-5 py-3.5 space-y-0.5">
-                      <span className="font-bold text-[#191c1e] block text-sm">
-                        {p.fullName}
-                      </span>
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" /> {p.email}
+        {isLoading ? (
+          <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-2">
+            <Loader2 className="h-6 w-6 text-[#00677d] animate-spin" />
+            <span>Memuat data peserta...</span>
+          </div>
+        ) : filteredParticipants.length === 0 ? (
+          <div className="p-12 text-center bg-slate-50/50 rounded-xl border border-slate-200 space-y-2">
+            <PackageOpen className="h-8 w-8 text-slate-400 mx-auto" />
+            <p className="text-xs font-semibold text-slate-600">Tidak ada data peserta yang sesuai.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-slate-100">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                <tr>
+                  <th className="px-5 py-3.5">Kode Booking</th>
+                  <th className="px-5 py-3.5">Nama Traveler</th>
+                  <th className="px-5 py-3.5">Kontak</th>
+                  <th className="px-5 py-3.5">Grup Mobil</th>
+                  <th className="px-5 py-3.5">Pembayaran</th>
+                  <th className="px-5 py-3.5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredParticipants.map((p) => {
+                  const badge = getPaymentBadge(p.paymentStatus);
+                  return (
+                    <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-5 py-4 font-mono font-bold text-[#00677d]">
+                        {p.bookingCode}
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="font-bold text-slate-800">{p.fullName}</div>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          NIK: {p.identityNumber}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" /> {p.phoneNumber}
+                      </td>
+                      <td className="px-5 py-4 space-y-0.5">
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <Mail className="h-3 w-3 text-slate-400" />
+                          <span>{p.email}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-slate-600">
+                          <Phone className="h-3 w-3 text-slate-400" />
+                          <span>{p.phoneNumber}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-50 text-[#00677d] font-bold text-xs">
+                          Grup #{p.group?.groupNumber || 1}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className="text-slate-700 block font-mono text-[11px]">
-                        {p.identityNumber}
-                      </span>
-                      <span className="text-[10px] text-slate-400 capitalize">
-                        {p.nationality} • {p.gender}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <Badge variant="azure" className="text-[10px]">
-                        {isGroup1 ? "Grup Mobil 1" : "Grup Mobil 2"}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-3.5 space-y-0.5">
-                      <span className="text-slate-700 block capitalize text-[11px]">
-                        {p.roomPreference === "single" ? "Private Room" : "Twin Sharing"}
-                      </span>
-                      {p.hasInsurance ? (
-                        <span className="text-emerald-600 text-[10px] font-semibold flex items-center gap-1">
-                          <ShieldCheck className="h-3 w-3" /> Asuransi Aktif
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${badge.className}`}
+                        >
+                          {badge.label}
                         </span>
-                      ) : (
-                        <span className="text-slate-400 text-[10px]">Tanpa Asuransi</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${statusBadge.className}`}
-                      >
-                        {statusBadge.label}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setMovingParticipant(p);
-                          setTargetGroupId(isGroup1 ? "grp-02" : "grp-01");
-                          setMoveReason("");
-                          setMoveMessage(null);
-                        }}
-                        className="gap-1 text-xs"
-                      >
-                        <ArrowRightLeft className="h-3.5 w-3.5 text-[#00677d]" />
-                        Pindah Grup
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                        <span className="block text-[11px] text-slate-500 font-bold mt-1">
+                          {formatCurrency(p.totalAmount)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setMovingParticipant(p);
+                            setMoveMessage(null);
+                          }}
+                          className="h-8 gap-1.5 text-xs text-[#00677d] hover:bg-[#00677d]/5"
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
+                          Pindah Grup
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
-      {/* MOVE PARTICIPANT MODAL DIALOG */}
+      {/* MOVE PARTICIPANT DIALOG */}
       <Dialog open={!!movingParticipant} onOpenChange={() => setMovingParticipant(null)}>
-        <DialogContent className="max-w-md p-6 bg-white space-y-4">
+        <DialogContent className="max-w-md p-6 bg-white rounded-2xl border border-slate-100 shadow-2xl">
           <DialogHeader>
             <DialogTitle className="font-heading font-bold text-lg text-[#191c1e] flex items-center gap-2">
               <ArrowRightLeft className="h-5 w-5 text-[#00677d]" />
-              Pindahkan Peserta ke Grup Lain
+              Pindah Grup Mobil Peserta
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Pindahkan traveler antar armada mobil 6-seater jika ada grup yang kelebihan atau permintaan keluarga.
+              Pindahkan peserta ke grup mobil lain jika ada rombongan teman atau reorganisasi kapasitas (maks 6 pax).
             </DialogDescription>
           </DialogHeader>
 
+          {moveMessage && (
+            <div
+              className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                moveMessage.type === "success"
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  : "bg-rose-50 text-rose-800 border border-rose-200"
+              }`}
+            >
+              {moveMessage.type === "success" ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+              )}
+              <span>{moveMessage.text}</span>
+            </div>
+          )}
+
           {movingParticipant && (
-            <div className="space-y-4 text-xs">
-              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 space-y-1">
+            <div className="space-y-4 pt-2">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Nama Peserta:</span>
-                  <strong className="text-slate-800">{movingParticipant.fullName}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Kode Booking:</span>
-                  <span className="font-mono font-bold text-[#00677d]">{movingParticipant.bookingCode}</span>
+                  <span className="text-slate-500">Peserta:</span>
+                  <span className="font-bold text-slate-800">{movingParticipant.fullName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Grup Saat Ini:</span>
-                  <Badge variant="azure" className="text-[10px]">
-                    {movingParticipant.bookingGroupId === "grp-01" ? "Grup Mobil 1 (4/6)" : "Grup Mobil 2 (2/6)"}
-                  </Badge>
+                  <span className="font-bold text-[#00677d]">
+                    Grup #{movingParticipant.group?.groupNumber || 1}
+                  </span>
                 </div>
               </div>
 
-              {/* Target Group Selector */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Pilih Grup Armada Tujuan *
+                  Pilih Grup Tujuan *
                 </label>
                 <select
                   value={targetGroupId}
                   onChange={(e) => setTargetGroupId(e.target.value)}
                   className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
                 >
-                  <option value="grp-01">Grup Mobil 1 (Toyota HiAce Premio - 4/6 Terisi)</option>
-                  <option value="grp-02">Grup Mobil 2 (Toyota HiAce VIP - 2/6 Terisi)</option>
-                  <option value="grp-03" disabled>Grup Mobil 3 (PENUH - 6/6 Terisi)</option>
+                  <option value="grp-01">Grup Mobil #1</option>
+                  <option value="grp-02">Grup Mobil #2</option>
+                  <option value="grp-03">Grup Mobil #3 (Baru)</option>
                 </select>
-                <span className="text-[10px] text-slate-400 block">
-                  ⚠️ Kapasitas armada dibatasi ketat maksimal 6 orang per kendaraan.
-                </span>
               </div>
 
-              {/* Reason */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Alasan Pemindahan *
+                  Alasan Pemindahan (Catatan Audit)
                 </label>
                 <Input
-                  placeholder="Contoh: Permintaan traveler agar se-mobil dengan keluarga"
+                  placeholder="Contoh: Permintaan gabung rombongan keluarga"
                   value={moveReason}
                   onChange={(e) => setMoveReason(e.target.value)}
+                  className="text-xs bg-slate-50 border-slate-200"
                 />
               </div>
 
-              {/* Feedback Alert */}
-              {moveMessage && (
-                <div
-                  className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
-                    moveMessage.type === "success"
-                      ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                      : "bg-rose-50 text-rose-800 border border-rose-200"
-                  }`}
-                >
-                  {moveMessage.type === "success" ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-                  )}
-                  <span>{moveMessage.text}</span>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <div className="pt-3 flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setMovingParticipant(null)}
+                  className="flex-1 text-xs"
                 >
                   Batal
                 </Button>
                 <Button
                   size="sm"
                   onClick={handleExecuteMove}
-                  className="bg-[#00677d] text-white"
+                  className="flex-1 text-xs font-bold"
                 >
                   Konfirmasi Pindah
                 </Button>

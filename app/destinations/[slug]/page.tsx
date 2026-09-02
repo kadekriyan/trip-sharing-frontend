@@ -8,7 +8,6 @@ import {
   MapPin,
   Calendar,
   Users,
-  ShieldCheck,
   CheckCircle2,
   XCircle,
   ArrowLeft,
@@ -18,8 +17,9 @@ import {
   Building2,
   Sparkles,
   Clock,
-  Car,
   AlertCircle,
+  Loader2,
+  PackageOpen,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -30,11 +30,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/src/components/ui/dialog";
-import { MOCK_DESTINATIONS, MOCK_TRIPS } from "@/src/services/mockData";
 import { destinationService } from "@/src/services/destination.service";
 import { bookingService } from "@/src/services/booking.service";
-import { formatCurrency, formatDuration, formatDate, calculateOccupancyPercent } from "@/src/lib/utils";
-import type { Destination, Trip, BookingGroup } from "@/src/types";
+import { formatCurrency, formatDuration, calculateOccupancyPercent } from "@/src/lib/utils";
+import type { Destination, BookingGroup } from "@/src/types";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -44,21 +43,11 @@ export default function DestinationDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
 
-  const [destination, setDestination] = useState<Destination>(() => {
-    return (
-      MOCK_DESTINATIONS.find(
-        (d) => d.slug === resolvedParams.slug || d.id === resolvedParams.slug
-      ) || MOCK_DESTINATIONS[0]
-    );
-  });
-
-  const [activeTrip] = useState<Trip>(() => {
-    const trips = MOCK_TRIPS.filter((t) => t.destinationId === destination.id);
-    return trips[0] || MOCK_TRIPS[0];
-  });
-
-  const [groups, setGroups] = useState<BookingGroup[]>(activeTrip.groups || []);
-  const [selectedGroup, setSelectedGroup] = useState<string>(groups[0]?.id || "grp-01");
+  const [destination, setDestination] = useState<Destination | null>(null);
+  const [groups, setGroups] = useState<BookingGroup[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<string>("");
+  const [tripId, setTripId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,29 +71,65 @@ export default function DestinationDetailPage({ params }: PageProps) {
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
+      setIsLoading(true);
       try {
         const dest = await destinationService.getDestinationBySlug(resolvedParams.slug);
         if (dest && isMounted) {
           setDestination(dest);
-          const avail = await destinationService.getTripAvailability(activeTrip.id);
-          if (avail.length > 0 && isMounted) {
+          const tId = dest.id;
+          setTripId(tId);
+
+          const avail = await destinationService.getTripAvailability(tId);
+          if (isMounted) {
             setGroups(avail);
-            setSelectedGroup(avail[0].id);
+            if (avail.length > 0) {
+              setSelectedGroup(avail[0].id);
+            }
           }
         }
       } catch {
-        // Fallback already in place
+        // Silently handled
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     }
     loadData();
     return () => {
       isMounted = false;
     };
-  }, [resolvedParams.slug, activeTrip.id]);
+  }, [resolvedParams.slug]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb] flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="h-8 w-8 text-[#00677d] animate-spin" />
+        <span className="text-xs font-semibold text-slate-500">
+          Memuat detail destinasi dan ketersediaan grup...
+        </span>
+      </div>
+    );
+  }
+
+  if (!destination) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <PackageOpen className="h-12 w-12 text-slate-400" />
+        <h2 className="font-heading font-extrabold text-xl text-[#191c1e]">
+          Destinasi Tidak Ditemukan
+        </h2>
+        <p className="text-xs text-slate-500 max-w-sm">
+          Paket wisata dengan slug &ldquo;{resolvedParams.slug}&rdquo; tidak terdaftar di database.
+        </p>
+        <Button asChild>
+          <Link href="/destinations">Kembali ke Katalog</Link>
+        </Button>
+      </div>
+    );
+  }
 
   const insuranceFee = hasInsurance ? 50000 : 0;
   const privateRoomFee = roomPref === "single" ? 350000 : 0;
-  const totalAmount = (destination?.pricePerPax || 850000) + insuranceFee + privateRoomFee;
+  const totalAmount = destination.pricePerPax + insuranceFee + privateRoomFee;
 
   const handleOpenPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +143,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
     setIsSubmitting(true);
     try {
       const res = await bookingService.createBooking({
-        tripId: activeTrip.id,
+        tripId: tripId || destination.id,
         destinationId: destination.id,
         fullName,
         email,
@@ -136,12 +161,14 @@ export default function DestinationDetailPage({ params }: PageProps) {
       setCreatedParticipantId(participantId);
 
       // Fetch Midtrans Snap Token
-      const snapData = await bookingService.getSnapToken(participantId, paymentMethod);
+      const snapData = await bookingService.getSnapToken(
+        participantId,
+        paymentMethod === "bca_va" || paymentMethod === "mandiri_va" ? "bank_transfer" : paymentMethod
+      );
       setSnapToken(snapData.snapToken);
-
       setIsPaymentModalOpen(true);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat memproses booking.";
+      const msg = err instanceof Error ? err.message : "Gagal memproses pemesanan. Silakan coba lagi.";
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
@@ -151,7 +178,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
   const handleCompletePaymentSimulation = async () => {
     setIsProcessingPayment(true);
     try {
-      await bookingService.simulateMidtransPayment(createdParticipantId || "part-01", paymentMethod);
+      await bookingService.simulatePaymentSettlement(createdParticipantId || "part-01");
       setTimeout(() => {
         setIsProcessingPayment(false);
         setIsPaymentModalOpen(false);
@@ -202,7 +229,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
             {/* Gallery Cover */}
             <div className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-stitch-card border border-slate-100">
               <Image
-                src={destination.coverImage}
+                src={destination.coverImage || "/images/dest-bromo.jpg"}
                 alt={destination.title}
                 fill
                 className="object-cover"
@@ -218,401 +245,357 @@ export default function DestinationDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Itinerary Accordion / List */}
-            <div className="rounded-2xl bg-white p-6 shadow-stitch-card border border-slate-100 space-y-6">
-              <h2 className="font-heading font-bold text-lg text-[#191c1e] flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#00677d]" />
-                Rencana Perjalanan (Itinerary)
-              </h2>
-
-              <div className="space-y-6">
-                {destination.itinerary && destination.itinerary.map((itin) => (
-                  <div key={itin.day} className="relative pl-6 border-l-2 border-[#00a3c4]/40 space-y-2">
-                    <div className="absolute -left-2.5 top-0 h-5 w-5 rounded-full bg-[#00677d] text-white flex items-center justify-center text-[10px] font-bold">
-                      {itin.day}
+            {/* Highlights */}
+            {destination.highlights && destination.highlights.length > 0 && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-stitch-card space-y-4">
+                <h2 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[#ff7f50]" />
+                  Highlight Perjalanan
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {destination.highlights.map((hl, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{hl}</span>
                     </div>
-                    <h3 className="font-heading font-bold text-sm text-[#191c1e]">
-                      Hari {itin.day}: {itin.title}
-                    </h3>
-                    {itin.description && (
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        {itin.description}
-                      </p>
-                    )}
-                    {itin.activities && (
-                      <ul className="space-y-1 pt-1">
-                        {itin.activities.map((act, i) => (
-                          <li key={i} className="text-xs text-slate-600 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#ff7f50]" />
-                            {act}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Itinerary Timeline */}
+            {destination.itinerary && destination.itinerary.length > 0 && (
+              <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-stitch-card space-y-6">
+                <h2 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-[#00677d]" />
+                  Rencana Perjalanan (Itinerary)
+                </h2>
+                <div className="space-y-6">
+                  {destination.itinerary.map((day) => (
+                    <div key={day.day} className="relative pl-6 border-l-2 border-[#00677d]/30 space-y-2">
+                      <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-[#00677d] border-2 border-white shadow-sm" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#ff7f50] bg-orange-50 px-2 py-0.5 rounded-md">
+                          Hari {day.day}
+                        </span>
+                        <h3 className="font-heading font-bold text-sm text-slate-800">
+                          {day.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {day.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Inclusions & Exclusions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Inclusions */}
-              <div className="rounded-2xl bg-white p-6 shadow-stitch-card border border-slate-100 space-y-3">
-                <h3 className="font-heading font-bold text-sm text-emerald-800 flex items-center gap-2">
+              <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-stitch-card space-y-3">
+                <h2 className="font-heading font-bold text-sm text-[#191c1e] flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  Termasuk dalam Paket
-                </h3>
+                  Termasuk Biaya (Inclusions)
+                </h2>
                 <ul className="space-y-2 text-xs text-slate-600">
                   {destination.inclusions && destination.inclusions.map((inc, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                       <span>{inc}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Exclusions */}
-              <div className="rounded-2xl bg-white p-6 shadow-stitch-card border border-slate-100 space-y-3">
-                <h3 className="font-heading font-bold text-sm text-rose-800 flex items-center gap-2">
-                  <XCircle className="h-4 w-4 text-rose-600" />
-                  Tidak Termasuk
-                </h3>
+              <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-stitch-card space-y-3">
+                <h2 className="font-heading font-bold text-sm text-[#191c1e] flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-rose-500" />
+                  Tidak Termasuk (Exclusions)
+                </h2>
                 <ul className="space-y-2 text-xs text-slate-600">
                   {destination.exclusions && destination.exclusions.map((exc, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-rose-400 shrink-0" />
                       <span>{exc}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             </div>
-
-            {/* Fleet & Meeting Point Info */}
-            <div className="rounded-2xl bg-white p-6 shadow-stitch-card border border-slate-100 space-y-4">
-              <h3 className="font-heading font-bold text-sm text-[#191c1e] flex items-center gap-2">
-                <Car className="h-4 w-4 text-[#00677d]" />
-                Armada & Titik Kumpul (Meeting Point)
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-600">
-                <div className="bg-slate-50 p-3.5 rounded-xl space-y-1">
-                  <span className="font-bold text-slate-700 block">Armada Perjalanan:</span>
-                  <span>Toyota HiAce Premio / Elf Luxury (AC, Maks 6 Kursi Traveler)</span>
-                </div>
-                <div className="bg-slate-50 p-3.5 rounded-xl space-y-1">
-                  <span className="font-bold text-slate-700 block">Meeting Point:</span>
-                  <span>{destination.meetingPoint}</span>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* RIGHT COLUMN: BOOKING FORM & GROUP SELECTION */}
+          {/* RIGHT COLUMN: LIVE GROUP STATUS & BOOKING FORM */}
           <div className="lg:col-span-5 space-y-6">
-            {/* Group Availability Selector */}
-            <div className="rounded-2xl bg-white p-6 shadow-stitch-card border border-slate-100 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-heading font-bold text-sm text-[#191c1e] flex items-center gap-2">
+            {/* 1. Live Groups Occupancy Card */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-stitch-card space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-[#00677d]" />
-                  Status Grup Armada
-                </h3>
-                <Badge variant="azure" className="text-[10px]">
-                  {formatDate(activeTrip.departureDate)}
+                  <span className="font-heading font-bold text-sm text-[#191c1e]">
+                    Ketersediaan Slot Grup Mobil
+                  </span>
+                </div>
+                <Badge variant="coral" className="text-[10px]">
+                  Maks 6 Pax
                 </Badge>
               </div>
 
-              <div className="space-y-3">
-                {groups.map((grp) => {
-                  const isSelected = selectedGroup === grp.id;
-                  const remainingSeats = grp.capacity - grp.currentParticipants;
-                  return (
-                    <div
-                      key={grp.id}
-                      onClick={() => setSelectedGroup(grp.id)}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                        isSelected
-                          ? "border-[#00677d] bg-[#00677d]/5 ring-2 ring-[#00677d]/20"
-                          : "border-slate-200 hover:border-slate-300 bg-white"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-bold text-xs text-[#191c1e]">
-                          Grup {grp.groupNumber} ({grp.driver?.vehicleModel || "HiAce 6-Pax"})
-                        </span>
-                        <span className="text-[11px] font-bold text-[#00677d] bg-sky-50 px-2 py-0.5 rounded-md">
-                          {grp.currentParticipants}/{grp.capacity} Terisi (Sisa {remainingSeats} Kursi)
-                        </span>
-                      </div>
+              {groups.length === 0 ? (
+                <div className="p-4 rounded-xl bg-slate-50 text-center text-xs text-slate-500">
+                  Grup mobil baru akan dibuat otomatis saat Anda melakukan reservasi pertama.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {groups.map((group) => {
+                    const isSelected = selectedGroup === group.id;
+                    const percent = calculateOccupancyPercent(group.currentParticipants, group.capacity);
+                    const remaining = group.capacity - group.currentParticipants;
 
-                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#00a3c4] to-[#00677d] rounded-full"
-                          style={{
-                            width: `${calculateOccupancyPercent(grp.currentParticipants, grp.capacity)}%`,
-                          }}
-                        />
+                    return (
+                      <div
+                        key={group.id}
+                        onClick={() => setSelectedGroup(group.id)}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-[#00677d] bg-[#00677d]/5 ring-1 ring-[#00677d]"
+                            : "border-slate-200 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-xs text-slate-800">
+                            Grup Mobil #{group.groupNumber}
+                          </span>
+                          <span className="text-[11px] font-semibold text-[#00677d]">
+                            {group.currentParticipants}/{group.capacity} Kursi ({remaining} Sisa)
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-[#00a3c4] to-[#00677d] rounded-full"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
                       </div>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
-                        Driver: {grp.driver?.fullName || "Pak Joko Santoso"} (Rating ⭐ {grp.driver?.rating || "5.0"})
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* Error Message Alert */}
-            {errorMessage && (
-              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-xs text-rose-800">
-                <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold block">Pemberitahuan:</span>
+            {/* 2. Participant Registration Form */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-stitch-card space-y-6 sticky top-24">
+              <div className="border-b border-slate-100 pb-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#ff7f50] block">
+                  Formulir Reservasi
+                </span>
+                <h2 className="font-heading font-extrabold text-lg text-[#191c1e]">
+                  Data Diri Traveler
+                </h2>
+              </div>
+
+              {errorMessage && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Booking Form (Data Diri Traveler) */}
-            <form
-              onSubmit={handleOpenPayment}
-              className="rounded-2xl bg-white p-6 sm:p-8 shadow-stitch-card border border-slate-100 space-y-6"
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-[#00677d]" />
-                  Data Diri Traveler
-                </h3>
-                <span className="text-[11px] text-slate-400">1 Kursi</span>
-              </div>
-
-              {/* Input: Nama Lengkap */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Nama Lengkap (Sesuai KTP/Paspor) *
-                </label>
-                <Input
-                  required
-                  placeholder="Contoh: Siti Rahmawati"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </div>
-
-              {/* Input: Email & No HP */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form onSubmit={handleOpenPayment} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Email Aktif *
+                    Nama Lengkap (Sesuai KTP/Paspor) *
                   </label>
                   <Input
                     required
-                    type="email"
-                    placeholder="siti.rahma@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Contoh: Budi Pratama"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="text-xs bg-slate-50 border-slate-200"
                   />
                 </div>
-                <div className="space-y-1.5">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Email Aktif *
+                    </label>
+                    <Input
+                      required
+                      type="email"
+                      placeholder="budi@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="text-xs bg-slate-50 border-slate-200"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      No. WhatsApp *
+                    </label>
+                    <Input
+                      required
+                      type="tel"
+                      placeholder="081234567890"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className="text-xs bg-slate-50 border-slate-200"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      NIK / Paspor *
+                    </label>
+                    <Input
+                      required
+                      placeholder="3509123456780001"
+                      value={identityNumber}
+                      onChange={(e) => setIdentityNumber(e.target.value)}
+                      className="text-xs bg-slate-50 border-slate-200"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Kewarganegaraan
+                    </label>
+                    <select
+                      value={nationality}
+                      onChange={(e) => setNationality(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
+                    >
+                      <option value="Indonesia">Indonesia</option>
+                      <option value="Malaysia">Malaysia</option>
+                      <option value="Singapore">Singapore</option>
+                      <option value="Other">Lainnya</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Preference Options */}
+                <div className="space-y-2 pt-2 border-t border-slate-100">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    No. WhatsApp *
+                    Preferensi Kamar
                   </label>
-                  <Input
-                    required
-                    type="tel"
-                    placeholder="081987654321"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRoomPref("shared")}
+                      className={`p-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
+                        roomPref === "shared"
+                          ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d] font-bold"
+                          : "border-slate-200 text-slate-600"
+                      }`}
+                    >
+                      Sharing Room (Gratis)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRoomPref("single")}
+                      className={`p-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
+                        roomPref === "single"
+                          ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d] font-bold"
+                          : "border-slate-200 text-slate-600"
+                      }`}
+                    >
+                      Private Room (+350rb)
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Input: No KTP / Paspor & Kewarganegaraan */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    No. KTP / Paspor *
-                  </label>
-                  <Input
-                    required
-                    placeholder="3201123456780002"
-                    value={identityNumber}
-                    onChange={(e) => setIdentityNumber(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Kewarganegaraan
-                  </label>
-                  <select
-                    value={nationality}
-                    onChange={(e) => setNationality(e.target.value)}
-                    className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 focus:border-[#00677d] focus:outline-none"
-                  >
-                    <option value="Indonesia">Indonesia</option>
-                    <option value="Malaysia">Malaysia</option>
-                    <option value="Singapore">Singapore</option>
-                    <option value="Australia">Australia</option>
-                    <option value="Other">Lainnya</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Room Preference */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Preferensi Kamar (Jika Termasuk Penginapan)
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <label
-                    className={`flex flex-col p-3 rounded-xl border cursor-pointer text-xs ${
-                      roomPref === "shared"
-                        ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d] font-bold"
-                        : "border-slate-200 text-slate-600"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>Twin Sharing</span>
-                      <input
-                        type="radio"
-                        name="roomPref"
-                        checked={roomPref === "shared"}
-                        onChange={() => setRoomPref("shared")}
-                        className="accent-[#00677d]"
-                      />
-                    </div>
-                    <span className="text-[10px] font-normal text-slate-500 mt-1">Termasuk dalam paket</span>
-                  </label>
-
-                  <label
-                    className={`flex flex-col p-3 rounded-xl border cursor-pointer text-xs ${
-                      roomPref === "single"
-                        ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d] font-bold"
-                        : "border-slate-200 text-slate-600"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>Private Room</span>
-                      <input
-                        type="radio"
-                        name="roomPref"
-                        checked={roomPref === "single"}
-                        onChange={() => setRoomPref("single")}
-                        className="accent-[#00677d]"
-                      />
-                    </div>
-                    <span className="text-[10px] font-normal text-slate-500 mt-1">+ Rp 350.000 / malam</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Health Notes */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Catatan Medis / Alergi Makanan (Opsional)
-                </label>
-                <Input
-                  placeholder="Contoh: Alergi seafood ringan..."
-                  value={healthNotes}
-                  onChange={(e) => setHealthNotes(e.target.value)}
-                />
-              </div>
-
-              {/* Insurance Checkbox */}
-              <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-200/80">
-                <label className="flex items-start gap-2.5 cursor-pointer">
+                {/* Insurance Checkbox */}
+                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={hasInsurance}
                     onChange={(e) => setHasInsurance(e.target.checked)}
-                    className="mt-0.5 rounded accent-[#ff7f50]"
+                    className="accent-[#00677d] h-4 w-4 mt-0.5 rounded"
                   />
                   <div className="text-xs">
-                    <span className="font-bold text-[#a43c12] block">
-                      Proteksi Asuransi Perjalanan (+ Rp 50.000)
-                    </span>
-                    <span className="text-slate-500 text-[11px]">
-                      Perlindungan medis darurat & kecelakaan selama durasi trip.
-                    </span>
+                    <span className="font-bold text-slate-800 block">Asuransi Perjalanan (+Rp 50.000)</span>
+                    <span className="text-[11px] text-slate-500">Perlindungan medis dan evakuasi darurat selama trip.</span>
                   </div>
                 </label>
-              </div>
 
-              {/* hCaptcha Security Box */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  <Lock className="h-4 w-4 text-[#00677d]" />
-                  <span>hCaptcha Bot Protection</span>
+                {/* Health & Special Notes */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                    Catatan Khusus / Riwayat Kesehatan (Opsional)
+                  </label>
+                  <Input
+                    placeholder="Misal: Alergi makanan, asma, dsb."
+                    value={healthNotes}
+                    onChange={(e) => setHealthNotes(e.target.value)}
+                    className="text-xs bg-slate-50 border-slate-200"
+                  />
                 </div>
-                <Badge variant="success" className="text-[10px]">
-                  Terverifikasi ✓
-                </Badge>
-              </div>
 
-              {/* Price Breakdown & Total */}
-              <div className="space-y-2 pt-4 border-t border-slate-100 text-xs">
-                <div className="flex justify-between text-slate-600">
-                  <span>Harga Trip (1 Pax):</span>
-                  <span>{formatCurrency(destination.pricePerPax)}</span>
-                </div>
-                {hasInsurance && (
-                  <div className="flex justify-between text-slate-600">
-                    <span>Asuransi Perjalanan:</span>
-                    <span>+ {formatCurrency(50000)}</span>
+                {/* Price Breakdown Summary */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                  <div className="flex justify-between text-xs text-slate-600">
+                    <span>Tiket Trip Sharing:</span>
+                    <span>{formatCurrency(destination.pricePerPax)}</span>
                   </div>
-                )}
-                {roomPref === "single" && (
-                  <div className="flex justify-between text-slate-600">
-                    <span>Private Room Upgrade:</span>
-                    <span>+ {formatCurrency(350000)}</span>
+                  {hasInsurance && (
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Asuransi:</span>
+                      <span>+Rp 50.000</span>
+                    </div>
+                  )}
+                  {roomPref === "single" && (
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Kamar Privat:</span>
+                      <span>+Rp 350.000</span>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-slate-200 flex justify-between items-center font-bold text-sm text-[#191c1e]">
+                    <span>Total Pembayaran:</span>
+                    <span className="font-heading font-extrabold text-[#a43c12] text-base">
+                      {formatCurrency(totalAmount)}
+                    </span>
                   </div>
-                )}
-                <div className="flex justify-between font-heading font-extrabold text-base text-[#191c1e] pt-2 border-t border-slate-200">
-                  <span>Total Pembayaran:</span>
-                  <span className="text-[#a43c12]">{formatCurrency(totalAmount)}</span>
                 </div>
-              </div>
 
-              {/* Submit CTA */}
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isSubmitting}
-                className="w-full justify-center text-base font-bold shadow-lg"
-              >
-                <Sparkles className="h-4 w-4 mr-2" />
-                {isSubmitting ? "Memproses Booking..." : `Lanjut ke Pembayaran (${formatCurrency(totalAmount)})`}
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting}
+                  className="w-full justify-center font-bold text-sm shadow-md"
+                >
+                  {isSubmitting ? "Memproses Pemesanan..." : "Lanjut ke Pembayaran"}
+                </Button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 4. MIDTRANS SNAP PAYMENT MODAL OVERLAY */}
+      {/* MIDTRANS PAYMENT MODAL OVERLAY */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-white">
-          {/* Modal Header */}
-          <div className="bg-gradient-to-r from-[#00677d] to-[#00a3c4] p-5 text-white">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider opacity-80">
-                Midtrans Snap Payment
-              </span>
-              <Badge variant="secondary" className="text-[10px] font-bold">
-                Order #{createdParticipantId ? createdParticipantId.slice(-6).toUpperCase() : "TRV-8921"}
-              </Badge>
-            </div>
-            <DialogTitle className="text-lg font-bold text-white mt-2">
-              Pilih Metode Pembayaran
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-100 mt-0.5">
-              Total Tagihan: <strong className="text-white text-sm">{formatCurrency(totalAmount)}</strong>
-            </DialogDescription>
-          </div>
+        <DialogContent className="max-w-md p-6 bg-white rounded-2xl border border-slate-100 shadow-2xl">
+          <DialogTitle className="font-heading font-bold text-lg text-[#191c1e] flex items-center gap-2">
+            <Lock className="h-5 w-5 text-emerald-600" />
+            Midtrans Payment Gateway
+          </DialogTitle>
+          <DialogDescription className="text-xs text-slate-500">
+            Pilih metode pembayaran aman untuk menyelesaikan reservasi slot grup Anda.
+          </DialogDescription>
 
-          {/* Payment Method Selector */}
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 pt-3">
+            {/* Amount Summary */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex justify-between items-center">
+              <span className="text-xs text-slate-600 font-medium">Tagihan Resmi:</span>
+              <span className="font-heading font-extrabold text-base text-[#a43c12]">
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+
+            {/* Methods Options */}
             <div className="space-y-2">
-              {/* QRIS */}
               <label
                 onClick={() => setPaymentMethod("qris")}
                 className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
@@ -622,12 +605,12 @@ export default function DestinationDetailPage({ params }: PageProps) {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-orange-100 text-[#ff7f50] flex items-center justify-center">
+                  <div className="h-9 w-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
                     <QrCode className="h-5 w-5" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-800 block">QRIS (Instant)</span>
-                    <span className="text-[11px] text-slate-500">GoPay, OVO, ShopeePay, BCA QR</span>
+                    <span className="text-xs font-bold text-slate-800 block">QRIS Instan (GoPay/OVO/BCA)</span>
+                    <span className="text-[11px] text-slate-500">Bebas biaya admin & konfirmasi instan</span>
                   </div>
                 </div>
                 <input
@@ -639,7 +622,6 @@ export default function DestinationDetailPage({ params }: PageProps) {
                 />
               </label>
 
-              {/* Virtual Account BCA */}
               <label
                 onClick={() => setPaymentMethod("bca_va")}
                 className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
@@ -666,7 +648,6 @@ export default function DestinationDetailPage({ params }: PageProps) {
                 />
               </label>
 
-              {/* Credit Card */}
               <label
                 onClick={() => setPaymentMethod("credit_card")}
                 className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all ${
@@ -694,7 +675,6 @@ export default function DestinationDetailPage({ params }: PageProps) {
               </label>
             </div>
 
-            {/* Mock QR / VA Display Area */}
             {paymentMethod === "qris" && (
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-2">
                 <div className="h-32 w-32 mx-auto bg-white border border-slate-300 rounded-lg p-2 flex items-center justify-center shadow-inner">
@@ -721,7 +701,6 @@ export default function DestinationDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* Action Simulator Button */}
             <div className="pt-2">
               <Button
                 onClick={handleCompletePaymentSimulation}
