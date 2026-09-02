@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -8,14 +8,16 @@ import {
   Users,
   MapPin,
   Car,
-  CheckCircle2,
   Sparkles,
   Phone,
   Ticket,
+  Search,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Card } from "@/src/components/ui/card";
+import { Input } from "@/src/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -24,16 +26,68 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { MOCK_PARTICIPANTS, MOCK_DESTINATIONS, MOCK_DRIVERS } from "@/src/services/mockData";
+import { bookingService } from "@/src/services/booking.service";
 import { formatCurrency, formatDate, getPaymentBadge } from "@/src/lib/utils";
+import type { Participant } from "@/src/types";
 
 export default function MyBookingsPage() {
   const [activeTab, setActiveTab] = useState<"all" | "paid" | "pending">("all");
-  const [selectedVoucher, setSelectedVoucher] = useState<(typeof MOCK_PARTICIPANTS)[0] | null>(null);
+  const [bookings, setBookings] = useState<Participant[]>(MOCK_PARTICIPANTS);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedVoucher, setSelectedVoucher] = useState<Participant | null>(null);
 
-  const filteredBookings = MOCK_PARTICIPANTS.filter((item) => {
-    if (activeTab === "paid") return item.paymentStatus === "paid";
-    if (activeTab === "pending") return item.paymentStatus === "pending";
-    return true;
+  useEffect(() => {
+    let isMounted = true;
+    async function loadBookings() {
+      setIsLoading(true);
+      try {
+        const data = await bookingService.getMyBookings();
+        if (isMounted && data.length > 0) {
+          setBookings(data);
+        }
+      } catch {
+        // Fallback
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    loadBookings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const data = await bookingService.getMyBookings({
+        bookingCode: searchQuery.includes("TRV") ? searchQuery : undefined,
+        email: searchQuery.includes("@") ? searchQuery : undefined,
+      });
+      setBookings(data);
+    } catch {
+      // Fallback
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredBookings = bookings.filter((item) => {
+    const matchesTab =
+      activeTab === "all" ||
+      (activeTab === "paid" && item.paymentStatus === "paid") ||
+      (activeTab === "pending" && item.paymentStatus === "pending");
+
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      !searchQuery ||
+      item.bookingCode.toLowerCase().includes(q) ||
+      item.fullName.toLowerCase().includes(q) ||
+      item.email.toLowerCase().includes(q);
+
+    return matchesTab && matchesSearch;
   });
 
   return (
@@ -60,6 +114,22 @@ export default function MyBookingsPage() {
           </Button>
         </div>
 
+        {/* Guest / Search Bar */}
+        <form onSubmit={handleSearch} className="mb-6 flex gap-2 max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Cari email / kode booking (misal TRV-8921)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-white"
+            />
+          </div>
+          <Button type="submit" variant="secondary">
+            Cari
+          </Button>
+        </form>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* LEFT: BOOKINGS LIST */}
           <div className="lg:col-span-8 space-y-6">
@@ -73,7 +143,7 @@ export default function MyBookingsPage() {
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Semua Booking ({MOCK_PARTICIPANTS.length})
+                Semua Booking ({bookings.length})
               </button>
               <button
                 onClick={() => setActiveTab("paid")}
@@ -83,7 +153,7 @@ export default function MyBookingsPage() {
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Trip Lunas ({MOCK_PARTICIPANTS.filter((p) => p.paymentStatus === "paid").length})
+                Trip Lunas ({bookings.filter((p) => p.paymentStatus === "paid").length})
               </button>
               <button
                 onClick={() => setActiveTab("pending")}
@@ -93,9 +163,29 @@ export default function MyBookingsPage() {
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Menunggu Pembayaran ({MOCK_PARTICIPANTS.filter((p) => p.paymentStatus === "pending").length})
+                Menunggu Pembayaran ({bookings.filter((p) => p.paymentStatus === "pending").length})
               </button>
             </div>
+
+            {/* Loading & Empty State */}
+            {isLoading && (
+              <div className="text-center py-12 text-slate-400 text-sm">
+                Memuat riwayat pemesanan...
+              </div>
+            )}
+
+            {!isLoading && filteredBookings.length === 0 && (
+              <div className="text-center py-12 bg-white rounded-2xl border border-slate-200 p-8">
+                <Ticket className="h-10 w-10 text-slate-300 mx-auto mb-3" />
+                <h3 className="font-heading font-bold text-base text-slate-700">Belum Ada Riwayat Pemesanan</h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                  Belum ada tiket yang cocok dengan filter atau pencarian Anda.
+                </p>
+                <Button asChild className="mt-4" size="sm">
+                  <Link href="/destinations">Jelajahi Destinasi</Link>
+                </Button>
+              </div>
+            )}
 
             {/* Bookings Card List */}
             <div className="space-y-6">
@@ -151,7 +241,7 @@ export default function MyBookingsPage() {
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Users className="h-3.5 w-3.5 text-[#00677d]" />
-                              <span>Grup 1 (4/6 Terisi)</span>
+                              <span>Grup 1 (5/6 Terisi)</span>
                             </div>
                             <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
                               <MapPin className="h-3.5 w-3.5 text-[#00677d]" />
@@ -236,9 +326,9 @@ export default function MyBookingsPage() {
               </div>
               <div>
                 <h3 className="font-heading font-bold text-lg text-[#191c1e]">
-                  Rizky Ramadhan
+                  Siti Rahmawati
                 </h3>
-                <p className="text-xs text-slate-500">rizky.ramadhan@example.com</p>
+                <p className="text-xs text-slate-500">siti.rahma@example.com</p>
                 <Badge variant="azure" className="mt-2 text-[10px]">
                   Verified Solo Traveler
                 </Badge>
@@ -247,91 +337,78 @@ export default function MyBookingsPage() {
               <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-center">
                 <div className="bg-slate-50 p-3 rounded-xl">
                   <span className="font-heading font-extrabold text-lg text-[#00677d] block">
-                    4
+                    {bookings.filter((b) => b.paymentStatus === "paid").length}
                   </span>
-                  <span className="text-[11px] text-slate-500">Trip Diikuti</span>
+                  <span className="text-[10px] text-slate-500">Trip Selesai</span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-xl">
                   <span className="font-heading font-extrabold text-lg text-[#ff7f50] block">
-                    Rp 3.8M
+                    ⭐ 5.0
                   </span>
-                  <span className="text-[11px] text-slate-500">Biaya Dihemat</span>
+                  <span className="text-[10px] text-slate-500">Traveler Rating</span>
                 </div>
               </div>
-            </Card>
-
-            {/* Safety & Cost Sharing Guarantee */}
-            <Card className="p-6 bg-gradient-to-br from-[#00677d]/10 to-[#00a3c4]/10 border border-[#00677d]/20 space-y-3">
-              <h4 className="font-heading font-bold text-sm text-[#00677d] flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" />
-                Jaminan Berbagi Biaya Adil
-              </h4>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Setiap pemesanan kursi dijamin transparan tanpa mark-up sewa kendaraan. Driver profesional dan armada ber-AC selalu siap mengantar petualangan Anda.
-              </p>
             </Card>
           </div>
         </div>
       </div>
 
-      {/* E-VOUCHER MODAL */}
-      {selectedVoucher && (
-        <Dialog open={!!selectedVoucher} onOpenChange={() => setSelectedVoucher(null)}>
-          <DialogContent className="max-w-md p-6 bg-white space-y-4">
-            <DialogHeader className="border-b border-slate-100 pb-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[#00677d] uppercase">
+      {/* DIGITAL E-VOUCHER DIALOG */}
+      <Dialog open={!!selectedVoucher} onOpenChange={() => setSelectedVoucher(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-white">
+          {selectedVoucher && (
+            <div>
+              <div className="bg-[#00677d] p-6 text-white text-center space-y-1">
+                <Badge variant="secondary" className="text-[10px] font-bold uppercase mb-2">
                   Official E-Voucher
-                </span>
-                <Badge variant="success">LUNAS / CONFIRMED</Badge>
+                </Badge>
+                <h3 className="font-heading font-extrabold text-xl">
+                  Trip Sharing Platform
+                </h3>
+                <p className="text-xs text-slate-100">
+                  Tunjukkan kode QR ini kepada Driver saat penjemputan.
+                </p>
               </div>
-              <DialogTitle className="text-lg font-bold text-[#191c1e] mt-1">
-                E-Voucher Keberangkatan
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Tunjukkan voucher ini kepada driver saat penjemputan di meeting point.
-              </DialogDescription>
-            </DialogHeader>
 
-            <div className="space-y-3 text-xs">
-              <div className="bg-slate-50 p-4 rounded-xl space-y-2 border border-slate-200">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Kode Booking:</span>
-                  <span className="font-mono font-bold text-[#00677d]">
+              <div className="p-6 space-y-6 text-center">
+                {/* QR Code */}
+                <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 inline-block">
+                  <div className="relative h-40 w-40 mx-auto bg-white p-2 rounded-xl shadow-sm">
+                    <Image
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedVoucher.bookingCode}`}
+                      alt="Booking QR Code"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  <span className="font-mono font-bold text-sm text-[#00677d] mt-2 block tracking-widest">
                     {selectedVoucher.bookingCode}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Nama Traveler:</span>
-                  <span className="font-bold text-slate-800">{selectedVoucher.fullName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Grup Mobil:</span>
-                  <span className="font-bold text-slate-800">Toyota HiAce - Grup 1 (Maks 6 Pax)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Total Pembayaran:</span>
-                  <span className="font-bold text-[#a43c12]">
-                    {formatCurrency(selectedVoucher.totalAmount)}
-                  </span>
-                </div>
-              </div>
 
-              <div className="p-3 bg-sky-50 rounded-xl text-[11px] text-[#00677d] space-y-1">
-                <span className="font-bold block">Meeting Point & Jam:</span>
-                <span>Stasiun Malang Kota Baru / Bandara Juanda Surabaya (Pukul 23:00 WIB)</span>
+                <div className="space-y-2 text-xs text-left bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Nama Traveler:</span>
+                    <strong className="text-slate-800">{selectedVoucher.fullName}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Status Pembayaran:</span>
+                    <strong className="text-emerald-700 font-bold">Lunas (Paid)</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Preferensi Kamar:</span>
+                    <span className="text-slate-800 capitalize">{selectedVoucher.roomPreference}</span>
+                  </div>
+                </div>
+
+                <Button onClick={() => setSelectedVoucher(null)} className="w-full">
+                  Tutup E-Voucher
+                </Button>
               </div>
             </div>
-
-            <Button
-              onClick={() => setSelectedVoucher(null)}
-              className="w-full justify-center text-xs"
-            >
-              Tutup E-Voucher
-            </Button>
-          </DialogContent>
-        </Dialog>
-      )}
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,7 @@ import {
   Sparkles,
   Clock,
   Car,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -30,8 +31,10 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { MOCK_DESTINATIONS, MOCK_TRIPS } from "@/src/services/mockData";
+import { destinationService } from "@/src/services/destination.service";
 import { bookingService } from "@/src/services/booking.service";
 import { formatCurrency, formatDuration, formatDate, calculateOccupancyPercent } from "@/src/lib/utils";
+import type { Destination, Trip, BookingGroup } from "@/src/types";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -41,16 +44,25 @@ export default function DestinationDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
 
-  const destination =
-    MOCK_DESTINATIONS.find(
-      (d) => d.slug === resolvedParams.slug || d.id === resolvedParams.slug
-    ) || MOCK_DESTINATIONS[0];
+  const [destination, setDestination] = useState<Destination>(() => {
+    return (
+      MOCK_DESTINATIONS.find(
+        (d) => d.slug === resolvedParams.slug || d.id === resolvedParams.slug
+      ) || MOCK_DESTINATIONS[0]
+    );
+  });
 
-  const trips = MOCK_TRIPS.filter((t) => t.destinationId === destination.id);
-  const activeTrip = trips[0] || MOCK_TRIPS[0];
+  const [activeTrip, setActiveTrip] = useState<Trip>(() => {
+    const trips = MOCK_TRIPS.filter((t) => t.destinationId === destination.id);
+    return trips[0] || MOCK_TRIPS[0];
+  });
+
+  const [groups, setGroups] = useState<BookingGroup[]>(activeTrip.groups || []);
+  const [selectedGroup, setSelectedGroup] = useState<string>(groups[0]?.id || "grp-01");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Booking Form State
-  const [selectedGroup, setSelectedGroup] = useState<string>(activeTrip.groups[0]?.id || "grp-01");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -65,18 +77,45 @@ export default function DestinationDetailPage({ params }: PageProps) {
   const [paymentMethod, setPaymentMethod] = useState<"qris" | "bca_va" | "mandiri_va" | "credit_card">("qris");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [createdParticipantId, setCreatedParticipantId] = useState<string>("");
+  const [snapToken, setSnapToken] = useState<string>("");
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadData() {
+      try {
+        const dest = await destinationService.getDestinationBySlug(resolvedParams.slug);
+        if (dest && isMounted) {
+          setDestination(dest);
+          const avail = await destinationService.getTripAvailability(activeTrip.id);
+          if (avail.length > 0 && isMounted) {
+            setGroups(avail);
+            setSelectedGroup(avail[0].id);
+          }
+        }
+      } catch {
+        // Fallback already in place
+      }
+    }
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, [resolvedParams.slug, activeTrip.id]);
 
   const insuranceFee = hasInsurance ? 50000 : 0;
   const privateRoomFee = roomPref === "single" ? 350000 : 0;
-  const totalAmount = destination.pricePerPax + insuranceFee + privateRoomFee;
+  const totalAmount = (destination?.pricePerPax || 850000) + insuranceFee + privateRoomFee;
 
   const handleOpenPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+
     if (!fullName || !email || !phoneNumber || !identityNumber) {
-      alert("Harap lengkapi semua formulir data diri traveler.");
+      setErrorMessage("Harap lengkapi seluruh formulir data diri traveler wajib.");
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const res = await bookingService.createBooking({
         tripId: activeTrip.id,
@@ -86,16 +125,26 @@ export default function DestinationDetailPage({ params }: PageProps) {
         phoneNumber,
         nationality,
         identityNumber,
+        gender: "other",
         roomPreference: roomPref,
         healthNotes,
         hasInsurance,
-        captchaToken: "mock-valid-hcaptcha-token",
+        captchaToken: "10000000-aaaa-bbbb-cccc-000000000001",
       });
 
-      setCreatedParticipantId(res.participant.id);
+      const participantId = res.participant.id;
+      setCreatedParticipantId(participantId);
+
+      // Fetch Midtrans Snap Token
+      const snapData = await bookingService.getSnapToken(participantId, paymentMethod);
+      setSnapToken(snapData.snapToken);
+
       setIsPaymentModalOpen(true);
-    } catch {
-      alert("Terjadi kesalahan saat memproses booking.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat memproses booking.";
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -107,7 +156,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
         setIsProcessingPayment(false);
         setIsPaymentModalOpen(false);
         router.push("/bookings?success=true");
-      }, 1200);
+      }, 1000);
     } catch {
       setIsProcessingPayment(false);
       alert("Gagal memproses simulasi pembayaran.");
@@ -177,7 +226,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
               </h2>
 
               <div className="space-y-6">
-                {destination.itinerary.map((itin) => (
+                {destination.itinerary && destination.itinerary.map((itin) => (
                   <div key={itin.day} className="relative pl-6 border-l-2 border-[#00a3c4]/40 space-y-2">
                     <div className="absolute -left-2.5 top-0 h-5 w-5 rounded-full bg-[#00677d] text-white flex items-center justify-center text-[10px] font-bold">
                       {itin.day}
@@ -185,17 +234,21 @@ export default function DestinationDetailPage({ params }: PageProps) {
                     <h3 className="font-heading font-bold text-sm text-[#191c1e]">
                       Hari {itin.day}: {itin.title}
                     </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {itin.description}
-                    </p>
-                    <ul className="space-y-1 pt-1">
-                      {itin.activities.map((act, i) => (
-                        <li key={i} className="text-xs text-slate-600 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#ff7f50]" />
-                          {act}
-                        </li>
-                      ))}
-                    </ul>
+                    {itin.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {itin.description}
+                      </p>
+                    )}
+                    {itin.activities && (
+                      <ul className="space-y-1 pt-1">
+                        {itin.activities.map((act, i) => (
+                          <li key={i} className="text-xs text-slate-600 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#ff7f50]" />
+                            {act}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ))}
               </div>
@@ -210,7 +263,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                   Termasuk dalam Paket
                 </h3>
                 <ul className="space-y-2 text-xs text-slate-600">
-                  {destination.inclusions.map((inc, i) => (
+                  {destination.inclusions && destination.inclusions.map((inc, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
                       <span>{inc}</span>
@@ -226,7 +279,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                   Tidak Termasuk
                 </h3>
                 <ul className="space-y-2 text-xs text-slate-600">
-                  {destination.exclusions.map((exc, i) => (
+                  {destination.exclusions && destination.exclusions.map((exc, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
                       <span>{exc}</span>
@@ -262,7 +315,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
               <div className="flex items-center justify-between">
                 <h3 className="font-heading font-bold text-sm text-[#191c1e] flex items-center gap-2">
                   <Users className="h-4 w-4 text-[#00677d]" />
-                  Pilih Grup Keberangkatan
+                  Status Grup Armada
                 </h3>
                 <Badge variant="azure" className="text-[10px]">
                   {formatDate(activeTrip.departureDate)}
@@ -270,7 +323,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
               </div>
 
               <div className="space-y-3">
-                {activeTrip.groups.map((grp) => {
+                {groups.map((grp) => {
                   const isSelected = selectedGroup === grp.id;
                   const remainingSeats = grp.capacity - grp.currentParticipants;
                   return (
@@ -301,13 +354,24 @@ export default function DestinationDetailPage({ params }: PageProps) {
                         />
                       </div>
                       <span className="text-[10px] text-slate-400 mt-1 block">
-                        Driver: {grp.driver?.fullName || "Budi Pratama"} (Rating ⭐ {grp.driver?.rating || "4.9"})
+                        Driver: {grp.driver?.fullName || "Pak Joko Santoso"} (Rating ⭐ {grp.driver?.rating || "5.0"})
                       </span>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* Error Message Alert */}
+            {errorMessage && (
+              <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-xs text-rose-800">
+                <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold block">Pemberitahuan:</span>
+                  <span>{errorMessage}</span>
+                </div>
+              </div>
+            )}
 
             {/* Booking Form (Data Diri Traveler) */}
             <form
@@ -329,7 +393,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                 </label>
                 <Input
                   required
-                  placeholder="Contoh: Budi Santoso"
+                  placeholder="Contoh: Siti Rahmawati"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                 />
@@ -344,7 +408,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                   <Input
                     required
                     type="email"
-                    placeholder="nama@email.com"
+                    placeholder="siti.rahma@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -356,7 +420,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                   <Input
                     required
                     type="tel"
-                    placeholder="081234567890"
+                    placeholder="081987654321"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                   />
@@ -371,7 +435,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                   </label>
                   <Input
                     required
-                    placeholder="31710..."
+                    placeholder="3201123456780002"
                     value={identityNumber}
                     onChange={(e) => setIdentityNumber(e.target.value)}
                   />
@@ -448,7 +512,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                   Catatan Medis / Alergi Makanan (Opsional)
                 </label>
                 <Input
-                  placeholder="Contoh: Alergi seafood, riwayat asma..."
+                  placeholder="Contoh: Alergi seafood ringan..."
                   value={healthNotes}
                   onChange={(e) => setHealthNotes(e.target.value)}
                 />
@@ -510,9 +574,14 @@ export default function DestinationDetailPage({ params }: PageProps) {
               </div>
 
               {/* Submit CTA */}
-              <Button type="submit" size="lg" className="w-full justify-center text-base font-bold shadow-lg">
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitting}
+                className="w-full justify-center text-base font-bold shadow-lg"
+              >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Lanjut ke Pembayaran ({formatCurrency(totalAmount)})
+                {isSubmitting ? "Memproses Booking..." : `Lanjut ke Pembayaran (${formatCurrency(totalAmount)})`}
               </Button>
             </form>
           </div>
@@ -529,7 +598,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
                 Midtrans Snap Payment
               </span>
               <Badge variant="secondary" className="text-[10px] font-bold">
-                Order #{createdParticipantId ? createdParticipantId.slice(-6).toUpperCase() : "TRIP8821"}
+                Order #{createdParticipantId ? createdParticipantId.slice(-6).toUpperCase() : "TRV-8921"}
               </Badge>
             </div>
             <DialogTitle className="text-lg font-bold text-white mt-2">
@@ -634,6 +703,11 @@ export default function DestinationDetailPage({ params }: PageProps) {
                 <span className="text-[11px] font-semibold text-slate-600 block">
                   Scan QRIS menggunakan mobile banking / e-wallet
                 </span>
+                {snapToken && (
+                  <span className="text-[10px] text-slate-400 font-mono block">
+                    Snap: {snapToken.slice(0, 16)}...
+                  </span>
+                )}
               </div>
             )}
 
