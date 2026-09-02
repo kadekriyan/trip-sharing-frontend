@@ -207,3 +207,24 @@ export interface MoveParticipantPayload {
   targetGroupId: string;
   reason?: string;
 }
+
+export type UserRole = "admin" | "participant" | "traveler";
+
+export interface User {
+  id: string;
+  email: string;
+  fullName?: string;
+  name?: string;
+  phoneNumber?: string;
+  nationality?: string;
+  identityNumber?: string;
+  role: UserRole;
+  createdAt?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  refreshToken?: string;
+  user: User;
+}
+

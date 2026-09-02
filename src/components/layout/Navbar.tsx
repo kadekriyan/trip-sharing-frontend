@@ -4,12 +4,32 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Compass, CalendarCheck, ShieldCheck, Menu, X, Sparkles, BookOpen } from "lucide-react";
+import {
+  Compass,
+  CalendarCheck,
+  ShieldCheck,
+  Menu,
+  X,
+  Sparkles,
+  BookOpen,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+} from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
+import { useAuth } from "@/src/context/auth-context";
+
+interface NavLinkItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+}
 
 export function Navbar() {
   const pathname = usePathname();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Jangan render public navbar jika berada di area admin
@@ -17,12 +37,15 @@ export function Navbar() {
     return null;
   }
 
-  const navLinks = [
+  const navLinks: NavLinkItem[] = [
     { label: "Jelajah Destinasi", href: "/destinations", icon: Compass },
     { label: "Booking Saya", href: "/bookings", icon: CalendarCheck },
     { label: "Tips & Blog", href: "/blog", icon: BookOpen },
-    { label: "Portal Admin", href: "/admin", icon: ShieldCheck, badge: "Staff" },
   ];
+
+  if (isAdmin) {
+    navLinks.push({ label: "Portal Admin", href: "/admin", icon: ShieldCheck, badge: "Staff" });
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-100/80 glass-nav transition-all">
@@ -69,9 +92,9 @@ export function Navbar() {
               >
                 <Icon className={`h-4 w-4 ${isActive ? "text-[#00677d]" : "text-slate-400"}`} />
                 {link.label}
-                {link.badge && (
+                {"badge" in link && link.badge && (
                   <Badge variant="azure" className="text-[10px] px-1.5 py-0 h-4">
-                    {link.badge}
+                    {link.badge as string}
                   </Badge>
                 )}
               </Link>
@@ -79,14 +102,47 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Right CTA */}
+        {/* Right Auth / CTA Area */}
         <div className="hidden sm:flex items-center gap-3">
-          <Button asChild size="default" className="gap-2">
-            <Link href="/destinations">
-              <Sparkles className="h-4 w-4" />
-              Pesan Trip Sekarang
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
+                <UserIcon className="h-4 w-4 text-[#00677d]" />
+                <span className="font-bold text-slate-800 max-w-[120px] truncate">
+                  {user?.fullName || user?.email}
+                </span>
+                {isAdmin && (
+                  <Badge variant="coral" className="text-[9px] px-1 py-0 h-3.5">
+                    Admin
+                  </Badge>
+                )}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="text-slate-500 hover:text-rose-600 gap-1 text-xs"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Keluar
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs font-semibold">
+                <Link href="/login">
+                  <LogIn className="h-3.5 w-3.5 text-[#00677d]" />
+                  Masuk
+                </Link>
+              </Button>
+              <Button asChild size="sm" className="gap-1.5 text-xs font-bold shadow-sm">
+                <Link href="/register">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Daftar
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Mobile Hamburger Button */}
@@ -100,41 +156,62 @@ export function Navbar() {
         </button>
       </div>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 py-4 space-y-2 shadow-lg animate-in slide-in-from-top-2">
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium ${
-                  isActive
-                    ? "bg-[#00677d]/10 text-[#00677d] font-semibold"
-                    : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className="h-4 w-4 text-[#00677d]" />
-                  {link.label}
+        <div className="md:hidden border-b border-slate-200 bg-white/95 px-4 py-5 backdrop-blur-lg space-y-3">
+          <nav className="flex flex-col space-y-1">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="h-4 w-4 text-[#00677d]" />
+                    <span>{link.label}</span>
+                  </div>
+                  {"badge" in link && link.badge && (
+                    <Badge variant="azure" className="text-[10px]">
+                      {link.badge as string}
+                    </Badge>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                <div className="text-xs text-slate-600 px-3">
+                  Login sebagai: <strong>{user?.fullName || user?.email}</strong>
                 </div>
-                {link.badge && (
-                  <Badge variant="azure" className="text-[10px]">
-                    {link.badge}
-                  </Badge>
-                )}
-              </Link>
-            );
-          })}
-          <div className="pt-2">
-            <Button asChild className="w-full justify-center">
-              <Link href="/destinations" onClick={() => setMobileMenuOpen(false)}>
-                Pesan Trip Sekarang
-              </Link>
-            </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    logout();
+                  }}
+                  className="w-full text-rose-600 justify-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild variant="outline" size="sm" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/login" className="justify-center">Masuk</Link>
+                </Button>
+                <Button asChild size="sm" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href="/register" className="justify-center">Daftar</Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
