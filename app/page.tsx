@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -21,13 +21,40 @@ import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { MOCK_DESTINATIONS, MOCK_ARTICLES } from "@/src/services/mockData";
+import { destinationService } from "@/src/services/destination.service";
+import { adminService } from "@/src/services/admin.service";
 import { formatCurrency, formatDuration, calculateOccupancyPercent } from "@/src/lib/utils";
+import type { Destination, Article } from "@/src/types";
 
 export default function HomePage() {
+  const [destinations, setDestinations] = useState<Destination[]>(MOCK_DESTINATIONS);
+  const [articles, setArticles] = useState<Article[]>(MOCK_ARTICLES);
   const [searchLocation, setSearchLocation] = useState("all");
   const [searchDuration, setSearchDuration] = useState("all");
 
-  const filteredDestinations = MOCK_DESTINATIONS.filter((dest) => {
+  useEffect(() => {
+    let isMounted = true;
+    async function loadHomeData() {
+      try {
+        const [dests, arts] = await Promise.all([
+          destinationService.getAllDestinations(),
+          adminService.getArticles(),
+        ]);
+        if (isMounted) {
+          if (dests.length > 0) setDestinations(dests);
+          if (arts.length > 0) setArticles(arts);
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    loadHomeData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredDestinations = destinations.filter((dest) => {
     if (searchLocation !== "all" && !dest.location.toLowerCase().includes(searchLocation.toLowerCase())) {
       return false;
     }
@@ -487,7 +514,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {MOCK_ARTICLES.map((art) => (
+            {articles.map((art) => (
               <Card key={art.id} className="overflow-hidden flex flex-col sm:flex-row border border-slate-100 group">
                 <div className="relative sm:w-2/5 aspect-video sm:aspect-auto">
                   <Image

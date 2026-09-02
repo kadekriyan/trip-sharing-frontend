@@ -10,7 +10,6 @@ import {
   Star,
   Phone,
   ShieldCheck,
-  Award,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";

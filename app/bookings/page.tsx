@@ -12,7 +12,6 @@ import {
   Phone,
   Ticket,
   Search,
-  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -21,9 +20,6 @@ import { Input } from "@/src/components/ui/input";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
 } from "@/src/components/ui/dialog";
 import { MOCK_PARTICIPANTS, MOCK_DESTINATIONS, MOCK_DRIVERS } from "@/src/services/mockData";
 import { bookingService } from "@/src/services/booking.service";

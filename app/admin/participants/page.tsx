@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  Users,
   Search,
   UserPlus,
   ArrowRightLeft,
@@ -26,14 +25,13 @@ import {
 } from "@/src/components/ui/dialog";
 import { MOCK_PARTICIPANTS, MOCK_TRIPS } from "@/src/services/mockData";
 import { adminService } from "@/src/services/admin.service";
-import { formatCurrency, getPaymentBadge } from "@/src/lib/utils";
+import { getPaymentBadge } from "@/src/lib/utils";
 import type { Participant } from "@/src/types";
 
 export default function ParticipantsManagementPage() {
   const [participants, setParticipants] = useState<Participant[]>(MOCK_PARTICIPANTS);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [isLoading, setIsLoading] = useState(false);
 
   // Move Participant Modal State
   const [movingParticipant, setMovingParticipant] = useState<Participant | null>(null);
@@ -41,8 +39,7 @@ export default function ParticipantsManagementPage() {
   const [moveReason, setMoveReason] = useState("");
   const [moveMessage, setMoveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const fetchParticipants = async () => {
-    setIsLoading(true);
+  const fetchParticipants = useCallback(async () => {
     try {
       const data = await adminService.getParticipants({
         status: statusFilter === "all" ? undefined : statusFilter,
@@ -53,13 +50,25 @@ export default function ParticipantsManagementPage() {
       }
     } catch {
       // Fallback
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [statusFilter, searchQuery]);
 
   useEffect(() => {
-    fetchParticipants();
+    let isMounted = true;
+    adminService
+      .getParticipants({
+        status: statusFilter === "all" ? undefined : statusFilter,
+      })
+      .then((data) => {
+        if (isMounted && data.length > 0) {
+          setParticipants(data);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
   }, [statusFilter]);
 
   const filteredParticipants = participants.filter((p) => {

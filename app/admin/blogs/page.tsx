@@ -4,12 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  FileText,
   Plus,
   Search,
   Eye,
-  Calendar,
-  Clock,
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";

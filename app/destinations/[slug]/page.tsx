@@ -52,7 +52,7 @@ export default function DestinationDetailPage({ params }: PageProps) {
     );
   });
 
-  const [activeTrip, setActiveTrip] = useState<Trip>(() => {
+  const [activeTrip] = useState<Trip>(() => {
     const trips = MOCK_TRIPS.filter((t) => t.destinationId === destination.id);
     return trips[0] || MOCK_TRIPS[0];
   });
