@@ -114,18 +114,32 @@ export interface Participant {
 
 export interface Driver {
   id: string;
+  userId?: string;
   fullName: string;
   name?: string;
   phoneNumber: string;
+  phone?: string;
+  email?: string;
   licenseNumber: string;
   vehicleModel: string;
+  vehicleType?: string;
   plateNumber: string;
+  vehiclePlat?: string;
   passengerCapacity: number; // 6
+  experienceYears?: number;
+  isAvailable?: boolean;
   status: DriverStatus;
   rating: number;
   totalTrips: number;
   photoUrl: string;
   notes?: string;
+  user?: {
+    id?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    profileImageUrl?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

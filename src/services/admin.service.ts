@@ -218,6 +218,37 @@ export const adminService = {
     return res.data;
   },
 
+  async getDriverById(id: string): Promise<Driver | null> {
+    try {
+      const res = await apiClient.get<Driver>(`/admin/drivers/${id}`);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Driver not found or error
+    }
+    return null;
+  },
+
+  async updateDriver(id: string, payload: Partial<Driver>): Promise<Driver> {
+    const res = await apiClient.patch<Driver>(`/admin/drivers/${id}`, payload);
+    if (!res.success || !res.data) {
+      throw new Error(res.message || "Gagal memperbarui data driver");
+    }
+    return res.data;
+  },
+
+  async deleteDriver(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/drivers/${id}`);
+    if (!res.success) {
+      throw new Error(res.message || "Gagal menghapus driver");
+    }
+    return {
+      success: true,
+      message: res.message || "Driver berhasil dihapus",
+    };
+  },
+
   async getArticles(): Promise<Article[]> {
     try {
       const res = await apiClient.get<Article[]>("/admin/blogs");
