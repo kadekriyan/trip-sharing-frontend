@@ -26,7 +26,7 @@ export function Footer() {
               </div>
               <div>
                 <h4 className="font-heading font-bold text-[#191c1e] text-base">Grup Nyaman Maks 6 Orang</h4>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-600">
                   Setiap armada didesain untuk kenyamanan optimal dengan maksimal 6 traveler per mobil.
                 </p>
               </div>
@@ -38,7 +38,7 @@ export function Footer() {
               </div>
               <div>
                 <h4 className="font-heading font-bold text-[#191c1e] text-base">Cost-Sharing Transparan</h4>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-600">
                   Hemat biaya sewa armada, bensin, dan pemandu lokal dengan pembagian harga yang adil dan terbuka.
                 </p>
               </div>
@@ -50,7 +50,7 @@ export function Footer() {
               </div>
               <div>
                 <h4 className="font-heading font-bold text-[#191c1e] text-base">Pembayaran Aman & Instan</h4>
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-1 text-sm text-slate-600">
                   Didukung Midtrans Snap dengan opsi QRIS, Virtual Account bank nasional, dan kartu kredit.
                 </p>
               </div>

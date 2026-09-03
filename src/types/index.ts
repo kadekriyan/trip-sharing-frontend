@@ -16,6 +16,8 @@ export interface Destination {
   slug: string;
   tagline: string;
   description: string;
+  shortDescription?: string;
+  category?: string;
   location: string;
   durationDays: number;
   durationNights: number;
@@ -23,7 +25,9 @@ export interface Destination {
   coverImage: string;
   galleryImages: string[];
   inclusions: string[];
+  includedFacilities?: string[];
   exclusions: string[];
+  excludedFacilities?: string[];
   highlights: string[];
   itinerary: ItineraryDay[];
   rating: number;
@@ -31,6 +35,8 @@ export interface Destination {
   isPopular?: boolean;
   meetingPoint: string;
   maxGroupCapacity: number; // 6
+  currentParticipants?: number;
+  maxParticipants?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,6 +50,7 @@ export interface BookingGroup {
   status: GroupStatus;
   driverId?: string;
   driver?: Driver;
+  name?: string;
   notes?: string;
   participants?: Participant[];
   createdAt: string;
@@ -139,19 +146,22 @@ export interface Article {
   excerpt: string;
   content: string;
   coverImage: string;
-  category: "Travel Tips" | "Destinations" | "Community Story" | "Budget Travel" | "Guide";
+  category: "Travel Tips" | "Destinations" | "Community Story" | "Budget Travel" | "Guide" | string;
   author: {
     name: string;
-    avatar: string;
-    role: string;
+    avatar?: string;
+    role?: string;
   };
-  readTimeMinutes: number;
+  readTimeMinutes?: number;
+  readTime?: string;
   publishedAt: string;
-  views: number;
+  views?: number;
   isFeatured?: boolean;
   seoTitle?: string;
   seoDescription?: string;
   tags: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuditLog {

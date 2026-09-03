@@ -1,150 +1,178 @@
-"use client";
-
-import React, { useState, useEffect, use } from "react";
+import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Clock, Calendar, Tag, Compass, Loader2, PackageOpen } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, Tag, Compass, PackageOpen } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { articleService } from "@/src/services/article.service";
 import { formatDate } from "@/src/lib/utils";
-import type { Article } from "@/src/types";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default function BlogDetailPage({ params }: PageProps) {
-  const resolvedParams = use(params);
-  const [article, setArticle] = useState<Article | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await articleService.getArticleBySlug(slug).catch(() => null);
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadArticle() {
-      setIsLoading(true);
-      try {
-        const data = await articleService.getArticleBySlug(resolvedParams.slug);
-        if (isMounted) {
-          setArticle(data);
-        }
-      } catch {
-        // Silently handled
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-    loadArticle();
-    return () => {
-      isMounted = false;
+  if (!article) {
+    return {
+      title: "Artikel Tidak Ditemukan | Blog TripSharing",
+      description: "Artikel yang Anda cari tidak ditemukan.",
     };
-  }, [resolvedParams.slug]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#f7f9fb] flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="h-8 w-8 text-[#00677d] animate-spin" />
-        <span className="text-xs font-semibold text-slate-500">Memuat artikel...</span>
-      </div>
-    );
   }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+  const ogImageUrl = article.coverImage || `${siteUrl}/images/hero-bromo.png`;
+
+  return {
+    title: `${article.title} | Blog Wisata & Tips Trip Sharing`,
+    description: article.excerpt || article.title,
+    authors: [{ name: article.author?.name || "Redaksi TripSharing" }],
+    openGraph: {
+      title: article.title,
+      description: article.excerpt || article.title,
+      url: `${siteUrl}/blog/${article.slug}`,
+      siteName: "TripSharing Indonesia",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: article.title,
+        },
+      ],
+      type: "article",
+      publishedTime: article.publishedAt,
+      locale: "id_ID",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.excerpt || article.title,
+      images: [ogImageUrl],
+    },
+  };
+}
+
+export default async function BlogDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const article = await articleService.getArticleBySlug(slug).catch(() => null);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
 
   if (!article) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
         <PackageOpen className="h-12 w-12 text-slate-400" />
-        <h2 className="font-heading font-extrabold text-xl text-[#191c1e]">
+        <h1 className="font-heading font-extrabold text-xl text-[#191c1e]">
           Artikel Tidak Ditemukan
-        </h2>
+        </h1>
         <p className="text-xs text-slate-500 max-w-sm">
-          Artikel dengan slug &ldquo;{resolvedParams.slug}&rdquo; tidak terdaftar di database.
+          Artikel dengan tautan &ldquo;{slug}&rdquo; tidak terdaftar di database.
         </p>
-        <Button asChild>
-          <Link href="/blog">Kembali ke Blog</Link>
+        <Button asChild size="sm" className="gap-2">
+          <Link href="/blog">
+            <ArrowLeft className="h-4 w-4" />
+            Kembali ke Blog
+          </Link>
         </Button>
       </div>
     );
   }
 
+  const jsonLdArticle = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: article.title,
+    description: article.excerpt,
+    image: article.coverImage,
+    datePublished: article.publishedAt,
+    dateModified: article.updatedAt || article.publishedAt,
+    author: {
+      "@type": "Person",
+      name: article.author?.name || "Redaksi TripSharing",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "TripSharing Indonesia",
+      logo: `${siteUrl}/images/logo.png`,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${siteUrl}/blog/${article.slug}`,
+    },
+  };
+
   return (
-    <div className="min-h-screen bg-[#f7f9fb] pb-24">
-      {/* Header Bar */}
-      <div className="border-b border-slate-200/80 bg-white py-3.5">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 flex items-center justify-between">
-          <Link
-            href="/blog"
-            className="flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-[#00677d] transition-colors"
-          >
+    <article className="min-h-screen bg-[#f7f9fb] py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdArticle) }}
+      />
+
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 space-y-8">
+        <Button asChild variant="ghost" size="sm" className="gap-2 text-xs text-slate-600 hover:text-[#00677d]">
+          <Link href="/blog">
             <ArrowLeft className="h-4 w-4" />
             Kembali ke Semua Artikel
           </Link>
-          <Badge variant="coral" className="text-xs font-bold">
-            {article.category}
-          </Badge>
-        </div>
-      </div>
+        </Button>
 
-      <article className="mx-auto max-w-4xl px-4 sm:px-6 pt-10 space-y-8">
-        {/* Article Meta Header */}
-        <div className="space-y-4 text-center">
+        {/* Article Header */}
+        <header className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="coral" className="text-xs font-bold px-3 py-1">
+              {article.category}
+            </Badge>
+            <span className="text-xs text-slate-500 flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {article.readTime || "5 Menit Baca"}
+            </span>
+          </div>
+
           <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#191c1e] leading-tight">
             {article.title}
           </h1>
 
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-500 pt-2">
-            <div className="flex items-center gap-2 font-semibold text-slate-700">
-              <div className="relative h-6 w-6 rounded-full overflow-hidden bg-slate-200">
-                <Image
-                  src={article.author?.avatar || "/images/dest-bromo.jpg"}
-                  alt={article.author?.name || "Author"}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <span>{article.author?.name || "Redaksi TripSharing"}</span>
-            </div>
+          <div className="flex items-center gap-3 pt-2 border-t border-slate-200/80 text-xs text-slate-500">
+            <span className="font-bold text-slate-800">
+              Oleh: {article.author?.name || "Tim Redaksi"}
+            </span>
             <span>•</span>
-            <div className="flex items-center gap-1">
+            <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              <span>{formatDate(article.publishedAt)}</span>
-            </div>
-            <span>•</span>
-            <div className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{article.readTimeMinutes} menit baca</span>
-            </div>
+              {formatDate(article.publishedAt)}
+            </span>
           </div>
-        </div>
+        </header>
 
-        {/* Featured Cover Image */}
-        <div className="relative aspect-video w-full rounded-3xl overflow-hidden shadow-stitch-card border border-slate-100">
+        {/* Cover Image */}
+        <div className="relative aspect-video w-full rounded-3xl overflow-hidden shadow-stitch-card border border-slate-200/80 bg-slate-900">
           <Image
             src={article.coverImage || "/images/dest-bromo.jpg"}
             alt={article.title}
             fill
-            className="object-cover"
             priority
+            sizes="(max-width: 1024px) 100vw, 900px"
+            className="object-cover"
           />
         </div>
 
         {/* Article Body Content */}
-        <div className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200/80 shadow-stitch-card space-y-6 text-slate-700 text-sm sm:text-base leading-relaxed">
-          <p className="text-base sm:text-lg font-medium text-slate-900 border-l-4 border-[#00677d] pl-4 italic">
-            &ldquo;{article.excerpt}&rdquo;
-          </p>
-
-          <div className="space-y-4 whitespace-pre-line">
+        <div className="bg-white p-8 sm:p-12 rounded-3xl border border-slate-100 shadow-stitch-card space-y-6">
+          <div className="prose prose-slate max-w-none text-sm sm:text-base leading-relaxed text-slate-700 space-y-4 whitespace-pre-line">
             {article.content}
           </div>
 
           {/* Tags */}
           {article.tags && article.tags.length > 0 && (
-            <div className="pt-6 border-t border-slate-100 flex items-center gap-2 flex-wrap">
-              <Tag className="h-4 w-4 text-slate-400" />
-              {article.tags.map((tag, i) => (
+            <div className="pt-6 border-t border-slate-100 flex flex-wrap items-center gap-2">
+              <Tag className="h-4 w-4 text-slate-400 mr-1" />
+              {article.tags.map((tag, idx) => (
                 <span
-                  key={i}
-                  className="text-xs font-semibold text-[#00677d] bg-[#00677d]/10 px-2.5 py-1 rounded-md"
+                  key={idx}
+                  className="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium"
                 >
                   #{tag}
                 </span>
@@ -153,24 +181,24 @@ export default function BlogDetailPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* CTA Footer */}
+        {/* Bottom CTA to Destinations */}
         <div className="p-8 rounded-3xl bg-gradient-to-r from-[#00677d] to-[#00a3c4] text-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
           <div className="space-y-1 text-center sm:text-left">
-            <h3 className="font-heading font-extrabold text-xl text-white">
-              Tertarik Mencoba Rute Wisata Ini?
-            </h3>
+            <h2 className="font-heading font-bold text-xl">
+              Tertarik Mencoba Pengalaman Trip Sharing?
+            </h2>
             <p className="text-xs text-slate-100">
-              Lihat jadwal trip sharing berkapasitas 6 orang per mobil dan gabung sekarang.
+              Temukan paket wisata 6 pax hemat dan pesan kursimu sekarang!
             </p>
           </div>
-          <Button asChild size="lg" className="bg-[#ff7f50] hover:bg-[#fe7e4f] text-white shrink-0 font-bold">
-            <Link href="/destinations" className="gap-2">
+          <Button asChild className="bg-white text-[#00677d] hover:bg-slate-100 font-bold shrink-0 gap-2">
+            <Link href="/destinations">
               <Compass className="h-4 w-4" />
-              Lihat Paket Wisata
+              Pilih Destinasi
             </Link>
           </Button>
         </div>
-      </article>
-    </div>
+      </div>
+    </article>
   );
 }
