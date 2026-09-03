@@ -28,7 +28,7 @@ import { formatCurrency, formatDate, getPaymentBadge } from "@/src/lib/utils";
 import type { Participant } from "@/src/types";
 
 export default function MyBookingsPage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isHydrated } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "paid" | "pending">("all");
   const [bookings, setBookings] = useState<Participant[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,7 +119,7 @@ export default function MyBookingsPage() {
         </div>
 
         {/* Guest Warning if not logged in */}
-        {!isAuthenticated && (
+        {isHydrated && !isAuthenticated && (
           <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-amber-900">
               <span className="font-bold block">Anda belum masuk ke akun traveler.</span>
@@ -346,19 +346,35 @@ export default function MyBookingsPage() {
 
           {/* RIGHT: TRAVELER PROFILE & STATS SIDEBAR */}
           <div className="lg:col-span-4 space-y-6">
-            <Card className="p-6 border border-slate-100 shadow-stitch-card text-center space-y-4">
-              <div className="h-20 w-20 mx-auto rounded-full bg-gradient-to-br from-[#00677d] to-[#00a3c4] text-white flex items-center justify-center font-heading font-extrabold text-2xl shadow-md">
-                {user?.fullName ? user.fullName.slice(0, 2).toUpperCase() : <UserIcon className="h-8 w-8" />}
-              </div>
-              <div>
-                <h3 className="font-heading font-bold text-lg text-[#191c1e]">
-                  {user?.fullName || "Guest Traveler"}
-                </h3>
-                <p className="text-xs text-slate-500">{user?.email || "Belum Login"}</p>
-                <Badge variant="azure" className="mt-2 text-[10px]">
-                  {user?.role === "admin" ? "Staff Administrator" : "Verified Traveler Member"}
-                </Badge>
-              </div>
+            <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white text-center space-y-4">
+              {isHydrated && isAuthenticated ? (
+                <>
+                  <div className="h-20 w-20 mx-auto rounded-full bg-gradient-to-br from-[#00677d] to-[#00a3c4] text-white flex items-center justify-center font-heading font-extrabold text-2xl shadow-md">
+                    {user?.fullName ? user.fullName.slice(0, 2).toUpperCase() : <UserIcon className="h-8 w-8" />}
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-lg text-[#191c1e]">
+                      {user?.fullName || "Traveler Member"}
+                    </h3>
+                    <p className="text-xs text-slate-500">{user?.email}</p>
+                    <Badge variant="azure" className="mt-2 text-[10px]">
+                      {user?.role === "admin" ? "Staff Administrator" : "Verified Traveler Member"}
+                    </Badge>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="h-20 w-20 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+                    <UserIcon className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading font-bold text-lg text-[#191c1e]">
+                      Guest Traveler
+                    </h3>
+                    <p className="text-xs text-slate-500">Belum Login</p>
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-center">
                 <div className="bg-slate-50 p-3 rounded-xl">

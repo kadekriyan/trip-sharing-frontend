@@ -29,7 +29,7 @@ interface NavLinkItem {
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, isHydrated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Jangan render public navbar jika berada di area admin
@@ -43,7 +43,7 @@ export function Navbar() {
     { label: "Tips & Blog", href: "/blog", icon: BookOpen },
   ];
 
-  if (isAdmin) {
+  if (isHydrated && isAdmin) {
     navLinks.push({ label: "Portal Admin", href: "/admin", icon: ShieldCheck, badge: "Staff" });
   }
 
@@ -104,7 +104,9 @@ export function Navbar() {
 
         {/* Right Auth / CTA Area */}
         <div className="hidden sm:flex items-center gap-3">
-          {isAuthenticated ? (
+          {!isHydrated ? (
+            <div className="h-8 w-24 rounded-lg bg-slate-100 animate-pulse" />
+          ) : isAuthenticated ? (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
                 <UserIcon className="h-4 w-4 text-[#00677d]" />

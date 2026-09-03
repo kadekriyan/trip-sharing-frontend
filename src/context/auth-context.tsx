@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isHydrated: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (payload: LoginPayload) => Promise<User>;
@@ -21,43 +22,57 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [token, setToken] = useState<string | null>(() => getAuthToken());
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("auth_user");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          return null;
-        }
-      }
-    }
-    return null;
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Sync fresh profile if token exists
+  // Client-side session initialization on mount
   useEffect(() => {
     let isMounted = true;
-    const currentToken = getAuthToken();
 
-    if (currentToken) {
-      authService
-        .getMe()
-        .then((userData) => {
-          if (isMounted && userData) {
-            setUser(userData);
+    Promise.resolve().then(() => {
+      if (!isMounted) return;
+      const initialToken = getAuthToken();
+
+      if (initialToken) {
+        setToken(initialToken);
+        if (typeof window !== "undefined") {
+          const saved = localStorage.getItem("auth_user");
+          if (saved) {
+            try {
+              setUser(JSON.parse(saved));
+            } catch {
+              // ignore
+            }
           }
-        })
-        .catch(() => {
-          if (isMounted) {
-            authService.logout();
-            setUser(null);
-            setToken(null);
-          }
-        });
-    }
+        }
+
+        authService
+          .getMe()
+          .then((userData) => {
+            if (isMounted && userData) {
+              setUser(userData);
+            }
+          })
+          .catch(() => {
+            if (isMounted) {
+              authService.logout();
+              setUser(null);
+              setToken(null);
+            }
+          })
+          .finally(() => {
+            if (isMounted) {
+              setIsLoading(false);
+              setIsHydrated(true);
+            }
+          });
+      } else {
+        setIsLoading(false);
+        setIsHydrated(true);
+      }
+    });
 
     return () => {
       isMounted = false;
@@ -95,8 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }, [router]);
 
-  const isAuthenticated = Boolean(user && token);
-  const isAdmin = Boolean(user && user.role === "admin");
+  const isAuthenticated = Boolean(isHydrated && user && token);
+  const isAdmin = Boolean(isHydrated && user && user.role === "admin");
 
   return (
     <AuthContext.Provider
@@ -104,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         token,
         isLoading,
+        isHydrated,
         isAuthenticated,
         isAdmin,
         login,
