@@ -13,7 +13,7 @@ import {
 import { Badge } from "@/src/components/ui/badge";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { Button } from "@/src/components/ui/button";
-import { formatCurrency, formatDuration, calculateOccupancyPercent } from "@/src/lib/utils";
+import { formatCurrency, formatDuration, calculateOccupancyPercent, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 interface DestinationFilterGridProps {
@@ -130,8 +130,8 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                   {/* Image Container with strict Aspect Ratio (Anti-CLS) */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                     <Image
-                      src={dest.coverImage || "/images/dest-bromo.jpg"}
-                      alt={`Paket Wisata ${dest.title} - ${dest.location}`}
+                      src={dest.coverImage || dest.image || dest.imageUrl || "/images/dest-bromo.jpg"}
+                      alt={`Paket Wisata ${getDestinationTitle(dest)} - ${dest.location || "Indonesia"}`}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -143,19 +143,21 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                       <Badge variant="coral" className="text-[10px] font-bold px-2 py-0.5 shadow-sm">
                         Maks 6 Pax
                       </Badge>
-                      <Badge variant="secondary" className="text-[10px] font-bold bg-white/95 text-slate-800 shadow-sm backdrop-blur-sm">
-                        {dest.category}
-                      </Badge>
+                      {dest.category && (
+                        <Badge variant="secondary" className="text-[10px] font-bold bg-white/95 text-slate-800 shadow-sm backdrop-blur-sm">
+                          {dest.category}
+                        </Badge>
+                      )}
                     </div>
 
                     <div className="absolute bottom-3.5 left-3.5 right-3.5 flex items-center justify-between text-white">
                       <div className="flex items-center gap-1.5 text-xs font-semibold drop-shadow-sm">
                         <MapPin className="h-3.5 w-3.5 text-[#ff7f50]" />
-                        <span>{dest.location}</span>
+                        <span>{dest.location || "Indonesia"}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs font-semibold drop-shadow-sm">
                         <Calendar className="h-3.5 w-3.5 text-[#00a3c4]" />
-                        <span>{formatDuration(dest.durationDays, dest.durationNights)}</span>
+                        <span>{formatDuration(dest.durationDays || 2, dest.durationNights || 1)}</span>
                       </div>
                     </div>
                   </div>
@@ -163,10 +165,10 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                   <CardContent className="p-6 space-y-4">
                     <div>
                       <h3 className="font-heading text-lg font-bold text-[#191c1e] group-hover:text-[#00677d] transition-colors line-clamp-1">
-                        <Link href={`/destinations/${dest.slug}`}>{dest.title}</Link>
+                        <Link href={`/destinations/${dest.slug || dest.id}`}>{getDestinationTitle(dest)}</Link>
                       </h3>
                       <p className="text-xs text-slate-600 line-clamp-2 mt-1 leading-relaxed">
-                        {dest.shortDescription || dest.description}
+                        {dest.tagline || dest.shortDescription || dest.description || "Jelajahi keindahan alam bersama teman baru."}
                       </p>
                     </div>
 
@@ -178,7 +180,7 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                           Slot Terisi
                         </span>
                         <span className="text-[#00677d] font-bold">
-                          {dest.currentParticipants || 0} / {dest.maxParticipants || 6} Kursi
+                          {dest.currentParticipants || 0} / {dest.maxGroupCapacity || dest.maxParticipants || 6} Kursi
                         </span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
@@ -196,13 +198,13 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                   <div>
                     <span className="text-[11px] text-slate-500 font-medium block">Biaya Patungan:</span>
                     <span className="font-heading font-extrabold text-lg text-[#a43c12]">
-                      {formatCurrency(dest.pricePerPax)}
+                      {formatCurrency(getDestinationPrice(dest))}
                     </span>
                     <span className="text-[10px] text-slate-500 font-normal"> /pax</span>
                   </div>
 
                   <Button asChild size="sm" className="gap-1 rounded-xl shadow-sm text-xs font-bold">
-                    <Link href={`/destinations/${dest.slug}`}>
+                    <Link href={`/destinations/${dest.slug || dest.id}`}>
                       Pesan Kursi
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Link>

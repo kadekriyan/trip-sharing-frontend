@@ -24,7 +24,7 @@ import {
 } from "@/src/components/ui/dialog";
 import { bookingService } from "@/src/services/booking.service";
 import { useAuth } from "@/src/context/auth-context";
-import { formatCurrency, formatDate, getPaymentBadge } from "@/src/lib/utils";
+import { formatCurrency, formatDate, getPaymentBadge, getDestinationTitle } from "@/src/lib/utils";
 import type { Participant } from "@/src/types";
 
 export default function MyBookingsPage() {
@@ -198,9 +198,9 @@ export default function MyBookingsPage() {
               <div className="space-y-6">
                 {filteredBookings.map((booking) => {
                   const destTitle =
-                    booking.destination?.title ||
-                    booking.trip?.destination?.title ||
-                    "Paket Trip Sharing Eksklusif";
+                    getDestinationTitle(booking.destination) !== "Paket Wisata"
+                      ? getDestinationTitle(booking.destination)
+                      : getDestinationTitle(booking.trip?.destination);
                   const destCover =
                     booking.destination?.coverImage ||
                     booking.trip?.destination?.coverImage ||

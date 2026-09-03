@@ -17,7 +17,7 @@ import { Button } from "@/src/components/ui/button";
 import { Card } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { adminService } from "@/src/services/admin.service";
-import { formatCurrency, formatDuration } from "@/src/lib/utils";
+import { formatCurrency, formatDuration, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 export default function DestinationsAdminPage() {
@@ -120,34 +120,34 @@ export default function DestinationsAdminPage() {
                 <div>
                   <div className="relative aspect-video w-full overflow-hidden">
                     <Image
-                      src={dest.coverImage || "/images/dest-bromo.jpg"}
-                      alt={dest.title}
+                      src={dest.coverImage || dest.image || dest.imageUrl || "/images/dest-bromo.jpg"}
+                      alt={getDestinationTitle(dest)}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-3 right-3 bg-[#a43c12] text-white px-2.5 py-1 rounded-lg text-xs font-heading font-extrabold shadow-sm">
-                      {formatCurrency(dest.pricePerPax)}/pax
+                      {formatCurrency(getDestinationPrice(dest))}/pax
                     </div>
                   </div>
 
                   <div className="p-5 space-y-2.5">
                     <div className="flex items-center gap-1.5 text-xs text-[#00677d] font-semibold">
                       <MapPin className="h-3.5 w-3.5" />
-                      <span>{dest.location}</span>
+                      <span>{dest.location || "Indonesia"}</span>
                     </div>
 
                     <h3 className="font-heading font-bold text-base text-[#191c1e] line-clamp-1">
-                      {dest.title}
+                      {getDestinationTitle(dest)}
                     </h3>
 
                     <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                      {dest.tagline || dest.description}
+                      {dest.tagline || dest.description || "Paket trip sharing seru & hemat."}
                     </p>
 
                     <div className="flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-100">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5 text-slate-400" />
-                        {formatDuration(dest.durationDays, dest.durationNights)}
+                        {formatDuration(dest.durationDays || 2, dest.durationNights || 1)}
                       </span>
                       <span className="flex items-center gap-1 text-amber-500 font-bold">
                         <Star className="h-3.5 w-3.5 fill-current" />
@@ -159,11 +159,11 @@ export default function DestinationsAdminPage() {
 
                 <div className="p-5 pt-0 border-t border-slate-100 mt-2 flex items-center justify-between">
                   <span className="text-[11px] font-bold text-slate-400 uppercase">
-                    ID: {dest.id.slice(0, 8)}...
+                    ID: {dest.id ? dest.id.slice(0, 8) : "N/A"}...
                   </span>
 
                   <Button asChild size="sm" variant="ghost" className="text-xs text-[#00677d] gap-1">
-                    <Link href={`/destinations/${dest.slug}`}>
+                    <Link href={`/destinations/${dest.slug || dest.id}`}>
                       Pratinjau
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Link>

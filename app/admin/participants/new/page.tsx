@@ -13,7 +13,7 @@ import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
-import { formatCurrency } from "@/src/lib/utils";
+import { formatCurrency, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 export default function AddParticipantPage() {
@@ -48,7 +48,7 @@ export default function AddParticipantPage() {
   }, []);
 
   const destination = destinations.find((d) => d.id === selectedDestination) || destinations[0];
-  const price = destination ? destination.pricePerPax : 850000;
+  const price = destination ? getDestinationPrice(destination) : 850000;
   const insuranceFee = hasInsurance ? 50000 : 0;
   const privateRoomFee = roomPref === "single" ? 350000 : 0;
   const totalAmount = price + insuranceFee + privateRoomFee;
@@ -229,7 +229,7 @@ export default function AddParticipantPage() {
               >
                 {destinations.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.title} — {formatCurrency(d.pricePerPax)} / pax
+                    {getDestinationTitle(d)} — {formatCurrency(getDestinationPrice(d))} / pax
                   </option>
                 ))}
               </select>

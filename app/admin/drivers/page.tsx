@@ -121,7 +121,7 @@ export default function DriversAdminPage() {
                   <div className="relative h-14 w-14 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                     <Image
                       src={driver.photoUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"}
-                      alt={driver.fullName}
+                      alt={driver.fullName || driver.name || "Foto Driver"}
                       fill
                       className="object-cover"
                     />
@@ -130,7 +130,7 @@ export default function DriversAdminPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <h3 className="font-heading font-bold text-sm text-[#191c1e] truncate">
-                        {driver.fullName}
+                        {driver.fullName || driver.name || "Driver Armada"}
                       </h3>
                       <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
                     </div>

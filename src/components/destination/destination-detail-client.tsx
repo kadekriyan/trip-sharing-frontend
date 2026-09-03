@@ -31,7 +31,7 @@ import {
 } from "@/src/components/ui/dialog";
 import { destinationService } from "@/src/services/destination.service";
 import { bookingService } from "@/src/services/booking.service";
-import { formatCurrency, formatDuration, calculateOccupancyPercent } from "@/src/lib/utils";
+import { formatCurrency, formatDuration, calculateOccupancyPercent, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
 import type { Destination, BookingGroup } from "@/src/types";
 
 interface DestinationDetailClientProps {
@@ -117,9 +117,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
     );
   }
 
+  const basePrice = getDestinationPrice(destination);
   const insuranceFee = hasInsurance ? 50000 : 0;
   const roomSurcharge = roomPref === "single" ? 350000 : 0;
-  const totalAmount = destination.pricePerPax + insuranceFee + roomSurcharge;
+  const totalAmount = basePrice + insuranceFee + roomSurcharge;
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +167,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         await bookingService.simulatePaymentSettlement(createdParticipantId);
       }
       setIsPaymentModalOpen(false);
-      router.push(`/bookings?status=success&code=${destination.slug}`);
+      router.push(`/bookings?status=success&code=${destination.slug || destination.id}`);
     } catch {
       setIsPaymentModalOpen(false);
       router.push("/bookings");
@@ -183,8 +184,8 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       {/* Header Banner */}
       <div className="relative h-[45vh] min-h-[340px] max-h-[480px] w-full bg-slate-900">
         <Image
-          src={destination.coverImage || "/images/dest-bromo.jpg"}
-          alt={destination.title}
+          src={destination.coverImage || destination.image || destination.imageUrl || "/images/dest-bromo.jpg"}
+          alt={getDestinationTitle(destination)}
           fill
           priority
           sizes="100vw"
@@ -218,18 +219,18 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             </div>
 
             <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-              {destination.title}
+              {getDestinationTitle(destination)}
             </h1>
 
             <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-200 pt-1">
               <span className="flex items-center gap-1 font-medium">
                 <MapPin className="h-4 w-4 text-[#ff7f50]" />
-                {destination.location}
+                {destination.location || "Indonesia"}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1 font-medium">
                 <Calendar className="h-4 w-4 text-[#00a3c4]" />
-                {formatDuration(destination.durationDays, destination.durationNights)}
+                {formatDuration(destination.durationDays || 2, destination.durationNights || 1)}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1 font-medium text-amber-300">
@@ -357,7 +358,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <div>
                   <span className="text-xs text-slate-500 block">Biaya Per Orang (Sharing):</span>
                   <span className="font-heading font-extrabold text-2xl sm:text-3xl text-[#a43c12]">
-                    {formatCurrency(destination.pricePerPax)}
+                    {formatCurrency(basePrice)}
                   </span>
                 </div>
                 <Badge variant="coral" className="text-xs font-bold">
@@ -570,7 +571,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
                   <div className="flex justify-between text-xs text-slate-600">
                     <span>Tiket Trip Sharing:</span>
-                    <span>{formatCurrency(destination.pricePerPax)}</span>
+                    <span>{formatCurrency(basePrice)}</span>
                   </div>
                   {hasInsurance && (
                     <div className="flex justify-between text-xs text-slate-600">

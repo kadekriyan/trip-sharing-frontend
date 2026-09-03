@@ -16,7 +16,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { destinationService } from "@/src/services/destination.service";
-import { formatCurrency, formatDuration } from "@/src/lib/utils";
+import { formatCurrency, formatDuration, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 interface DestinationsCatalogClientProps {
@@ -262,8 +262,8 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                       {/* Image Container with strict Aspect Ratio (Anti-CLS) */}
                       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                         <Image
-                          src={dest.coverImage || "/images/dest-bromo.jpg"}
-                          alt={`Paket Wisata ${dest.title}`}
+                          src={dest.coverImage || dest.image || dest.imageUrl || "/images/dest-bromo.jpg"}
+                          alt={`Paket Wisata ${getDestinationTitle(dest)}`}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
                           className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -275,15 +275,17 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                           <Badge variant="coral" className="text-[10px] font-bold">
                             Maks 6 Pax
                           </Badge>
-                          <Badge variant="secondary" className="text-[10px] font-bold bg-white/95 text-slate-800">
-                            {dest.category}
-                          </Badge>
+                          {dest.category && (
+                            <Badge variant="secondary" className="text-[10px] font-bold bg-white/95 text-slate-800">
+                              {dest.category}
+                            </Badge>
+                          )}
                         </div>
 
                         <div className="absolute bottom-3.5 left-3.5 right-3.5 flex items-center justify-between text-white">
                           <div className="flex items-center gap-1.5 text-xs font-semibold">
                             <MapPin className="h-3.5 w-3.5 text-[#ff7f50]" />
-                            <span>{dest.location}</span>
+                            <span>{dest.location || "Indonesia"}</span>
                           </div>
                           <span className="text-xs font-semibold text-amber-300">
                             ⭐ {dest.rating || 5.0}
@@ -293,19 +295,19 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
 
                       <CardContent className="p-6 space-y-3">
                         <h3 className="font-heading text-base font-bold text-[#191c1e] group-hover:text-[#00677d] transition-colors line-clamp-1">
-                          <Link href={`/destinations/${dest.slug}`}>{dest.title}</Link>
+                          <Link href={`/destinations/${dest.slug || dest.id}`}>{getDestinationTitle(dest)}</Link>
                         </h3>
 
                         <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                          {dest.shortDescription || dest.description}
+                          {dest.tagline || dest.shortDescription || dest.description || "Jelajahi keindahan alam bersama teman baru."}
                         </p>
 
                         <div className="flex items-center gap-4 text-xs text-slate-600 pt-1">
-                          <span>⏱️ {formatDuration(dest.durationDays, dest.durationNights)}</span>
+                          <span>⏱️ {formatDuration(dest.durationDays || 2, dest.durationNights || 1)}</span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Users className="h-3.5 w-3.5 text-[#00677d]" />
-                            {dest.currentParticipants || 0}/{dest.maxParticipants || 6} Kursi
+                            {dest.currentParticipants || 0}/{dest.maxGroupCapacity || dest.maxParticipants || 6} Kursi
                           </span>
                         </div>
                       </CardContent>
@@ -315,13 +317,13 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                       <div>
                         <span className="text-[11px] text-slate-500 font-medium block">Biaya Patungan:</span>
                         <span className="font-heading font-extrabold text-base text-[#a43c12]">
-                          {formatCurrency(dest.pricePerPax)}
+                          {formatCurrency(getDestinationPrice(dest))}
                         </span>
                         <span className="text-[10px] text-slate-500"> /pax</span>
                       </div>
 
                       <Button asChild size="sm" className="gap-1 rounded-xl text-xs font-bold shadow-sm">
-                        <Link href={`/destinations/${dest.slug}`}>
+                        <Link href={`/destinations/${dest.slug || dest.id}`}>
                           Detail Trip
                           <ChevronRight className="h-3.5 w-3.5" />
                         </Link>

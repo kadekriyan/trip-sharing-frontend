@@ -1,17 +1,32 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { PaymentStatus, GroupStatus } from "@/src/types";
+import type { PaymentStatus, GroupStatus, Destination } from "@/src/types";
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
+export function formatCurrency(amount?: number | string | null): string {
+  if (amount === undefined || amount === null) return "Rp 0";
+  const numeric = typeof amount === "number" ? amount : Number(amount);
+  if (isNaN(numeric) || !isFinite(numeric)) return "Rp 0";
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(numeric);
+}
+
+export function getDestinationTitle(dest?: Partial<Destination> | null): string {
+  if (!dest) return "Paket Wisata";
+  return dest.title || dest.name || dest.tagline || "Paket Wisata";
+}
+
+export function getDestinationPrice(dest?: Partial<Destination> | null): number {
+  if (!dest) return 0;
+  const val = dest.pricePerPax ?? dest.price ?? dest.basePrice;
+  const numeric = typeof val === "number" ? val : Number(val);
+  return isNaN(numeric) ? 0 : numeric;
 }
 
 export function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions): string {

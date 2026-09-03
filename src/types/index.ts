@@ -13,6 +13,7 @@ export interface ItineraryDay {
 export interface Destination {
   id: string;
   title: string;
+  name?: string;
   slug: string;
   tagline: string;
   description: string;
@@ -22,7 +23,11 @@ export interface Destination {
   durationDays: number;
   durationNights: number;
   pricePerPax: number;
+  price?: number;
+  basePrice?: number;
   coverImage: string;
+  image?: string;
+  imageUrl?: string;
   galleryImages: string[];
   inclusions: string[];
   includedFacilities?: string[];
@@ -109,6 +114,7 @@ export interface Participant {
 export interface Driver {
   id: string;
   fullName: string;
+  name?: string;
   phoneNumber: string;
   licenseNumber: string;
   vehicleModel: string;

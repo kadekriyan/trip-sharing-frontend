@@ -128,14 +128,14 @@ export default function BlogsAdminPage() {
                         <div className="relative h-12 w-16 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                           <Image
                             src={art.coverImage || "/images/dest-bromo.jpg"}
-                            alt={art.title}
+                            alt={art.title || "Cover Artikel"}
                             fill
                             className="object-cover"
                           />
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-heading font-bold text-xs text-[#191c1e] line-clamp-1 hover:text-[#00677d]">
-                            <Link href={`/blog/${art.slug}`}>{art.title}</Link>
+                            <Link href={`/blog/${art.slug || art.id}`}>{art.title || "Artikel Tanpa Judul"}</Link>
                           </h3>
                           <span className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">
                             {art.excerpt}
