@@ -38,6 +38,7 @@ export interface Destination {
   rating: number;
   totalReviews: number;
   isPopular?: boolean;
+  isActive?: boolean;
   meetingPoint: string;
   maxGroupCapacity: number; // 6
   currentParticipants?: number;

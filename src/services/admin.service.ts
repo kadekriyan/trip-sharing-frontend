@@ -158,6 +158,46 @@ export const adminService = {
     return res.data;
   },
 
+  async getDestinationById(id: string): Promise<Destination | null> {
+    try {
+      const res = await apiClient.get<Destination>(`/admin/destinations/${id}`);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback to public endpoint by id or slug
+    }
+
+    try {
+      const pubRes = await apiClient.get<Destination>(`/destinations/${id}`);
+      if (pubRes.success && pubRes.data) {
+        return pubRes.data;
+      }
+    } catch {
+      // Not found
+    }
+    return null;
+  },
+
+  async updateDestination(id: string, payload: Partial<Destination>): Promise<Destination> {
+    const res = await apiClient.patch<Destination>(`/admin/destinations/${id}`, payload);
+    if (!res.success || !res.data) {
+      throw new Error(res.message || "Gagal memperbarui data destinasi");
+    }
+    return res.data;
+  },
+
+  async deleteDestination(id: string): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/destinations/${id}`);
+    if (!res.success) {
+      throw new Error(res.message || "Gagal menghapus destinasi");
+    }
+    return {
+      success: true,
+      message: res.message || "Destinasi berhasil dihapus",
+    };
+  },
+
   async getDrivers(): Promise<Driver[]> {
     try {
       const res = await apiClient.get<Driver[]>("/admin/drivers");
