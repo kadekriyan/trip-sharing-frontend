@@ -22,11 +22,46 @@ export function getDestinationTitle(dest?: Partial<Destination> | null): string 
   return dest.title || dest.name || dest.tagline || "Paket Wisata";
 }
 
-export function getDestinationPrice(dest?: Partial<Destination> | null): number {
+export function getDestinationPrice(dest?: Partial<Destination> | Record<string, unknown> | null): number {
   if (!dest) return 0;
-  const val = dest.pricePerPax ?? dest.price ?? dest.basePrice;
+  const anyDest = dest as Record<string, unknown>;
+
+  // 1. Direct root pricing fields
+  let val: unknown =
+    anyDest.pricePerPax ??
+    anyDest.price ??
+    anyDest.basePrice ??
+    anyDest.startPrice ??
+    anyDest.pricePerPerson ??
+    anyDest.cost;
+
+  // 2. Nested in trips or activeTrips arrays
+  if (val === undefined || val === null || val === 0) {
+    const trips = (anyDest.trips || anyDest.activeTrips) as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(trips) && trips.length > 0) {
+      val =
+        trips[0]?.pricePerPax ??
+        trips[0]?.price ??
+        trips[0]?.basePrice ??
+        trips[0]?.startPrice;
+    }
+  }
+
+  // 3. Single trip object
+  if (val === undefined || val === null || val === 0) {
+    const trip = anyDest.trip as Record<string, unknown> | undefined;
+    if (trip && typeof trip === "object") {
+      val = trip.pricePerPax ?? trip.price ?? trip.basePrice;
+    }
+  }
+
+  // 4. Snake_case fallback fields
+  if (val === undefined || val === null || val === 0) {
+    val = anyDest.price_per_pax ?? anyDest.base_price ?? anyDest.start_price;
+  }
+
   const numeric = typeof val === "number" ? val : Number(val);
-  return isNaN(numeric) ? 0 : numeric;
+  return isNaN(numeric) || !isFinite(numeric) ? 0 : numeric;
 }
 
 export function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions): string {

@@ -94,8 +94,55 @@ export const adminService = {
   async getDestinations(): Promise<Destination[]> {
     try {
       const res = await apiClient.get<Destination[]>("/admin/destinations");
-      if (res.success && Array.isArray(res.data)) {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        // Check if any destination has pricing
+        const hasPricing = res.data.some((d) => {
+          const anyD = d as unknown as Record<string, unknown>;
+          return (
+            d.pricePerPax ||
+            anyD.price ||
+            anyD.basePrice ||
+            (Array.isArray(anyD.trips) && anyD.trips.length > 0) ||
+            (Array.isArray(anyD.activeTrips) && anyD.activeTrips.length > 0)
+          );
+        });
+
+        if (hasPricing) {
+          return res.data;
+        }
+
+        // If admin raw query lacks calculated price, merge with public catalog
+        try {
+          const pubRes = await apiClient.get<Destination[]>("/destinations");
+          if (pubRes.success && Array.isArray(pubRes.data) && pubRes.data.length > 0) {
+            const pubMap = new Map(pubRes.data.map((p) => [p.id, p]));
+            return res.data.map((d) => {
+              const pub = pubMap.get(d.id) || pubRes.data.find((p) => p.slug === d.slug);
+              return {
+                ...pub,
+                ...d,
+                pricePerPax:
+                  d.pricePerPax ||
+                  (pub && (pub.pricePerPax || (pub as unknown as Record<string, unknown>).price)) ||
+                  (d as unknown as Record<string, unknown>).price ||
+                  0,
+                rating: d.rating || pub?.rating || 4.9,
+              } as Destination;
+            });
+          }
+        } catch {
+          // Fallback to raw admin response
+        }
         return res.data;
+      }
+    } catch {
+      // Admin endpoint error fallback
+    }
+
+    try {
+      const pubRes = await apiClient.get<Destination[]>("/destinations");
+      if (pubRes.success && Array.isArray(pubRes.data)) {
+        return pubRes.data;
       }
     } catch {
       // Empty
