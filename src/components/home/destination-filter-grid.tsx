@@ -24,17 +24,24 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
   const [searchLocation, setSearchLocation] = useState("all");
   const [searchDuration, setSearchDuration] = useState("all");
 
-  const filtered = initialDestinations.filter((dest) => {
-    if (searchLocation !== "all" && !dest.location.toLowerCase().includes(searchLocation.toLowerCase())) {
-      return false;
-    }
-    if (searchDuration === "short" && dest.durationDays > 2) return false;
-    if (searchDuration === "long" && dest.durationDays <= 2) return false;
-    return true;
-  });
+  const filtered = Array.isArray(initialDestinations)
+    ? initialDestinations.filter((dest) => {
+        if (!dest) return false;
+        const loc = (dest.location || "").toLowerCase();
+        if (searchLocation !== "all" && !loc.includes(searchLocation.toLowerCase())) {
+          return false;
+        }
+        const days = dest.durationDays || 0;
+        if (searchDuration === "short" && days > 2) return false;
+        if (searchDuration === "long" && days <= 2) return false;
+        return true;
+      })
+    : [];
 
   // Extract unique locations for the filter
-  const locations = Array.from(new Set(initialDestinations.map((d) => d.location)));
+  const locations = Array.isArray(initialDestinations)
+    ? Array.from(new Set(initialDestinations.map((d) => d?.location).filter(Boolean)))
+    : [];
 
   return (
     <div className="space-y-8">

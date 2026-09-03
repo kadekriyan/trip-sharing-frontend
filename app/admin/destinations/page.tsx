@@ -46,11 +46,15 @@ export default function DestinationsAdminPage() {
     };
   }, []);
 
-  const filtered = destinations.filter(
-    (d) =>
-      d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = Array.isArray(destinations)
+    ? destinations.filter((d) => {
+        if (!d) return false;
+        const title = (d.title || d.tagline || "").toLowerCase();
+        const location = (d.location || "").toLowerCase();
+        const query = (searchQuery || "").toLowerCase();
+        return title.includes(query) || location.includes(query);
+      })
+    : [];
 
   return (
     <div className="space-y-8">

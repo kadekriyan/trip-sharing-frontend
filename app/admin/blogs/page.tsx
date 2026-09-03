@@ -44,11 +44,15 @@ export default function BlogsAdminPage() {
     };
   }, []);
 
-  const filtered = articles.filter(
-    (a) =>
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = Array.isArray(articles)
+    ? articles.filter((a) => {
+        if (!a) return false;
+        const title = (a.title || "").toLowerCase();
+        const category = (a.category || "").toLowerCase();
+        const query = (searchQuery || "").toLowerCase();
+        return title.includes(query) || category.includes(query);
+      })
+    : [];
 
   return (
     <div className="space-y-8">

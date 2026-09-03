@@ -71,18 +71,22 @@ export default function MyBookingsPage() {
     }
   };
 
-  const filteredBookings = bookings.filter((b) => {
-    if (activeTab === "paid" && b.paymentStatus !== "paid") return false;
-    if (activeTab === "pending" && b.paymentStatus !== "pending") return false;
-    if (
-      searchQuery &&
-      !b.bookingCode.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !b.fullName.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
-      return false;
-    }
-    return true;
-  });
+  const filteredBookings = Array.isArray(bookings)
+    ? bookings.filter((b) => {
+        if (!b) return false;
+        if (activeTab === "paid" && b.paymentStatus !== "paid") return false;
+        if (activeTab === "pending" && b.paymentStatus !== "pending") return false;
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const code = (b.bookingCode || "").toLowerCase();
+          const name = (b.fullName || "").toLowerCase();
+          if (!code.includes(query) && !name.includes(query)) {
+            return false;
+          }
+        }
+        return true;
+      })
+    : [];
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] py-10">

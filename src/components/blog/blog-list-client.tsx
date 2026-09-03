@@ -46,17 +46,21 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
     };
   }, [selectedCategory, searchQuery]);
 
-  const filteredArticles = articles.filter((art) => {
-    if (selectedCategory !== "all" && art.category !== selectedCategory) return false;
-    if (
-      searchQuery &&
-      !art.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !art.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
-      return false;
-    }
-    return true;
-  });
+  const filteredArticles = Array.isArray(articles)
+    ? articles.filter((art) => {
+        if (!art) return false;
+        if (selectedCategory !== "all" && art.category !== selectedCategory) return false;
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const title = (art.title || "").toLowerCase();
+          const excerpt = (art.excerpt || "").toLowerCase();
+          if (!title.includes(query) && !excerpt.includes(query)) {
+            return false;
+          }
+        }
+        return true;
+      })
+    : [];
 
   const categories = ["all", "Tips Wisata", "Rute & Itinerary", "Cerita Komunitas", "Edukasi"];
 

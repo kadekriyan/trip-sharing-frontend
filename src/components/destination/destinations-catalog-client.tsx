@@ -58,17 +58,20 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
   }, [searchQuery, selectedLocation, selectedDuration, sortBy]);
 
   const filteredDestinations = useMemo(() => {
+    if (!Array.isArray(destinations)) return [];
     return destinations.filter((dest) => {
-      const matchSearch =
-        dest.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dest.location.toLowerCase().includes(searchQuery.toLowerCase());
+      if (!dest) return false;
+      const title = (dest.title || dest.tagline || "").toLowerCase();
+      const loc = (dest.location || "").toLowerCase();
+      const query = (searchQuery || "").toLowerCase();
+
+      const matchSearch = !query || title.includes(query) || loc.includes(query);
       const matchLocation =
-        selectedLocation === "all" ||
-        dest.location.toLowerCase().includes(selectedLocation.toLowerCase());
+        selectedLocation === "all" || loc.includes(selectedLocation.toLowerCase());
       const matchDuration =
         selectedDuration === "all" ||
-        (selectedDuration === "1-2" && dest.durationDays <= 2) ||
-        (selectedDuration === "3+" && dest.durationDays >= 3);
+        (selectedDuration === "1-2" && (dest.durationDays || 0) <= 2) ||
+        (selectedDuration === "3+" && (dest.durationDays || 0) >= 3);
 
       return matchSearch && matchLocation && matchDuration;
     });

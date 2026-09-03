@@ -45,12 +45,16 @@ export default function DriversAdminPage() {
     };
   }, []);
 
-  const filtered = drivers.filter(
-    (d) =>
-      d.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.vehicleModel.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.plateNumber.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = Array.isArray(drivers)
+    ? drivers.filter((d) => {
+        if (!d) return false;
+        const name = (d.fullName || "").toLowerCase();
+        const model = (d.vehicleModel || "").toLowerCase();
+        const plate = (d.plateNumber || "").toLowerCase();
+        const query = (searchQuery || "").toLowerCase();
+        return name.includes(query) || model.includes(query) || plate.includes(query);
+      })
+    : [];
 
   return (
     <div className="space-y-8">

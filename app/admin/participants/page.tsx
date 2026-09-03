@@ -76,18 +76,22 @@ export default function ParticipantsManagementPage() {
     };
   }, [statusFilter, searchQuery]);
 
-  const filteredParticipants = participants.filter((p) => {
-    if (statusFilter !== "all" && p.paymentStatus !== statusFilter) return false;
-    if (
-      searchQuery &&
-      !p.fullName.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !p.email.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !p.bookingCode.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
-      return false;
-    }
-    return true;
-  });
+  const filteredParticipants = Array.isArray(participants)
+    ? participants.filter((p) => {
+        if (!p) return false;
+        if (statusFilter !== "all" && p.paymentStatus !== statusFilter) return false;
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const name = (p.fullName || "").toLowerCase();
+          const email = (p.email || "").toLowerCase();
+          const code = (p.bookingCode || "").toLowerCase();
+          if (!name.includes(query) && !email.includes(query) && !code.includes(query)) {
+            return false;
+          }
+        }
+        return true;
+      })
+    : [];
 
   const handleExecuteMove = async () => {
     if (!movingParticipant) return;
