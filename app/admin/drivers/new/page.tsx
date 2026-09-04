@@ -20,6 +20,7 @@ export default function NewDriverPage() {
 
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [vehicleModel, setVehicleModel] = useState("Toyota HiAce Commuter (6-Seater VIP)");
   const [plateNumber, setPlateNumber] = useState("");
@@ -41,11 +42,13 @@ export default function NewDriverPage() {
       await adminService.addDriver({
         fullName,
         phoneNumber,
+        email: email ? email.trim() : undefined,
         licenseNumber,
         vehicleModel,
         plateNumber: plateNumber.toUpperCase(),
         passengerCapacity: 6,
         status: "available",
+        isAvailable: true,
         photoUrl,
         rating: 5.0,
         totalTrips: 0,
@@ -118,6 +121,21 @@ export default function NewDriverPage() {
             </div>
 
             <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Email Driver (Opsional)
+              </label>
+              <Input
+                type="email"
+                placeholder="driver@gmail.com (Opsional)"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <span className="text-[10px] text-slate-400 block">
+                Jika dikosongkan, sistem otomatis membuat akun sistem berbasis no HP.
+              </span>
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Nomor SIM A / B1 *
               </label>
