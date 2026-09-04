@@ -93,7 +93,15 @@ export default function EditBlogArticlePage() {
   };
 
   const handleFormat = (tag: string) => {
-    setContent((prev) => `${prev} <${tag}>Teks Terformat</${tag}>`);
+    if (tag === "a") {
+      setContent((prev) => `${prev} <a href="https://example.com" target="_blank" rel="noopener noreferrer">Teks Link</a>`);
+    } else if (tag === "li") {
+      setContent((prev) => `${prev}\n<ul>\n  <li>Poin item 1</li>\n  <li>Poin item 2</li>\n</ul>\n`);
+    } else if (tag === "h2") {
+      setContent((prev) => `${prev}\n<h2>Judul Sub-Bab</h2>\n`);
+    } else {
+      setContent((prev) => `${prev} <${tag}>Teks Terformat</${tag}>`);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
