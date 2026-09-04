@@ -173,10 +173,16 @@ export interface Article {
     avatar?: string;
     role?: string;
   };
+  authorName?: string;
+  authorAvatar?: string;
+  authorRole?: string;
   readTimeMinutes?: number;
   readTime?: string;
   publishedAt: string;
   views?: number;
+  viewCount?: number;
+  isPublished?: boolean;
+  isActive?: boolean;
   isFeatured?: boolean;
   seoTitle?: string;
   seoDescription?: string;

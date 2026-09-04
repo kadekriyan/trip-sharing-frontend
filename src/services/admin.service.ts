@@ -256,17 +256,113 @@ export const adminService = {
         return res.data;
       }
     } catch {
+      // Try /admin/articles
+    }
+
+    try {
+      const altRes = await apiClient.get<Article[]>("/admin/articles");
+      if (altRes.success && Array.isArray(altRes.data)) {
+        return altRes.data;
+      }
+    } catch {
       // Empty
     }
     return [];
   },
 
-  async addArticle(payload: Partial<Article>): Promise<Article> {
-    const res = await apiClient.post<Article>("/admin/blogs", payload);
-    if (!res.success || !res.data) {
-      throw new Error(res.message || "Gagal menerbitkan artikel blog baru");
+  async getArticleById(id: string): Promise<Article | null> {
+    try {
+      const res = await apiClient.get<Article>(`/admin/blogs/${id}`);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Try /admin/articles/:id
     }
-    return res.data;
+
+    try {
+      const altRes = await apiClient.get<Article>(`/admin/articles/${id}`);
+      if (altRes.success && altRes.data) {
+        return altRes.data;
+      }
+    } catch {
+      // Fallback to public endpoint
+    }
+
+    try {
+      const pubRes = await apiClient.get<Article>(`/blogs/${id}`);
+      if (pubRes.success && pubRes.data) {
+        return pubRes.data;
+      }
+    } catch {
+      // Not found
+    }
+    return null;
+  },
+
+  async addArticle(payload: Partial<Article>): Promise<Article> {
+    try {
+      const res = await apiClient.post<Article>("/admin/blogs", payload);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback to /admin/articles
+    }
+
+    const altRes = await apiClient.post<Article>("/admin/articles", payload);
+    if (!altRes.success || !altRes.data) {
+      throw new Error(altRes.message || "Gagal menerbitkan artikel blog baru");
+    }
+    return altRes.data;
+  },
+
+  async updateArticle(id: string, payload: Partial<Article>): Promise<Article> {
+    try {
+      const res = await apiClient.patch<Article>(`/admin/blogs/${id}`, payload);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback to /admin/articles/:id
+    }
+
+    const altRes = await apiClient.patch<Article>(`/admin/articles/${id}`, payload);
+    if (!altRes.success || !altRes.data) {
+      throw new Error(altRes.message || "Gagal memperbarui artikel blog");
+    }
+    return altRes.data;
+  },
+
+  async toggleArticleStatus(id: string, currentActive: boolean): Promise<Article> {
+    const nextState = !currentActive;
+    return this.updateArticle(id, {
+      isActive: nextState,
+      isPublished: nextState,
+    });
+  },
+
+  async deleteArticle(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/blogs/${id}`);
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || "Artikel berhasil dihapus",
+        };
+      }
+    } catch {
+      // Fallback to /admin/articles/:id
+    }
+
+    const altRes = await apiClient.delete<{ success: boolean; message: string }>(`/admin/articles/${id}`);
+    if (!altRes.success) {
+      throw new Error(altRes.message || "Gagal menghapus artikel");
+    }
+    return {
+      success: true,
+      message: altRes.message || "Artikel berhasil dihapus",
+    };
   },
 
   async getAuditLogs(): Promise<AuditLog[]> {
