@@ -7,6 +7,8 @@ import type {
   Driver,
   Article,
   AuditLog,
+  Trip,
+  BookingGroup,
 } from "@/src/types";
 
 export interface ManualParticipantPayload {
@@ -150,7 +152,58 @@ export const adminService = {
     if (!res.success) {
       throw new Error(res.message || "Gagal memindahkan peserta ke grup lain");
     }
-    return res.data;
+    return {
+      success: true,
+      message: res.message || "Peserta berhasil dipindahkan",
+    };
+  },
+
+  async getTrips(): Promise<Trip[]> {
+    try {
+      const res = await apiClient.get<Trip[]>("/admin/trips");
+      if (res.success && Array.isArray(res.data)) {
+        return res.data;
+      }
+    } catch {
+      // Try public /trips
+    }
+
+    try {
+      const pubRes = await apiClient.get<Trip[]>("/trips");
+      if (pubRes.success && Array.isArray(pubRes.data)) {
+        return pubRes.data;
+      }
+    } catch {
+      // Empty
+    }
+    return [];
+  },
+
+  async getTripAvailability(tripId: string): Promise<BookingGroup[]> {
+    try {
+      const res = await apiClient.get<{ groups?: BookingGroup[] } | BookingGroup[]>(
+        `/trips/${tripId}/availability`
+      );
+      if (res.success && res.data) {
+        if (Array.isArray(res.data)) return res.data;
+        const withGroups = res.data as { groups?: BookingGroup[] };
+        if (Array.isArray(withGroups.groups)) {
+          return withGroups.groups;
+        }
+      }
+    } catch {
+      // Fallback to /trips/:id
+    }
+
+    try {
+      const tripRes = await apiClient.get<Trip>(`/trips/${tripId}`);
+      if (tripRes.success && tripRes.data && Array.isArray(tripRes.data.groups)) {
+        return tripRes.data.groups;
+      }
+    } catch {
+      // Empty
+    }
+    return [];
   },
 
   async getDestinations(): Promise<Destination[]> {
