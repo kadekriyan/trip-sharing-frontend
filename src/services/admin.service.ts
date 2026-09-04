@@ -10,17 +10,28 @@ import type {
 } from "@/src/types";
 
 export interface ManualParticipantPayload {
-  destinationId: string;
-  tripId: string;
-  groupId: string;
+  destinationId?: string;
+  tripId?: string;
+  trip_id?: string;
+  bookingGroupId?: string;
+  booking_group_id?: string;
+  groupId?: string;
+  group_id?: string;
   fullName: string;
+  name?: string;
   email: string;
   phoneNumber: string;
-  nationality: string;
-  identityNumber: string;
+  phone?: string;
+  nationality?: string;
+  gender?: "male" | "female" | string;
+  identityNumber?: string;
   roomPreference?: "single" | "shared" | "none";
-  amountPaid: number;
-  paymentMethod: "manual_transfer" | "cash_onsite" | "qris" | "bank_transfer";
+  amountPaid?: number;
+  totalAmount?: number;
+  paymentMethod?: "manual_transfer" | "cash_onsite" | "qris" | "bank_transfer" | string;
+  paymentStatus?: "paid" | "pending" | string;
+  hasInsurance?: boolean;
+  insuranceFee?: number;
   notes?: string;
 }
 
@@ -70,14 +81,65 @@ export const adminService = {
   async addParticipantManual(
     payload: ManualParticipantPayload
   ): Promise<{ participant: Participant; message: string }> {
-    const res = await apiClient.post<{ participant: Participant; message: string }>(
-      "/admin/participants/manual",
-      payload
-    );
-    if (!res.success || !res.data) {
-      throw new Error(res.message || "Gagal menambahkan peserta manual");
+    const rawGroupId = payload.bookingGroupId || payload.groupId || payload.group_id;
+    const rawTripId = payload.tripId || payload.trip_id;
+
+    const requestBody = {
+      tripId: rawTripId,
+      trip_id: rawTripId,
+      bookingGroupId: rawGroupId,
+      group_id: rawGroupId,
+      groupId: rawGroupId,
+      destinationId: payload.destinationId,
+      fullName: payload.fullName || payload.name,
+      name: payload.fullName || payload.name,
+      email: payload.email,
+      phoneNumber: payload.phoneNumber || payload.phone,
+      phone: payload.phoneNumber || payload.phone,
+      identityNumber: payload.identityNumber,
+      nationality: payload.nationality || "Indonesia",
+      gender: payload.gender || "male",
+      paymentStatus: payload.paymentStatus || "paid",
+      paymentMethod: payload.paymentMethod || "cash_onsite",
+      roomPreference: payload.roomPreference || "shared",
+      hasInsurance: payload.hasInsurance !== undefined ? payload.hasInsurance : true,
+      insuranceFee: payload.insuranceFee || (payload.hasInsurance ? 50000 : 0),
+      totalAmount: payload.totalAmount || payload.amountPaid,
+      amountPaid: payload.totalAmount || payload.amountPaid,
+      notes: payload.notes,
+    };
+
+    try {
+      const res = await apiClient.post<{ participant: Participant; message: string }>(
+        "/admin/participants/manual",
+        requestBody
+      );
+      if (res.success && res.data) {
+        return res.data;
+      }
+      if (!res.success && res.message) {
+        throw new Error(res.message);
+      }
+    } catch (err: unknown) {
+      // If endpoint /admin/participants/manual fails, try /admin/participants
+      try {
+        const altRes = await apiClient.post<{ participant: Participant; message: string }>(
+          "/admin/participants",
+          requestBody
+        );
+        if (altRes.success && altRes.data) {
+          return altRes.data;
+        }
+        if (!altRes.success && altRes.message) {
+          throw new Error(altRes.message);
+        }
+      } catch (altErr: unknown) {
+        throw err instanceof Error ? err : altErr;
+      }
+      throw err;
     }
-    return res.data;
+
+    throw new Error("Gagal menambahkan peserta manual");
   },
 
   async moveParticipant(payload: MoveParticipantPayload): Promise<{ success: boolean; message: string }> {
