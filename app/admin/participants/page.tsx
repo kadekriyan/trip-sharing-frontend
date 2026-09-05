@@ -12,6 +12,7 @@ import {
   Mail,
   Loader2,
   PackageOpen,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Card } from "@/src/components/ui/card";
@@ -38,6 +39,12 @@ export default function ParticipantsManagementPage() {
   const [targetGroupId, setTargetGroupId] = useState<string>("grp-02");
   const [moveReason, setMoveReason] = useState("");
   const [moveMessage, setMoveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Update Payment Status Modal State
+  const [editingPaymentParticipant, setEditingPaymentParticipant] = useState<Participant | null>(null);
+  const [newPaymentStatus, setNewPaymentStatus] = useState<"paid" | "pending" | "failed" | "refunded">("paid");
+  const [paymentUpdateMessage, setPaymentUpdateMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
 
   const reloadData = useCallback(async () => {
     setIsLoading(true);
@@ -120,6 +127,38 @@ export default function ParticipantsManagementPage() {
     }
   };
 
+  const handleUpdatePaymentStatus = async () => {
+    if (!editingPaymentParticipant) return;
+    setIsUpdatingPayment(true);
+    try {
+      const res = await adminService.updateParticipantPaymentStatus(
+        editingPaymentParticipant.id,
+        newPaymentStatus
+      );
+      if (res.success) {
+        setPaymentUpdateMessage({
+          type: "success",
+          text: res.message || "Status pembayaran berhasil diperbarui.",
+        });
+        await reloadData();
+        setTimeout(() => {
+          setEditingPaymentParticipant(null);
+          setPaymentUpdateMessage(null);
+        }, 1000);
+      } else {
+        setPaymentUpdateMessage({
+          type: "error",
+          text: res.message || "Gagal memperbarui status pembayaran.",
+        });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat memperbarui status.";
+      setPaymentUpdateMessage({ type: "error", text: msg });
+    } finally {
+      setIsUpdatingPayment(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Top Header */}
@@ -148,55 +187,55 @@ export default function ParticipantsManagementPage() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Cari nama traveler, email, atau kode tiket..."
+              placeholder="Cari nama peserta, email, atau kode booking..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-10 text-xs bg-slate-50 border-slate-200"
             />
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {["all", "paid", "pending", "failed"].map((st) => (
-              <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize whitespace-nowrap ${
-                  statusFilter === st
-                    ? "bg-[#00677d] text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {st === "all" ? "Semua Status" : st}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500">Status Pembayaran:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:outline-none"
+            >
+              <option value="all">Semua Status</option>
+              <option value="paid">Lunas (Paid)</option>
+              <option value="pending">Menunggu (Pending)</option>
+              <option value="failed">Gagal (Failed)</option>
+              <option value="refunded">Refunded</option>
+            </select>
           </div>
         </div>
 
-        {/* Participants Table */}
+        {/* Table View */}
         {isLoading ? (
-          <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-2">
-            <Loader2 className="h-6 w-6 text-[#00677d] animate-spin" />
-            <span>Memuat data peserta...</span>
+          <div className="p-12 text-center space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin text-[#00677d] mx-auto" />
+            <p className="text-xs text-slate-500">Memuat daftar peserta...</p>
           </div>
         ) : filteredParticipants.length === 0 ? (
-          <div className="p-12 text-center bg-slate-50/50 rounded-xl border border-slate-200 space-y-2">
-            <PackageOpen className="h-8 w-8 text-slate-400 mx-auto" />
-            <p className="text-xs font-semibold text-slate-600">Tidak ada data peserta yang sesuai.</p>
+          <div className="p-12 text-center space-y-3">
+            <PackageOpen className="h-12 w-12 text-slate-300 mx-auto" />
+            <p className="text-sm font-bold text-slate-700">Tidak ada peserta ditemukan</p>
+            <p className="text-xs text-slate-500">Coba ubah kata kunci pencarian atau filter status.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-100">
+          <div className="overflow-x-auto rounded-xl border border-slate-200/80">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="px-5 py-3.5">Kode Booking</th>
-                  <th className="px-5 py-3.5">Nama Traveler</th>
+                  <th className="px-5 py-3.5">Nama Peserta</th>
                   <th className="px-5 py-3.5">Kontak</th>
-                  <th className="px-5 py-3.5">Grup Mobil</th>
-                  <th className="px-5 py-3.5">Pembayaran</th>
+                  <th className="px-5 py-3.5">Armada Mobil</th>
+                  <th className="px-5 py-3.5">Status Pembayaran</th>
                   <th className="px-5 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 bg-white">
                 {filteredParticipants.map((p) => {
                   const badge = getPaymentBadge(p.paymentStatus);
                   return (
@@ -236,18 +275,35 @@ export default function ParticipantsManagementPage() {
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setMovingParticipant(p);
-                            setMoveMessage(null);
-                          }}
-                          className="h-8 gap-1.5 text-xs text-[#00677d] hover:bg-[#00677d]/5"
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5" />
-                          Pindah Grup
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingPaymentParticipant(p);
+                              setNewPaymentStatus(
+                                (p.paymentStatus as "paid" | "pending" | "failed" | "refunded") || "paid"
+                              );
+                              setPaymentUpdateMessage(null);
+                            }}
+                            className="h-8 gap-1.5 text-xs text-amber-800 hover:bg-amber-50 border-amber-200"
+                          >
+                            <CreditCard className="h-3.5 w-3.5 text-amber-600" />
+                            Ubah Status
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setMovingParticipant(p);
+                              setMoveMessage(null);
+                            }}
+                            className="h-8 gap-1.5 text-xs text-[#00677d] hover:bg-[#00677d]/5"
+                          >
+                            <ArrowRightLeft className="h-3.5 w-3.5" />
+                            Pindah Grup
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -257,6 +313,97 @@ export default function ParticipantsManagementPage() {
           </div>
         )}
       </Card>
+
+      {/* UPDATE PAYMENT STATUS DIALOG */}
+      <Dialog
+        open={!!editingPaymentParticipant}
+        onOpenChange={() => setEditingPaymentParticipant(null)}
+      >
+        <DialogContent className="max-w-md p-6 bg-white rounded-2xl border border-slate-100 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-heading font-bold text-lg text-[#191c1e] flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-amber-600" />
+              Ubah Status Pembayaran Manual
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Perbarui status pembayaran tiket peserta (misal: verifikasi pembayaran offline atau mutasi bank).
+            </DialogDescription>
+          </DialogHeader>
+
+          {paymentUpdateMessage && (
+            <div
+              className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                paymentUpdateMessage.type === "success"
+                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                  : "bg-rose-50 text-rose-800 border border-rose-200"
+              }`}
+            >
+              {paymentUpdateMessage.type === "success" ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+              )}
+              <span>{paymentUpdateMessage.text}</span>
+            </div>
+          )}
+
+          {editingPaymentParticipant && (
+            <div className="space-y-4 pt-2">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Nama Peserta:</span>
+                  <span className="font-bold text-slate-800">{editingPaymentParticipant.fullName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Kode Booking:</span>
+                  <span className="font-mono font-bold text-[#00677d]">{editingPaymentParticipant.bookingCode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Total Nominal:</span>
+                  <span className="font-bold text-[#a43c12]">{formatCurrency(editingPaymentParticipant.totalAmount)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                  Pilih Status Pembayaran Baru *
+                </label>
+                <select
+                  value={newPaymentStatus}
+                  onChange={(e) =>
+                    setNewPaymentStatus(e.target.value as "paid" | "pending" | "failed" | "refunded")
+                  }
+                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
+                >
+                  <option value="paid">✅ Lunas (Paid / Settlement)</option>
+                  <option value="pending">⏳ Menunggu Pembayaran (Pending)</option>
+                  <option value="failed">❌ Gagal / Dibatalkan (Failed / Expired)</option>
+                  <option value="refunded">🔄 Dikembalikan (Refunded)</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingPaymentParticipant(null)}
+                  className="flex-1 text-xs"
+                >
+                  Batal
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={isUpdatingPayment}
+                  onClick={handleUpdatePaymentStatus}
+                  className="flex-1 text-xs font-bold bg-[#00677d] hover:bg-[#005264]"
+                >
+                  {isUpdatingPayment ? "Menyimpan..." : "Simpan Status Bayar"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* MOVE PARTICIPANT DIALOG */}
       <Dialog open={!!movingParticipant} onOpenChange={() => setMovingParticipant(null)}>

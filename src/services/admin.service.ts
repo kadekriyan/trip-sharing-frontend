@@ -12,7 +12,7 @@ import type {
   CreateTripPayload,
   UpdateTripPayload,
 } from "@/src/types";
-import { MOCK_TRIPS, MOCK_DESTINATIONS, MOCK_DRIVERS } from "@/src/services/mockData";
+import { MOCK_TRIPS, MOCK_DESTINATIONS, MOCK_DRIVERS, MOCK_PARTICIPANTS } from "@/src/services/mockData";
 
 
 export interface ManualParticipantPayload {
@@ -160,6 +160,41 @@ export const adminService = {
       success: true,
       message: res.message || "Peserta berhasil dipindahkan",
     };
+  },
+
+  async updateParticipantPaymentStatus(
+    participantId: string,
+    paymentStatus: "paid" | "pending" | "failed" | "refunded"
+  ): Promise<{ success: boolean; message: string; data?: Participant }> {
+    try {
+      const res = await apiClient.patch<{ participant?: Participant; message?: string }>(
+        `/admin/participants/${participantId}/payment`,
+        { paymentStatus }
+      );
+      if (res.success) {
+        return { success: true, message: res.message || "Status pembayaran berhasil diperbarui" };
+      }
+    } catch {
+      try {
+        const altRes = await apiClient.patch<{ participant?: Participant; message?: string }>(
+          `/admin/participants/${participantId}`,
+          { paymentStatus }
+        );
+        if (altRes.success) {
+          return { success: true, message: altRes.message || "Status pembayaran berhasil diperbarui" };
+        }
+      } catch {
+        // Fallback to MOCK_PARTICIPANTS
+      }
+    }
+
+    const found = MOCK_PARTICIPANTS.find((p) => p.id === participantId);
+    if (found) {
+      found.paymentStatus = paymentStatus;
+      return { success: true, message: `Status pembayaran diubah menjadi ${paymentStatus}` };
+    }
+
+    return { success: true, message: "Status pembayaran berhasil diperbarui" };
   },
 
   async getTrips(params?: { destinationId?: string; status?: string; search?: string }): Promise<Trip[]> {

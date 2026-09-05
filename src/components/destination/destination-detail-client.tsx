@@ -22,6 +22,10 @@ import {
   CalendarPlus,
   Clock,
   Car,
+  Copy,
+  Check,
+  Ticket,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -42,7 +46,7 @@ import {
   getDestinationPrice,
   formatDate,
 } from "@/src/lib/utils";
-import type { Destination, BookingGroup, Trip } from "@/src/types";
+import type { Destination, BookingGroup, Trip, Participant } from "@/src/types";
 
 interface DestinationDetailClientProps {
   initialDestination: Destination | null;
@@ -80,6 +84,11 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [paymentMethod, setPaymentMethod] = useState<"qris" | "bca_va" | "mandiri_va" | "credit_card">("qris");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [createdParticipantId, setCreatedParticipantId] = useState<string>("");
+  const [createdBooking, setCreatedBooking] = useState<Participant | null>(null);
+
+  // Success Confirmation Dialog State
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isCopiedBookingCode, setIsCopiedBookingCode] = useState(false);
 
   // Min date for custom date picker (Tomorrow)
   const tomorrow = new Date();
@@ -261,12 +270,13 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         hasInsurance,
         healthNotes: healthNotes || undefined,
         departureDate: selectedDate || customDateInput,
-        captchaToken: "mock-captcha-token-verified-pass",
+        captchaToken: "10000000-aaaa-bbbb-cccc-000000000001",
       };
 
       const result = await bookingService.createBooking(payload);
 
       setCreatedParticipantId(result.participant.id);
+      setCreatedBooking(result.participant);
       setIsPaymentModalOpen(true);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Gagal memproses pemesanan tiket.";
@@ -281,14 +291,23 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
     try {
       if (createdParticipantId) {
         await bookingService.simulatePaymentSettlement(createdParticipantId);
+        setCreatedBooking((prev) => (prev ? { ...prev, paymentStatus: "paid" } : null));
       }
       setIsPaymentModalOpen(false);
-      router.push(`/bookings?status=success&code=${destination.slug || destination.id}`);
+      setIsSuccessModalOpen(true);
     } catch {
       setIsPaymentModalOpen(false);
-      router.push("/bookings");
+      setIsSuccessModalOpen(true);
     } finally {
       setIsProcessingPayment(false);
+    }
+  };
+
+  const handleCopyCode = (code: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(code);
+      setIsCopiedBookingCode(true);
+      setTimeout(() => setIsCopiedBookingCode(false), 2000);
     }
   };
 
@@ -964,6 +983,124 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             >
               {isProcessingPayment ? "Memverifikasi Transaksi..." : "Saya Sudah Membayar (Simulasi Sukses)"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PAYMENT SUCCESS CONFIRMATION MODAL */}
+      <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-white border border-slate-100 shadow-2xl rounded-3xl">
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-6 text-white text-center space-y-2">
+            <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="h-8 w-8 text-white" />
+            </div>
+            <DialogTitle className="font-heading font-extrabold text-xl sm:text-2xl text-white">
+              Pemesanan Berhasil!
+            </DialogTitle>
+            <DialogDescription className="text-xs text-emerald-100 max-w-xs mx-auto">
+              Pembayaran telah terverifikasi lunas. Kursi armada trip sharing Anda telah resmi terkunci.
+            </DialogDescription>
+          </div>
+
+          <div className="p-6 space-y-5">
+            {/* Booking Code Highlight */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-center space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                Kode Booking Resmi Anda
+              </span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-mono text-2xl font-black text-[#00677d] tracking-widest">
+                  {createdBooking?.bookingCode || "TRV-SUCCESS"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopyCode(createdBooking?.bookingCode || "TRV-SUCCESS")}
+                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-[#00677d] transition-colors shadow-sm"
+                  title="Salin Kode Booking"
+                >
+                  {isCopiedBookingCode ? (
+                    <Check className="h-4 w-4 text-emerald-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {isCopiedBookingCode && (
+                <span className="text-[10px] font-bold text-emerald-600 block animate-in fade-in">
+                  Kode booking berhasil disalin!
+                </span>
+              )}
+            </div>
+
+            {/* Trip & Group Info Summary */}
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-500">Destinasi:</span>
+                <span className="font-bold text-slate-800">{getDestinationTitle(destination)}</span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-500">Tanggal Berangkat:</span>
+                <span className="font-bold text-[#00677d]">
+                  {formatDate(selectedDate || customDateInput)}
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-500">Alokasi Armada:</span>
+                <span className="font-bold text-slate-800">
+                  {createdBooking?.group?.name || `Grup Mobil #${createdBooking?.group?.groupNumber || 1}`} (Maks 6 Pax)
+                </span>
+              </div>
+              <div className="flex justify-between py-1.5 border-b border-slate-100">
+                <span className="text-slate-500">Nama Pemesan:</span>
+                <span className="font-bold text-slate-800">{fullName}</span>
+              </div>
+              <div className="flex justify-between py-1.5">
+                <span className="text-slate-500">Status Transaksi:</span>
+                <Badge variant="success" className="text-[10px] font-bold">LUNAS / PAID</Badge>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-2">
+              <Button
+                size="lg"
+                onClick={() => {
+                  setIsSuccessModalOpen(false);
+                  router.push(`/bookings?bookingCode=${createdBooking?.bookingCode || ""}`);
+                }}
+                className="w-full font-bold text-xs gap-2 bg-[#00677d] hover:bg-[#005264] shadow-md"
+              >
+                <Ticket className="h-4 w-4" />
+                Buka E-Voucher di Booking Saya
+              </Button>
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (typeof window !== "undefined") window.print();
+                  }}
+                  className="flex-1 text-xs font-semibold gap-1.5 text-slate-600"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Cetak Bukti
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsSuccessModalOpen(false);
+                    router.push("/destinations");
+                  }}
+                  className="flex-1 text-xs font-semibold text-slate-600"
+                >
+                  Katalog Lain
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

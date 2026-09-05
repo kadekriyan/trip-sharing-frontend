@@ -108,6 +108,7 @@ export interface Participant {
   paymentId?: string;
   payment?: Payment;
   bookingCode: string;
+  voucherQrCode?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,6 +154,8 @@ export interface Payment {
   snapToken?: string;
   redirectUrl?: string;
   paymentMethod?: "qris" | "bank_transfer" | "credit_card" | "gopay" | "cstore";
+  orderId?: string;
+  paidAt?: string;
   transactionTime?: string;
   settlementTime?: string;
   externalTransactionId?: string;
@@ -228,6 +231,7 @@ export interface ApiResponse<T> {
 export interface CreateBookingPayload {
   tripId: string;
   destinationId: string;
+  bookingGroupId?: string;
   fullName: string;
   email: string;
   phoneNumber: string;

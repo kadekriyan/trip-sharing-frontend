@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   Calendar,
   Users,
@@ -27,11 +28,14 @@ import { useAuth } from "@/src/context/auth-context";
 import { formatCurrency, formatDate, getPaymentBadge, getDestinationTitle } from "@/src/lib/utils";
 import type { Participant } from "@/src/types";
 
-export default function MyBookingsPage() {
+function MyBookingsContent() {
+  const searchParams = useSearchParams();
+  const initialCode = searchParams?.get("bookingCode") || searchParams?.get("code") || "";
+
   const { user, isAuthenticated, isHydrated } = useAuth();
   const [activeTab, setActiveTab] = useState<"all" | "paid" | "pending">("all");
   const [bookings, setBookings] = useState<Participant[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialCode);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedVoucher, setSelectedVoucher] = useState<Participant | null>(null);
 
@@ -43,6 +47,14 @@ export default function MyBookingsPage() {
         const data = await bookingService.getMyBookings();
         if (isMounted) {
           setBookings(data);
+          if (initialCode) {
+            const matched = data.find(
+              (b) => b.bookingCode?.toLowerCase() === initialCode.toLowerCase()
+            );
+            if (matched) {
+              setSelectedVoucher(matched);
+            }
+          }
         }
       } catch {
         // Silently handled
@@ -54,7 +66,7 @@ export default function MyBookingsPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialCode]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -467,5 +479,22 @@ export default function MyBookingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function MyBookingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center p-12">
+          <div className="text-center space-y-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#00677d] border-t-transparent mx-auto" />
+            <p className="text-xs text-slate-500">Memuat tiket & e-voucher...</p>
+          </div>
+        </div>
+      }
+    >
+      <MyBookingsContent />
+    </Suspense>
   );
 }

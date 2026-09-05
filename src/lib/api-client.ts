@@ -66,32 +66,53 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
     defaultHeaders["Authorization"] = `Bearer ${token}`;
   }
 
-  try {
-    const response = await fetch(url, {
-      ...customConfig,
-      headers: {
-        ...defaultHeaders,
-        ...((headers as Record<string, string>) || {}),
-      },
-    });
+  const maxRetries = 3;
+  let attempt = 0;
 
-    const data = await response.json().catch(() => null);
+  while (attempt <= maxRetries) {
+    try {
+      const response = await fetch(url, {
+        ...customConfig,
+        headers: {
+          ...defaultHeaders,
+          ...((headers as Record<string, string>) || {}),
+        },
+      });
 
-    if (!response.ok) {
-      throw new ApiError(
-        data?.message || `Request failed with status ${response.status}`,
-        response.status,
-        data?.details || data?.errors
-      );
+      // Handle 429 Rate Limit with exponential backoff
+      if (response.status === 429 && attempt < maxRetries) {
+        attempt++;
+        const retryAfterHeader = response.headers.get("Retry-After");
+        const delayMs = retryAfterHeader ? parseInt(retryAfterHeader, 10) * 1000 : Math.pow(2, attempt) * 500;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new ApiError(
+          data?.message || `Request failed with status ${response.status}`,
+          response.status,
+          data?.details || data?.errors
+        );
+      }
+
+      return data as ApiResponse<T>;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      if (attempt < maxRetries) {
+        attempt++;
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 300));
+        continue;
+      }
+      throw new ApiError((error as Error).message || "Network error occurred", 500);
     }
-
-    return data as ApiResponse<T>;
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError((error as Error).message || "Network error occurred", 500);
   }
+
+  throw new ApiError("Too many retries. Request failed.", 429);
 }
 
 export const apiClient = {
