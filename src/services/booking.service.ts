@@ -175,26 +175,14 @@ export const bookingService = {
           status: params?.status,
         },
       });
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
     } catch {
-      // Fallback
+      // Return empty array when unauthenticated, offline, or not found
     }
 
-    let filtered = [...MOCK_PARTICIPANTS];
-    if (params?.bookingCode) {
-      const code = params.bookingCode.toLowerCase();
-      filtered = filtered.filter((p) => p.bookingCode.toLowerCase().includes(code));
-    }
-    if (params?.email) {
-      const em = params.email.toLowerCase();
-      filtered = filtered.filter((p) => p.email.toLowerCase().includes(em));
-    }
-    if (params?.status && params.status !== "all") {
-      filtered = filtered.filter((p) => p.paymentStatus === params.status);
-    }
-    return filtered;
+    return [];
   },
 
   async simulatePaymentSettlement(participantId: string): Promise<Payment> {
