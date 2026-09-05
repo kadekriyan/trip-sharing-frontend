@@ -48,22 +48,37 @@ export const destinationService = {
   },
 
   async getTripsByDestination(destinationId: string): Promise<Trip[]> {
+    let apiTrips: Trip[] = [];
     try {
       const res = await apiClient.get<Trip[]>("/trips", {
         params: { destinationId },
       });
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        return res.data;
+        apiTrips = res.data;
       }
     } catch {
       // Fallback
     }
 
-    // Try finding in MOCK_TRIPS
-    const matched = MOCK_TRIPS.filter(
-      (t) => t.destinationId === destinationId || t.destination?.slug === destinationId
+    const localMatched = MOCK_TRIPS.filter(
+      (t) =>
+        t.destinationId === destinationId ||
+        t.destination?.slug === destinationId ||
+        t.destination?.id === destinationId
     );
-    return matched;
+
+    if (apiTrips.length === 0) {
+      return localMatched;
+    }
+
+    const apiTripIds = new Set(apiTrips.map((t) => t.id));
+    const merged = [...apiTrips];
+    for (const lt of localMatched) {
+      if (!apiTripIds.has(lt.id)) {
+        merged.unshift(lt);
+      }
+    }
+    return merged;
   },
 
   async getTripAvailability(tripId: string, departureDate?: string): Promise<BookingGroup[]> {

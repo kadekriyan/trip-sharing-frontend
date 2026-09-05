@@ -198,41 +198,56 @@ export const adminService = {
   },
 
   async getTrips(params?: { destinationId?: string; status?: string; search?: string }): Promise<Trip[]> {
+    let apiTrips: Trip[] = [];
     try {
       const res = await apiClient.get<Trip[]>("/admin/trips", { params });
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        return res.data;
+        apiTrips = res.data;
       }
     } catch {
       // Try public /trips
     }
 
-    try {
-      const pubRes = await apiClient.get<Trip[]>("/trips", { params });
-      if (pubRes.success && Array.isArray(pubRes.data) && pubRes.data.length > 0) {
-        return pubRes.data;
+    if (apiTrips.length === 0) {
+      try {
+        const pubRes = await apiClient.get<Trip[]>("/trips", { params });
+        if (pubRes.success && Array.isArray(pubRes.data) && pubRes.data.length > 0) {
+          apiTrips = pubRes.data;
+        }
+      } catch {
+        // Fallback to MOCK_TRIPS
       }
-    } catch {
-      // Fallback to MOCK_TRIPS
     }
 
-    let filtered = [...MOCK_TRIPS];
+    let localFiltered = [...MOCK_TRIPS];
     if (params?.destinationId) {
-      filtered = filtered.filter((t) => t.destinationId === params.destinationId);
+      localFiltered = localFiltered.filter((t) => t.destinationId === params.destinationId);
     }
     if (params?.status) {
-      filtered = filtered.filter((t) => t.status === params.status);
+      localFiltered = localFiltered.filter((t) => t.status === params.status);
     }
     if (params?.search) {
       const q = params.search.toLowerCase();
-      filtered = filtered.filter(
+      localFiltered = localFiltered.filter(
         (t) =>
           t.id.toLowerCase().includes(q) ||
           t.destination?.title.toLowerCase().includes(q) ||
           t.destination?.location.toLowerCase().includes(q)
       );
     }
-    return filtered;
+
+    if (apiTrips.length === 0) {
+      return localFiltered;
+    }
+
+    const apiIds = new Set(apiTrips.map((t) => t.id));
+    const merged = [...apiTrips];
+    for (const lt of localFiltered) {
+      if (!apiIds.has(lt.id)) {
+        merged.unshift(lt);
+      }
+    }
+    return merged;
   },
 
   async getTripById(tripId: string): Promise<Trip | null> {

@@ -4,6 +4,7 @@ import type {
   Participant,
   Payment,
   BookingGroup,
+  Trip,
 } from "@/src/types";
 import {
   MOCK_PARTICIPANTS,
@@ -62,7 +63,7 @@ export const bookingService = {
         return res.data;
       }
     } catch {
-      // Fallback: Create structured participant
+      // Fallback: Create structured participant and auto-register trip
     }
 
     const dest =
@@ -73,18 +74,107 @@ export const bookingService = {
     const bookingCode = `TRV-${randomSuffix}`;
     const participantId = `part-${Date.now()}-${randomSuffix}`;
     const paymentId = `pay-${Date.now()}`;
-    const groupId = payload.bookingGroupId || `grp-${Date.now()}-1`;
 
     const basePrice = dest.pricePerPax || dest.basePrice || 850000;
     const insuranceFee = payload.hasInsurance ? 50000 : 0;
     const roomSurcharge = payload.roomPreference === "single" ? 350000 : 0;
     const totalAmount = basePrice + insuranceFee + roomSurcharge;
 
+    const depDateStr = (payload.departureDate || new Date().toISOString()).split("T")[0];
+
+    // Find if a matching trip already exists
+    let matchedTrip: Trip | undefined = MOCK_TRIPS.find((t) => {
+      if (payload.tripId && t.id === payload.tripId && !payload.tripId.startsWith("trip-ondemand-")) {
+        return true;
+      }
+      const isSameDest = t.destinationId === dest.id || t.destination?.slug === dest.slug;
+      const tDateStr = t.departureDate.split("T")[0];
+      return isSameDest && tDateStr === depDateStr;
+    });
+
+    let assignedGroup: BookingGroup;
+
+    if (matchedTrip) {
+      // Find open group or add new group
+      const foundGroup = matchedTrip.groups.find(
+        (g) => g.id === payload.bookingGroupId || (g.status === "open" && g.currentParticipants < g.capacity)
+      );
+
+      if (foundGroup) {
+        foundGroup.currentParticipants = Math.min(foundGroup.capacity, foundGroup.currentParticipants + 1);
+        if (foundGroup.currentParticipants >= foundGroup.capacity) {
+          foundGroup.status = "full";
+        }
+        assignedGroup = foundGroup;
+      } else {
+        const nextGroupNum = matchedTrip.groups.length + 1;
+        const newGroupId = `grp-${matchedTrip.id}-${nextGroupNum}`;
+        const newGroupObj: BookingGroup = {
+          id: newGroupId,
+          tripId: matchedTrip.id,
+          groupNumber: nextGroupNum,
+          capacity: 6,
+          currentParticipants: 1,
+          status: "open",
+          driverId: MOCK_DRIVERS[nextGroupNum - 1]?.id || MOCK_DRIVERS[0]?.id,
+          driver: MOCK_DRIVERS[nextGroupNum - 1] || MOCK_DRIVERS[0],
+          name: `Grup Mobil #${nextGroupNum}`,
+          notes: `Grup Mobil #${nextGroupNum} (${dest.title})`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        matchedTrip.groups.push(newGroupObj);
+        assignedGroup = newGroupObj;
+      }
+    } else {
+      // Auto-spawn new custom trip
+      const depDateObj = new Date(payload.departureDate || new Date());
+      const durDays = dest.durationDays || 2;
+      const retDateObj = new Date(depDateObj.getTime() + durDays * 24 * 60 * 60 * 1000);
+      const newTripId =
+        payload.tripId && !payload.tripId.startsWith("trip-ondemand-")
+          ? payload.tripId
+          : `trip-cst-${Date.now()}`;
+      const newGroupId = payload.bookingGroupId || `grp-${newTripId}-1`;
+
+      assignedGroup = {
+        id: newGroupId,
+        tripId: newTripId,
+        groupNumber: 1,
+        capacity: 6,
+        currentParticipants: 1,
+        status: "open",
+        driverId: MOCK_DRIVERS[0]?.id,
+        driver: MOCK_DRIVERS[0],
+        name: `Grup Mobil Inisiator #1`,
+        notes: `Grup Mobil #1 (${dest.title}) - Inisiasi Traveler`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      matchedTrip = {
+        id: newTripId,
+        destinationId: dest.id,
+        destination: dest,
+        departureDate: depDateObj.toISOString(),
+        returnDate: retDateObj.toISOString(),
+        pricePerPax: basePrice,
+        maxGroups: 3,
+        status: "scheduled",
+        groups: [assignedGroup],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      MOCK_TRIPS.unshift(matchedTrip);
+    }
+
     const newParticipant: Participant = {
       id: participantId,
       bookingCode,
-      tripId: payload.tripId || "trip-01",
-      bookingGroupId: groupId,
+      tripId: matchedTrip.id,
+      trip: matchedTrip,
+      bookingGroupId: assignedGroup.id,
       fullName: payload.fullName,
       email: payload.email,
       phoneNumber: payload.phoneNumber,
@@ -98,19 +188,7 @@ export const bookingService = {
       checkInStatus: "pending",
       healthNotes: payload.healthNotes,
       voucherQrCode: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${bookingCode}`,
-      group: {
-        id: groupId,
-        tripId: payload.tripId || "trip-01",
-        groupNumber: 1,
-        capacity: 6,
-        currentParticipants: 1,
-        status: "open",
-        driverId: MOCK_DRIVERS[0]?.id,
-        driver: MOCK_DRIVERS[0],
-        notes: "Grup Mobil #1",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
+      group: assignedGroup,
       destination: dest,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -134,10 +212,10 @@ export const bookingService = {
         updatedAt: new Date().toISOString(),
       },
       assignedGroup: {
-        id: groupId,
-        groupNumber: 1,
-        currentParticipants: 1,
-        capacity: 6,
+        id: assignedGroup.id,
+        groupNumber: assignedGroup.groupNumber,
+        currentParticipants: assignedGroup.currentParticipants,
+        capacity: assignedGroup.capacity,
       },
     };
 
