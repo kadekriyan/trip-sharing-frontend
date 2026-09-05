@@ -62,20 +62,52 @@ export default function ParticipantsManagementPage() {
       ]);
 
       const groupsByTrip = new Map<string, BookingGroup[]>();
+      const groupById = new Map<string, BookingGroup>();
+      const groupByParticipant = new Map<string, BookingGroup>();
+
       for (const g of groupsData) {
+        groupById.set(g.id, g);
         const tId = g.tripId || g.trip?.id;
         if (tId) {
           if (!groupsByTrip.has(tId)) groupsByTrip.set(tId, []);
           groupsByTrip.get(tId)!.push(g);
         }
+        if (Array.isArray(g.participants)) {
+          for (const part of g.participants) {
+            if (part.id) groupByParticipant.set(part.id, g);
+            if (part.bookingCode) groupByParticipant.set(part.bookingCode, g);
+          }
+        }
       }
+
+      const enrichedParticipants = partsData.map((p) => {
+        const rawP = p as unknown as Record<string, unknown>;
+        const gId =
+          p.bookingGroupId ||
+          rawP.groupId ||
+          rawP.booking_group_id ||
+          rawP.group_id;
+        const matchedGroup =
+          (typeof gId === "string" ? groupById.get(gId) : undefined) ||
+          (p.id ? groupByParticipant.get(p.id) : undefined) ||
+          (p.bookingCode ? groupByParticipant.get(p.bookingCode) : undefined);
+
+        return {
+          ...p,
+          bookingGroupId: p.bookingGroupId || matchedGroup?.id || "",
+          group: p.group || p.bookingGroup || matchedGroup,
+          bookingGroup: p.bookingGroup || p.group || matchedGroup,
+          tripId: p.tripId || matchedGroup?.tripId || p.trip?.id || "",
+          trip: p.trip || matchedGroup?.trip,
+        };
+      });
 
       const enrichedTrips = tripsData.map((t) => ({
         ...t,
         groups: t.groups && t.groups.length > 0 ? t.groups : groupsByTrip.get(t.id) || [],
       }));
 
-      setParticipants(partsData);
+      setParticipants(enrichedParticipants);
       setTrips(enrichedTrips);
       setAllGroups(groupsData);
     } catch {
@@ -98,20 +130,52 @@ export default function ParticipantsManagementPage() {
       .then(([partsData, tripsData, groupsData]) => {
         if (isMounted) {
           const groupsByTrip = new Map<string, BookingGroup[]>();
+          const groupById = new Map<string, BookingGroup>();
+          const groupByParticipant = new Map<string, BookingGroup>();
+
           for (const g of groupsData) {
+            groupById.set(g.id, g);
             const tId = g.tripId || g.trip?.id;
             if (tId) {
               if (!groupsByTrip.has(tId)) groupsByTrip.set(tId, []);
               groupsByTrip.get(tId)!.push(g);
             }
+            if (Array.isArray(g.participants)) {
+              for (const part of g.participants) {
+                if (part.id) groupByParticipant.set(part.id, g);
+                if (part.bookingCode) groupByParticipant.set(part.bookingCode, g);
+              }
+            }
           }
+
+          const enrichedParticipants = partsData.map((p) => {
+            const rawP = p as unknown as Record<string, unknown>;
+            const gId =
+              p.bookingGroupId ||
+              rawP.groupId ||
+              rawP.booking_group_id ||
+              rawP.group_id;
+            const matchedGroup =
+              (typeof gId === "string" ? groupById.get(gId) : undefined) ||
+              (p.id ? groupByParticipant.get(p.id) : undefined) ||
+              (p.bookingCode ? groupByParticipant.get(p.bookingCode) : undefined);
+
+            return {
+              ...p,
+              bookingGroupId: p.bookingGroupId || matchedGroup?.id || "",
+              group: p.group || p.bookingGroup || matchedGroup,
+              bookingGroup: p.bookingGroup || p.group || matchedGroup,
+              tripId: p.tripId || matchedGroup?.tripId || p.trip?.id || "",
+              trip: p.trip || matchedGroup?.trip,
+            };
+          });
 
           const enrichedTrips = tripsData.map((t) => ({
             ...t,
             groups: t.groups && t.groups.length > 0 ? t.groups : groupsByTrip.get(t.id) || [],
           }));
 
-          setParticipants(partsData);
+          setParticipants(enrichedParticipants);
           setTrips(enrichedTrips);
           setAllGroups(groupsData);
           setIsLoading(false);
@@ -125,6 +189,37 @@ export default function ParticipantsManagementPage() {
       isMounted = false;
     };
   }, [statusFilter, searchQuery]);
+
+  const getParticipantGroupNumber = (p: Participant): number => {
+    if (p.group?.groupNumber) return p.group.groupNumber;
+    if (p.bookingGroup?.groupNumber) return p.bookingGroup.groupNumber;
+
+    const rawP = p as unknown as Record<string, unknown>;
+    const rawNum = rawP.groupNumber || rawP.group_number;
+    if (typeof rawNum === "number" && rawNum > 0) return rawNum;
+
+    const gId =
+      p.bookingGroupId ||
+      rawP.groupId ||
+      rawP.booking_group_id ||
+      rawP.group_id;
+
+    if (typeof gId === "string") {
+      const matched = allGroups.find((g) => g.id === gId);
+      if (matched?.groupNumber) return matched.groupNumber;
+    }
+
+    const matchedByPart = allGroups.find((g) =>
+      g.participants?.some(
+        (part) =>
+          part.id === p.id ||
+          (Boolean(p.bookingCode) && part.bookingCode === p.bookingCode)
+      )
+    );
+    if (matchedByPart?.groupNumber) return matchedByPart.groupNumber;
+
+    return 1;
+  };
 
   const filteredParticipants = Array.isArray(participants)
     ? participants.filter((p) => {
@@ -374,7 +469,7 @@ export default function ParticipantsManagementPage() {
                       </td>
                       <td className="px-5 py-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-50 text-[#00677d] font-bold text-xs">
-                          Grup #{p.group?.groupNumber || 1}
+                          Grup #{getParticipantGroupNumber(p)}
                         </span>
                       </td>
                       <td className="px-5 py-4">

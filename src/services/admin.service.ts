@@ -116,6 +116,49 @@ export const adminService = {
         merged.unshift(lp);
       }
     }
+
+    // Enrich participants with bookingGroup, trip, and driver from /admin/groups
+    try {
+      const groupsRes = await apiClient.get<BookingGroup[]>("/admin/groups");
+      if (groupsRes.success && Array.isArray(groupsRes.data)) {
+        const groupById = new Map<string, BookingGroup>();
+        const groupByParticipant = new Map<string, BookingGroup>();
+
+        for (const g of groupsRes.data) {
+          groupById.set(g.id, g);
+          if (Array.isArray(g.participants)) {
+            for (const part of g.participants) {
+              if (part.id) groupByParticipant.set(part.id, g);
+              if (part.bookingCode) groupByParticipant.set(part.bookingCode, g);
+            }
+          }
+        }
+
+        for (const p of merged) {
+          const rawP = p as unknown as Record<string, unknown>;
+          const gId =
+            p.bookingGroupId ||
+            rawP.groupId ||
+            rawP.booking_group_id ||
+            rawP.group_id;
+          const matchedGroup =
+            (typeof gId === "string" ? groupById.get(gId) : undefined) ||
+            (p.id ? groupByParticipant.get(p.id) : undefined) ||
+            (p.bookingCode ? groupByParticipant.get(p.bookingCode) : undefined);
+
+          if (matchedGroup) {
+            p.bookingGroupId = p.bookingGroupId || matchedGroup.id;
+            p.group = p.group || p.bookingGroup || matchedGroup;
+            p.bookingGroup = p.bookingGroup || p.group || matchedGroup;
+            p.tripId = p.tripId || matchedGroup.tripId || p.trip?.id || "";
+            p.trip = p.trip || matchedGroup.trip;
+          }
+        }
+      }
+    } catch {
+      // Continue silently
+    }
+
     return merged;
   },
 
