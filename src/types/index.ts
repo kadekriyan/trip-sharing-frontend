@@ -73,6 +73,7 @@ export interface Trip {
   maxGroups: number;
   status: "scheduled" | "ongoing" | "completed" | "cancelled";
   groups: BookingGroup[];
+  participants?: Participant[];
   createdAt: string;
   updatedAt: string;
 }
@@ -268,6 +269,8 @@ export interface MoveParticipantPayload {
   participantId: string;
   currentGroupId: string;
   targetGroupId: string;
+  currentTripId?: string;
+  targetTripId?: string;
   reason?: string;
 }
 

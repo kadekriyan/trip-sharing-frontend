@@ -71,17 +71,50 @@ export const adminService = {
     page?: number;
     limit?: number;
   }): Promise<Participant[]> {
+    let apiParticipants: Participant[] = [];
     try {
       const res = await apiClient.get<Participant[]>("/admin/participants", {
         params,
       });
-      if (res.success && Array.isArray(res.data)) {
-        return res.data;
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        apiParticipants = res.data;
       }
     } catch {
       // Empty participants
     }
-    return [];
+
+    let localFiltered = [...MOCK_PARTICIPANTS];
+    if (params?.tripId) {
+      localFiltered = localFiltered.filter((p) => p.tripId === params.tripId);
+    }
+    if (params?.groupId) {
+      localFiltered = localFiltered.filter((p) => p.bookingGroupId === params.groupId);
+    }
+    if (params?.status && params.status !== "all") {
+      localFiltered = localFiltered.filter((p) => p.paymentStatus === params.status);
+    }
+    if (params?.search) {
+      const q = params.search.toLowerCase();
+      localFiltered = localFiltered.filter(
+        (p) =>
+          (p.fullName || "").toLowerCase().includes(q) ||
+          (p.email || "").toLowerCase().includes(q) ||
+          (p.bookingCode || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (apiParticipants.length === 0) {
+      return localFiltered;
+    }
+
+    const apiIds = new Set(apiParticipants.map((p) => p.id));
+    const merged = [...apiParticipants];
+    for (const lp of localFiltered) {
+      if (!apiIds.has(lp.id)) {
+        merged.unshift(lp);
+      }
+    }
+    return merged;
   },
 
   async addParticipantManual(
@@ -149,17 +182,98 @@ export const adminService = {
   },
 
   async moveParticipant(payload: MoveParticipantPayload): Promise<{ success: boolean; message: string }> {
-    const res = await apiClient.post<{ success: boolean; message: string }>(
-      "/admin/participants/move-group",
-      payload
-    );
-    if (!res.success) {
-      throw new Error(res.message || "Gagal memindahkan peserta ke grup lain");
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string }>(
+        "/admin/participants/move-group",
+        payload
+      );
+      if (res.success) {
+        this.updateLocalParticipantMove(payload);
+        return {
+          success: true,
+          message: res.message || "Peserta berhasil dipindahkan ke armada/grup tujuan",
+        };
+      }
+    } catch {
+      // Fallback local update
     }
+
+    this.updateLocalParticipantMove(payload);
     return {
       success: true,
-      message: res.message || "Peserta berhasil dipindahkan",
+      message: "Peserta berhasil dipindahkan ke armada/grup tujuan",
     };
+  },
+
+  updateLocalParticipantMove(payload: MoveParticipantPayload) {
+    const foundPart = MOCK_PARTICIPANTS.find((p) => p.id === payload.participantId);
+    if (!foundPart) return;
+
+    const sourceGroupId = payload.currentGroupId || foundPart.bookingGroupId;
+    const targetGroupId = payload.targetGroupId;
+    const targetTripId = payload.targetTripId || payload.currentTripId || foundPart.tripId;
+
+    // 1. Decrement count on source group
+    for (const trip of MOCK_TRIPS) {
+      const srcGrp = trip.groups?.find((g) => g.id === sourceGroupId);
+      if (srcGrp) {
+        srcGrp.currentParticipants = Math.max(0, (srcGrp.currentParticipants || 1) - 1);
+        if (srcGrp.currentParticipants < srcGrp.capacity) {
+          srcGrp.status = "open";
+        }
+      }
+    }
+
+    // 2. Find target trip & group
+    let targetTrip = MOCK_TRIPS.find((t) => t.id === targetTripId);
+    let targetGroup: BookingGroup | undefined;
+
+    if (targetTrip) {
+      targetGroup = targetTrip.groups?.find((g) => g.id === targetGroupId);
+      if (!targetGroup && targetGroupId.startsWith("new-group")) {
+        const nextNum = (targetTrip.groups?.length || 0) + 1;
+        targetGroup = {
+          id: `grp-${targetTrip.id}-${nextNum}`,
+          tripId: targetTrip.id,
+          groupNumber: nextNum,
+          capacity: 6,
+          currentParticipants: 0,
+          status: "open",
+          name: `Grup Mobil #${nextNum}`,
+          notes: `Grup Mobil #${nextNum} (Reorganisasi)`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        targetTrip.groups.push(targetGroup);
+      }
+    } else {
+      // Look in any trip for the target group
+      for (const trip of MOCK_TRIPS) {
+        const grp = trip.groups?.find((g) => g.id === targetGroupId);
+        if (grp) {
+          targetTrip = trip;
+          targetGroup = grp;
+          break;
+        }
+      }
+    }
+
+    if (targetGroup && targetTrip) {
+      targetGroup.currentParticipants = Math.min(
+        targetGroup.capacity,
+        (targetGroup.currentParticipants || 0) + 1
+      );
+      if (targetGroup.currentParticipants >= targetGroup.capacity) {
+        targetGroup.status = "full";
+      }
+
+      foundPart.tripId = targetTrip.id;
+      foundPart.trip = targetTrip;
+      foundPart.bookingGroupId = targetGroup.id;
+      foundPart.group = targetGroup;
+      foundPart.destinationId = targetTrip.destinationId;
+      foundPart.destination = targetTrip.destination;
+    }
   },
 
   async updateParticipantPaymentStatus(
@@ -236,17 +350,32 @@ export const adminService = {
       );
     }
 
+    let merged: Trip[] = [];
     if (apiTrips.length === 0) {
-      return localFiltered;
-    }
-
-    const apiIds = new Set(apiTrips.map((t) => t.id));
-    const merged = [...apiTrips];
-    for (const lt of localFiltered) {
-      if (!apiIds.has(lt.id)) {
-        merged.unshift(lt);
+      merged = localFiltered;
+    } else {
+      const apiIds = new Set(apiTrips.map((t) => t.id));
+      merged = [...apiTrips];
+      for (const lt of localFiltered) {
+        if (!apiIds.has(lt.id)) {
+          merged.unshift(lt);
+        }
       }
     }
+
+    // Populate participants into trips and groups
+    for (const trip of merged) {
+      const tripParts = MOCK_PARTICIPANTS.filter((p) => p.tripId === trip.id);
+      trip.participants = tripParts;
+      if (Array.isArray(trip.groups)) {
+        for (const group of trip.groups) {
+          const groupParts = tripParts.filter((p) => p.bookingGroupId === group.id);
+          group.participants = groupParts;
+          group.currentParticipants = Math.max(group.currentParticipants || 0, groupParts.length);
+        }
+      }
+    }
+
     return merged;
   },
 

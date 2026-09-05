@@ -25,18 +25,20 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
-import { getPaymentBadge, formatCurrency } from "@/src/lib/utils";
-import type { Participant } from "@/src/types";
+import { getPaymentBadge, formatCurrency, formatDate, getDestinationTitle } from "@/src/lib/utils";
+import type { Participant, Trip } from "@/src/types";
 
 export default function ParticipantsManagementPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
 
   // Move Participant Modal State
   const [movingParticipant, setMovingParticipant] = useState<Participant | null>(null);
-  const [targetGroupId, setTargetGroupId] = useState<string>("grp-02");
+  const [targetTripId, setTargetTripId] = useState<string>("");
+  const [targetGroupId, setTargetGroupId] = useState<string>("");
   const [moveReason, setMoveReason] = useState("");
   const [moveMessage, setMoveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -49,11 +51,15 @@ export default function ParticipantsManagementPage() {
   const reloadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await adminService.getParticipants({
-        status: statusFilter === "all" ? undefined : statusFilter,
-        search: searchQuery || undefined,
-      });
-      setParticipants(data);
+      const [partsData, tripsData] = await Promise.all([
+        adminService.getParticipants({
+          status: statusFilter === "all" ? undefined : statusFilter,
+          search: searchQuery || undefined,
+        }),
+        adminService.getTrips(),
+      ]);
+      setParticipants(partsData);
+      setTrips(tripsData);
     } catch {
       // Silently handled
     } finally {
@@ -63,14 +69,17 @@ export default function ParticipantsManagementPage() {
 
   useEffect(() => {
     let isMounted = true;
-    adminService
-      .getParticipants({
+    Promise.all([
+      adminService.getParticipants({
         status: statusFilter === "all" ? undefined : statusFilter,
         search: searchQuery || undefined,
-      })
-      .then((data) => {
+      }),
+      adminService.getTrips(),
+    ])
+      .then(([partsData, tripsData]) => {
         if (isMounted) {
-          setParticipants(data);
+          setParticipants(partsData);
+          setTrips(tripsData);
           setIsLoading(false);
         }
       })
@@ -100,6 +109,33 @@ export default function ParticipantsManagementPage() {
       })
     : [];
 
+  const handleOpenMoveModal = (p: Participant) => {
+    setMovingParticipant(p);
+    const pTripId = p.tripId || p.trip?.id || (trips[0]?.id ?? "");
+    setTargetTripId(pTripId);
+    const currTrip = trips.find((t) => t.id === pTripId) || trips[0];
+    const initialGrp =
+      currTrip?.groups?.find((g) => g.id !== p.bookingGroupId)?.id ||
+      currTrip?.groups?.[0]?.id ||
+      "new-group";
+    setTargetGroupId(initialGrp);
+    setMoveReason("");
+    setMoveMessage(null);
+  };
+
+  const handleTargetTripChange = (newTripId: string) => {
+    setTargetTripId(newTripId);
+    const selTrip = trips.find((t) => t.id === newTripId);
+    if (selTrip && Array.isArray(selTrip.groups) && selTrip.groups.length > 0) {
+      const defaultG =
+        selTrip.groups.find((g) => g.id !== movingParticipant?.bookingGroupId)?.id ||
+        selTrip.groups[0].id;
+      setTargetGroupId(defaultG);
+    } else {
+      setTargetGroupId("new-group");
+    }
+  };
+
   const handleExecuteMove = async () => {
     if (!movingParticipant) return;
 
@@ -107,22 +143,31 @@ export default function ParticipantsManagementPage() {
       const res = await adminService.moveParticipant({
         participantId: movingParticipant.id,
         currentGroupId: movingParticipant.bookingGroupId,
+        currentTripId: movingParticipant.tripId,
         targetGroupId,
+        targetTripId,
         reason: moveReason || "Pemindahan grup atas persetujuan admin",
       });
 
       if (res.success) {
-        setMoveMessage({ type: "success", text: res.message || "Peserta berhasil dipindahkan ke grup tujuan." });
+        setMoveMessage({
+          type: "success",
+          text: res.message || "Peserta berhasil dipindahkan ke grup tujuan.",
+        });
         await reloadData();
         setTimeout(() => {
           setMovingParticipant(null);
           setMoveMessage(null);
         }, 1000);
       } else {
-        setMoveMessage({ type: "error", text: res.message || "Gagal memindahkan peserta." });
+        setMoveMessage({
+          type: "error",
+          text: res.message || "Gagal memindahkan peserta.",
+        });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat memindahkan peserta.";
+      const msg =
+        err instanceof Error ? err.message : "Terjadi kesalahan saat memindahkan peserta.";
       setMoveMessage({ type: "error", text: msg });
     }
   };
@@ -294,14 +339,11 @@ export default function ParticipantsManagementPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => {
-                              setMovingParticipant(p);
-                              setMoveMessage(null);
-                            }}
+                            onClick={() => handleOpenMoveModal(p)}
                             className="h-8 gap-1.5 text-xs text-[#00677d] hover:bg-[#00677d]/5"
                           >
                             <ArrowRightLeft className="h-3.5 w-3.5" />
-                            Pindah Grup
+                            Pindah Trip / Grup
                           </Button>
                         </div>
                       </td>
@@ -349,18 +391,22 @@ export default function ParticipantsManagementPage() {
 
           {editingPaymentParticipant && (
             <div className="space-y-4 pt-2">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Nama Peserta:</span>
                   <span className="font-bold text-slate-800">{editingPaymentParticipant.fullName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Kode Booking:</span>
-                  <span className="font-mono font-bold text-[#00677d]">{editingPaymentParticipant.bookingCode}</span>
+                  <span className="font-mono font-bold text-[#00677d]">
+                    {editingPaymentParticipant.bookingCode}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Total Nominal:</span>
-                  <span className="font-bold text-[#a43c12]">{formatCurrency(editingPaymentParticipant.totalAmount)}</span>
+                  <span className="text-slate-500">Total Biaya:</span>
+                  <span className="font-bold text-[#a43c12]">
+                    {formatCurrency(editingPaymentParticipant.totalAmount)}
+                  </span>
                 </div>
               </div>
 
@@ -411,10 +457,10 @@ export default function ParticipantsManagementPage() {
           <DialogHeader>
             <DialogTitle className="font-heading font-bold text-lg text-[#191c1e] flex items-center gap-2">
               <ArrowRightLeft className="h-5 w-5 text-[#00677d]" />
-              Pindah Grup Mobil Peserta
+              Pindah Jadwal Trip & Grup Armada
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Pindahkan peserta ke grup mobil lain jika ada rombongan teman atau reorganisasi kapasitas (maks 6 pax).
+              Pindahkan peserta ke jadwal trip atau grup mobil lain jika ada rombongan teman atau reorganisasi kapasitas (maks 6 pax).
             </DialogDescription>
           </DialogHeader>
 
@@ -435,67 +481,111 @@ export default function ParticipantsManagementPage() {
             </div>
           )}
 
-          {movingParticipant && (
-            <div className="space-y-4 pt-2">
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Peserta:</span>
-                  <span className="font-bold text-slate-800">{movingParticipant.fullName}</span>
+          {movingParticipant && (() => {
+            const activeTrip = trips.find((t) => t.id === targetTripId) || trips[0];
+            const activeGroups = activeTrip?.groups || [];
+
+            return (
+              <div className="space-y-4 pt-2">
+                {/* Current Participant Info */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Peserta:</span>
+                    <span className="font-bold text-slate-800">{movingParticipant.fullName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Kode Booking:</span>
+                    <span className="font-mono font-bold text-[#00677d]">
+                      {movingParticipant.bookingCode}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Jadwal & Grup Asal:</span>
+                    <span className="font-semibold text-slate-700">
+                      Grup #{movingParticipant.group?.groupNumber || 1} (Trip #{movingParticipant.tripId})
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Grup Saat Ini:</span>
-                  <span className="font-bold text-[#00677d]">
-                    Grup #{movingParticipant.group?.groupNumber || 1}
-                  </span>
+
+                {/* Target Trip Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                    Pilih Jadwal Trip Tujuan *
+                  </label>
+                  <select
+                    value={targetTripId}
+                    onChange={(e) => handleTargetTripChange(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
+                  >
+                    {trips.map((t) => {
+                      const destTitle = getDestinationTitle(t.destination);
+                      const dDate = t.departureDate ? formatDate(t.departureDate) : "Jadwal Terbuka";
+                      return (
+                        <option key={t.id} value={t.id}>
+                          Trip #{t.id} — {destTitle} ({dDate})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Target Group Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                    Pilih Grup Mobil Tujuan *
+                  </label>
+                  <select
+                    value={targetGroupId}
+                    onChange={(e) => setTargetGroupId(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
+                  >
+                    {activeGroups.map((g) => {
+                      const isFull = g.currentParticipants >= (g.capacity || 6);
+                      return (
+                        <option key={g.id} value={g.id} disabled={isFull}>
+                          {g.name || `Grup Mobil #${g.groupNumber}`} ({g.currentParticipants}/{g.capacity || 6} Pax){isFull ? " [PENUH]" : ""}
+                        </option>
+                      );
+                    })}
+                    <option value="new-group">
+                      + Buka Grup Mobil Baru #{activeGroups.length + 1} (Unit Mobil Baru)
+                    </option>
+                  </select>
+                </div>
+
+                {/* Reason Input */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                    Alasan Pemindahan (Catatan Audit)
+                  </label>
+                  <Input
+                    placeholder="Contoh: Permintaan gabung rombongan keluarga atau penyesuaian armada"
+                    value={moveReason}
+                    onChange={(e) => setMoveReason(e.target.value)}
+                    className="text-xs bg-slate-50 border-slate-200"
+                  />
+                </div>
+
+                <div className="pt-3 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMovingParticipant(null)}
+                    className="flex-1 text-xs"
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleExecuteMove}
+                    className="flex-1 text-xs font-bold bg-[#00677d] hover:bg-[#005264]"
+                  >
+                    Konfirmasi Pindah
+                  </Button>
                 </div>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Pilih Grup Tujuan *
-                </label>
-                <select
-                  value={targetGroupId}
-                  onChange={(e) => setTargetGroupId(e.target.value)}
-                  className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
-                >
-                  <option value="grp-01">Grup Mobil #1</option>
-                  <option value="grp-02">Grup Mobil #2</option>
-                  <option value="grp-03">Grup Mobil #3 (Baru)</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Alasan Pemindahan (Catatan Audit)
-                </label>
-                <Input
-                  placeholder="Contoh: Permintaan gabung rombongan keluarga"
-                  value={moveReason}
-                  onChange={(e) => setMoveReason(e.target.value)}
-                  className="text-xs bg-slate-50 border-slate-200"
-                />
-              </div>
-
-              <div className="pt-3 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setMovingParticipant(null)}
-                  className="flex-1 text-xs"
-                >
-                  Batal
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleExecuteMove}
-                  className="flex-1 text-xs font-bold"
-                >
-                  Konfirmasi Pindah
-                </Button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

@@ -19,6 +19,11 @@ import {
   ArrowRight,
   TrendingUp,
   Filter,
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  Phone,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -36,6 +41,7 @@ import {
   formatDate,
   calculateOccupancyPercent,
   getDestinationTitle,
+  getPaymentBadge,
 } from "@/src/lib/utils";
 import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload } from "@/src/types";
 
@@ -49,6 +55,7 @@ export default function AdminTripsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDestinationFilter, setSelectedDestinationFilter] = useState("all");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
+  const [expandedTripParticipants, setExpandedTripParticipants] = useState<Record<string, boolean>>({});
 
   // Create Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -691,6 +698,130 @@ export default function AdminTripsPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Participants Section Toggle & Detail */}
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setExpandedTripParticipants((prev) => ({
+                          ...prev,
+                          [trip.id]: !prev[trip.id],
+                        }))
+                      }
+                      className="h-8 text-xs font-bold gap-1.5 text-[#00677d] hover:bg-[#00677d]/10 px-3"
+                    >
+                      <Users className="h-3.5 w-3.5" />
+                      <span>
+                        {expandedTripParticipants[trip.id]
+                          ? "Sembunyikan Daftar Peserta"
+                          : `Lihat Data Peserta (${trip.participants?.length || totalTripParticipants} Orang)`}
+                      </span>
+                      {expandedTripParticipants[trip.id] ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs font-semibold gap-1 text-slate-700"
+                    >
+                      <Link href={`/admin/participants/new?tripId=${trip.id}`}>
+                        <Plus className="h-3 w-3" /> Tambah Peserta Manual
+                      </Link>
+                    </Button>
+                  </div>
+
+                  {expandedTripParticipants[trip.id] && (
+                    <div className="mt-3 p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                      {!trip.participants || trip.participants.length === 0 ? (
+                        <div className="text-center py-6 text-xs text-slate-400">
+                          Belum ada peserta yang memesan trip ini. Kursi masih terbuka untuk dipesan.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="border-b border-slate-200 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                                <th className="py-2 px-3">Kode Booking</th>
+                                <th className="py-2 px-3">Nama Peserta</th>
+                                <th className="py-2 px-3">Kontak</th>
+                                <th className="py-2 px-3">Alokasi Grup</th>
+                                <th className="py-2 px-3">Kamar & Asuransi</th>
+                                <th className="py-2 px-3">Status Bayar</th>
+                                <th className="py-2 px-3 text-right">Aksi</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200/60 bg-white">
+                              {trip.participants.map((p) => {
+                                const payBadge = getPaymentBadge(p.paymentStatus);
+                                return (
+                                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="py-2.5 px-3 font-mono font-bold text-[#00677d]">
+                                      {p.bookingCode}
+                                    </td>
+                                    <td className="py-2.5 px-3 font-bold text-slate-800">
+                                      {p.fullName}
+                                    </td>
+                                    <td className="py-2.5 px-3 text-slate-600 space-y-0.5 text-[11px]">
+                                      <div className="flex items-center gap-1">
+                                        <Mail className="h-3 w-3 text-slate-400" />
+                                        <span>{p.email}</span>
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Phone className="h-3 w-3 text-slate-400" />
+                                        <span>{p.phoneNumber}</span>
+                                      </div>
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-[#00677d] font-bold text-[11px]">
+                                        <Car className="h-3 w-3" />
+                                        Grup #{p.group?.groupNumber || 1}
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-[11px] text-slate-600">
+                                      <div>{p.roomPreference === "single" ? "Kamar Single (+Rp350rb)" : "Twin Sharing"}</div>
+                                      {p.hasInsurance && (
+                                        <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                                          <ShieldCheck className="h-3 w-3" /> Asuransi
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-2.5 px-3">
+                                      <span
+                                        className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${payBadge.className}`}
+                                      >
+                                        {payBadge.label}
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-right">
+                                      <Button
+                                        asChild
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-[11px] px-2.5 text-[#00677d]"
+                                      >
+                                        <Link href={`/admin/participants?search=${p.bookingCode}`}>
+                                          Kelola
+                                        </Link>
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
