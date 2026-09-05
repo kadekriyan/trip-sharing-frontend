@@ -11,6 +11,7 @@ import {
   Car,
   FileText,
   Calendar,
+  Layers,
   LogOut,
   Menu,
   X,
@@ -27,6 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navigationItems = [
     { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
     { label: "Jadwal Trip", href: "/admin/trips", icon: Calendar },
+    { label: "Grup Armada", href: "/admin/groups", icon: Layers },
     { label: "Manajemen Peserta", href: "/admin/participants", icon: Users },
     { label: "Katalog Destinasi", href: "/admin/destinations", icon: MapPin },
     { label: "Driver & Armada", href: "/admin/drivers", icon: Car },

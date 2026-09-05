@@ -1,5 +1,5 @@
 export type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded";
-export type GroupStatus = "open" | "full" | "in_progress" | "completed" | "cancelled";
+export type GroupStatus = "open" | "waiting" | "full" | "confirmed" | "in_progress" | "completed" | "cancelled";
 export type DriverStatus = "available" | "on_trip" | "maintenance" | "off_duty";
 export type CheckInStatus = "pending" | "checked_in" | "no_show";
 
@@ -50,12 +50,16 @@ export interface Destination {
 export interface BookingGroup {
   id: string;
   tripId: string;
+  trip?: Trip;
   groupNumber: number;
   capacity: number; // Max 6
+  maxParticipants?: number;
   currentParticipants: number;
+  pricePerPerson?: number;
+  totalPrice?: number;
   status: GroupStatus;
-  driverId?: string;
-  driver?: Driver;
+  driverId?: string | null;
+  driver?: Driver | null;
   name?: string;
   notes?: string;
   participants?: Participant[];
@@ -272,6 +276,29 @@ export interface MoveParticipantPayload {
   currentTripId?: string;
   targetTripId?: string;
   reason?: string;
+}
+
+export interface CreateBookingGroupPayload {
+  tripId: string;
+  driverId?: string;
+  groupNumber?: number;
+  maxParticipants?: number;
+  capacity?: number;
+  pricePerPerson?: number;
+  status?: GroupStatus;
+}
+
+export interface UpdateBookingGroupPayload {
+  maxParticipants?: number;
+  capacity?: number;
+  status?: GroupStatus;
+  pricePerPerson?: number;
+  driverId?: string | null;
+  groupNumber?: number;
+}
+
+export interface AssignDriverPayload {
+  driverId: string | null;
 }
 
 export type UserRole = "admin" | "participant" | "traveler";

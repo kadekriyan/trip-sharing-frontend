@@ -1100,12 +1100,192 @@ Menghapus destinasi dari database. Otomatis menolak jika sudah terdapat partisip
 
 ---
 
-### 10.7 Manajemen Blog CMS Admin (`CRUD`)
-- `POST /api/admin/blogs` — Buat artikel blog baru
-- `GET /api/admin/blogs` — List seluruh artikel draft & published
-- `GET /api/admin/blogs/:id` — Detail artikel blog
-- `PATCH /api/admin/blogs/:id` — Update isi / publish artikel
-- `DELETE /api/admin/blogs/:id` — Hapus artikel
+### 10.7 Manajemen Blog & Artikel Admin (`CRUD`)
+
+#### 10.7.1 Daftar Seluruh Artikel Admin (`GET /api/admin/blogs` atau `GET /api/admin/articles`)
+Mengambil semua data artikel (baik yang sudah publish maupun draft / non-aktif) dalam format standar `camelCase`.
+
+- **Method**: `GET`
+- **Path**: `/api/admin/blogs` *(atau `/api/admin/articles`)*
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Articles retrieved",
+  "data": [
+    {
+      "id": "5128ca01-8891-4da2-b101-771122334455",
+      "title": "5 Alasan Mengapa Trip Sharing Lebih Hemat & Seru",
+      "slug": "5-alasan-mengapa-trip-sharing-lebih-hemat-seru",
+      "excerpt": "Temukan bagaimana konsep berbagi armada 6-seater dapat menghemat biaya perjalanan Anda hingga 60%.",
+      "content": "Isi lengkap artikel...",
+      "coverImage": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200",
+      "category": "Travel Tips",
+      "author": {
+        "name": "Admin Editorial",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+        "role": "Lead Travel Writer"
+      },
+      "readTimeMinutes": 4,
+      "tags": ["Tips", "Hemat", "Trip Sharing"],
+      "publishedAt": "2026-08-30T10:00:00.000Z",
+      "views": 1420,
+      "viewCount": 1420,
+      "isPublished": true,
+      "isActive": true,
+      "seoTitle": "5 Alasan Trip Sharing Lebih Hemat",
+      "seoDescription": "Tips hemat liburan bersama trip sharing.",
+      "createdAt": "2026-08-30T09:00:00.000Z"
+    }
+  ],
+  "timestamp": "2026-09-03T04:00:00.000Z"
+}
+```
+
+---
+
+#### 10.7.2 Buat Artikel Blog Baru (`POST /api/admin/blogs` atau `POST /api/admin/articles`)
+Membuat artikel blog baru. Mendukung pengaturan status publikasi aktif/non-aktif melalui `isActive` atau `isPublished`.
+
+- **Method**: `POST`
+- **Path**: `/api/admin/blogs` *(atau `/api/admin/articles`)*
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Request Body
+```json
+{
+  "title": "Panduan Lengkap Mendaki Kawah Ijen untuk Pemula",
+  "category": "Destinasi",
+  "excerpt": "Semua yang perlu Anda persiapkan sebelum menyaksikan keindahan Blue Fire Ijen.",
+  "content": "Isi lengkap artikel panduan mendaki...",
+  "coverImage": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200",
+  "readTimeMinutes": 6,
+  "tags": ["Ijen", "Blue Fire", "Panduan", "Hiking"],
+  "authorName": "Admin Editorial",
+  "authorAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+  "authorRole": "Senior Travel Guide",
+  "seoTitle": "Panduan Mendaki Kawah Ijen Blue Fire",
+  "seoDescription": "Tips dan panduan mendaki kawah Ijen Banyuwangi.",
+  "isActive": true
+}
+```
+
+##### Response Sukses (`201 Created`)
+```json
+{
+  "success": true,
+  "message": "Article created successfully",
+  "data": {
+    "id": "a9120384-5512-4ee1-9901-778899aabb01",
+    "title": "Panduan Lengkap Mendaki Kawah Ijen untuk Pemula",
+    "slug": "panduan-lengkap-mendaki-kawah-ijen-untuk-pemula",
+    "category": "Destinasi",
+    "excerpt": "Semua yang perlu Anda persiapkan sebelum menyaksikan keindahan Blue Fire Ijen.",
+    "coverImage": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200",
+    "readTimeMinutes": 6,
+    "tags": ["Ijen", "Blue Fire", "Panduan", "Hiking"],
+    "isPublished": true,
+    "isActive": true,
+    "publishedAt": "2026-09-04T12:00:00.000Z",
+    "createdAt": "2026-09-04T12:00:00.000Z"
+  },
+  "timestamp": "2026-09-03T04:00:00.000Z"
+}
+```
+
+---
+
+#### 10.7.3 Detail Artikel Blog Admin (`GET /api/admin/blogs/:id` atau `GET /api/admin/articles/:id`)
+- **Method**: `GET`
+- **Path**: `/api/admin/blogs/:id` *(atau `/api/admin/articles/:id`)*
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Article retrieved",
+  "data": {
+    "id": "5128ca01-8891-4da2-b101-771122334455",
+    "title": "5 Alasan Mengapa Trip Sharing Lebih Hemat & Seru",
+    "slug": "5-alasan-mengapa-trip-sharing-lebih-hemat-seru",
+    "excerpt": "Temukan bagaimana konsep berbagi armada 6-seater dapat menghemat biaya perjalanan Anda hingga 60%.",
+    "content": "Isi lengkap artikel...",
+    "coverImage": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200",
+    "category": "Travel Tips",
+    "author": {
+      "name": "Admin Editorial",
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+      "role": "Lead Travel Writer"
+    },
+    "readTimeMinutes": 4,
+    "tags": ["Tips", "Hemat", "Trip Sharing"],
+    "views": 1420,
+    "isPublished": true,
+    "isActive": true,
+    "publishedAt": "2026-08-30T10:00:00.000Z"
+  },
+  "timestamp": "2026-09-03T04:00:00.000Z"
+}
+```
+
+---
+
+#### 10.7.4 Edit / Update Artikel Blog (`PATCH` atau `PUT /api/admin/blogs/:id` atau `/api/admin/articles/:id`)
+Dapat memperbarui konten, judul, gambar cover, tag, serta mengaktifkan/menonaktifkan publikasi artikel (`isActive: true/false` atau `isPublished: true/false`).
+
+- **Method**: `PATCH` atau `PUT`
+- **Path**: `/api/admin/blogs/:id` *(atau `/api/admin/articles/:id`)*
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Request Body (Contoh Update Judul & Toggle Status Aktif/Nonaktif)
+```json
+{
+  "title": "5 Alasan Mengapa Trip Sharing Lebih Hemat & Seru (Update 2026)",
+  "category": "Travel Tips",
+  "readTimeMinutes": 5,
+  "isActive": true
+}
+```
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Article updated",
+  "data": {
+    "id": "5128ca01-8891-4da2-b101-771122334455",
+    "title": "5 Alasan Mengapa Trip Sharing Lebih Hemat & Seru (Update 2026)",
+    "slug": "5-alasan-mengapa-trip-sharing-lebih-hemat-seru-update-2026",
+    "category": "Travel Tips",
+    "readTimeMinutes": 5,
+    "isPublished": true,
+    "isActive": true,
+    "updatedAt": "2026-09-04T12:30:00.000Z"
+  },
+  "timestamp": "2026-09-03T04:00:00.000Z"
+}
+```
+
+---
+
+#### 10.7.5 Hapus Artikel Blog (`DELETE /api/admin/blogs/:id` atau `/api/admin/articles/:id`)
+Menghapus artikel secara permanen dari database.
+
+- **Method**: `DELETE`
+- **Path**: `/api/admin/blogs/:id` *(atau `/api/admin/articles/:id`)*
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Article deleted",
+  "timestamp": "2026-09-03T04:00:00.000Z"
+}
+```
 
 ---
 
@@ -1298,6 +1478,299 @@ Menghapus data driver. Otomatis dilindungi jika driver sedang ditugaskan pada ja
   "message": "Driver tidak dapat dihapus karena sedang ditugaskan pada jadwal trip aktif.",
   "details": {},
   "timestamp": "2026-09-03T04:00:00.000Z"
+}
+```
+
+---
+
+### 10.9 Manajemen Grup Armada & Penugasan Driver (`/api/admin/groups`)
+
+Modul ini digunakan oleh admin untuk mengelola unit rombongan/armada mobil (`BookingGroup`), mengatur kapasitas, mengubah status, serta menugaskan (*assign*), memindahkan (*reassign*), atau mencopot (*unassign*) driver dari grup armada tertentu.
+
+#### 10.9.1 Daftar Seluruh Grup Armada (`GET /api/admin/groups`)
+Mengambil semua data grup/armada mobil beserta relasi trip, destinasi, data driver yang ditugaskan, dan daftar partisipan di dalamnya.
+
+- **Method**: `GET`
+- **Path**: `/api/admin/groups`
+- **Query Params**:
+  - `tripId` *(opsional)*: Filter berdasarkan ID Trip.
+  - `driverId` *(opsional)*: Filter berdasarkan ID Driver.
+  - `status` *(opsional)*: Filter status (`open`, `waiting`, `full`, `confirmed`, `completed`, `cancelled`).
+  - `search` *(opsional)*: Pencarian nama destinasi, nama driver, plat nomor, atau tipe kendaraan.
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Booking groups retrieved successfully",
+  "data": [
+    {
+      "id": "f128c9a0-4412-4eb2-a102-bcde91230001",
+      "tripId": "3a09e112-9c44-48f1-9011-8a9d12340001",
+      "driverId": "d0912384-1234-4bc1-9022-771199aabb01",
+      "groupNumber": 1,
+      "status": "open",
+      "currentParticipants": 2,
+      "maxParticipants": 6,
+      "pricePerPerson": 850000,
+      "totalPrice": 5100000,
+      "createdAt": "2026-09-01T10:00:00.000Z",
+      "updatedAt": "2026-09-01T10:00:00.000Z",
+      "trip": {
+        "id": "3a09e112-9c44-48f1-9011-8a9d12340001",
+        "destinationId": "7fa1bc82-0193-4a11-891d-724bc29a0001",
+        "departureDate": "2026-10-01T00:00:00.000Z",
+        "returnDate": "2026-10-03T00:00:00.000Z",
+        "status": "scheduled",
+        "destination": {
+          "id": "7fa1bc82-0193-4a11-891d-724bc29a0001",
+          "name": "Bromo Sunrise & Midnight Safari",
+          "slug": "bromo-sunrise-midnight-safari",
+          "location": "Probolinggo, Jawa Timur",
+          "coverImage": "https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?w=1200"
+        }
+      },
+      "driver": {
+        "id": "d0912384-1234-4bc1-9022-771199aabb01",
+        "userId": "e4b29c62-8e1d-4d7a-b5e1-51283d5a4911",
+        "licenseNumber": "SIM-A-99218201",
+        "vehicleType": "Toyota HiAce Premio",
+        "plateNumber": "N 1234 XY",
+        "rating": 5.0,
+        "isAvailable": true,
+        "fullName": "Pak Joko Santoso",
+        "phoneNumber": "+6281233445566",
+        "email": "joko@driver.local",
+        "photoUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"
+      },
+      "participants": [
+        {
+          "id": "c19208a1-5512-48ea-9201-7fa112345678",
+          "bookingCode": "TRV-8921",
+          "fullName": "Siti Rahmawati",
+          "phoneNumber": "+6281298765432",
+          "paymentStatus": "paid",
+          "checkInStatus": "pending",
+          "user": {
+            "id": "u1283a01-4412-4eb2-a102-bcde91230001",
+            "name": "Siti Rahmawati",
+            "email": "siti@example.com",
+            "phone": "+6281298765432"
+          },
+          "payment": {
+            "id": "p9012384-1234-4bc1-9022-771199aabb01",
+            "amount": 850000,
+            "status": "completed"
+          }
+        }
+      ]
+    }
+  ],
+  "timestamp": "2026-09-05T13:30:00.000Z"
+}
+```
+
+---
+
+#### 10.9.2 Buat Grup Armada Baru (`POST /api/admin/groups`)
+Membuat grup mobil baru di bawah suatu jadwal Trip tertentu secara manual.
+
+- **Method**: `POST`
+- **Path**: `/api/admin/groups`
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Request Body
+```json
+{
+  "tripId": "3a09e112-9c44-48f1-9011-8a9d12340001",
+  "driverId": "d0912384-1234-4bc1-9022-771199aabb01",
+  "groupNumber": 2,
+  "maxParticipants": 6,
+  "pricePerPerson": 850000,
+  "status": "open"
+}
+```
+*(Catatan: `driverId` dan `groupNumber` bersifat opsional. Jika `groupNumber` dikosongkan, sistem otomatis memberikan nomor urut berikutnya).*
+
+##### Response Sukses (`201 Created`)
+```json
+{
+  "success": true,
+  "message": "Booking group created successfully",
+  "data": {
+    "id": "f128c9a0-4412-4eb2-a102-bcde91230002",
+    "tripId": "3a09e112-9c44-48f1-9011-8a9d12340001",
+    "driverId": "d0912384-1234-4bc1-9022-771199aabb01",
+    "groupNumber": 2,
+    "status": "open",
+    "currentParticipants": 0,
+    "maxParticipants": 6,
+    "pricePerPerson": 850000,
+    "totalPrice": 5100000,
+    "createdAt": "2026-09-05T13:30:00.000Z",
+    "updatedAt": "2026-09-05T13:30:00.000Z",
+    "driver": {
+      "id": "d0912384-1234-4bc1-9022-771199aabb01",
+      "fullName": "Pak Joko Santoso",
+      "vehicleType": "Toyota HiAce Premio",
+      "plateNumber": "N 1234 XY"
+    }
+  },
+  "timestamp": "2026-09-05T13:30:00.000Z"
+}
+```
+
+---
+
+#### 10.9.3 Detail Grup Armada (`GET /api/admin/groups/:id`)
+- **Method**: `GET`
+- **Path**: `/api/admin/groups/:id`
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Booking group retrieved successfully",
+  "data": {
+    "id": "f128c9a0-4412-4eb2-a102-bcde91230001",
+    "tripId": "3a09e112-9c44-48f1-9011-8a9d12340001",
+    "driverId": "d0912384-1234-4bc1-9022-771199aabb01",
+    "groupNumber": 1,
+    "status": "open",
+    "currentParticipants": 2,
+    "maxParticipants": 6,
+    "pricePerPerson": 850000,
+    "totalPrice": 5100000,
+    "trip": {
+      "id": "3a09e112-9c44-48f1-9011-8a9d12340001",
+      "destination": {
+        "name": "Bromo Sunrise & Midnight Safari"
+      }
+    },
+    "driver": {
+      "id": "d0912384-1234-4bc1-9022-771199aabb01",
+      "fullName": "Pak Joko Santoso",
+      "phoneNumber": "+6281233445566",
+      "vehicleType": "Toyota HiAce Premio",
+      "plateNumber": "N 1234 XY"
+    },
+    "participants": []
+  },
+  "timestamp": "2026-09-05T13:30:00.000Z"
+}
+```
+
+---
+
+#### 10.9.4 Update Properti Grup Armada (`PATCH /api/admin/groups/:id`)
+Dapat memperbarui kapasitas maksimal mobil, status grup, harga per orang, nomor urut grup, maupun penugasan driver.
+
+- **Method**: `PATCH`
+- **Path**: `/api/admin/groups/:id`
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Request Body
+```json
+{
+  "maxParticipants": 7,
+  "status": "waiting",
+  "pricePerPerson": 800000
+}
+```
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Booking group updated successfully",
+  "data": {
+    "id": "f128c9a0-4412-4eb2-a102-bcde91230001",
+    "maxParticipants": 7,
+    "status": "waiting",
+    "pricePerPerson": 800000,
+    "totalPrice": 5600000,
+    "updatedAt": "2026-09-05T13:35:00.000Z"
+  },
+  "timestamp": "2026-09-05T13:35:00.000Z"
+}
+```
+
+---
+
+#### 10.9.5 Penugasan / Pemindahan / Pencopotan Driver ke Grup (`PATCH` atau `POST /api/admin/groups/:id/driver`)
+Menugaskan sopir baru ke mobil, memindahkan driver dari mobil lain, atau mencopot penugasan driver (`driverId: null`).
+
+- **Method**: `PATCH` *(atau `POST /api/admin/groups/:id/assign-driver`)*
+- **Path**: `/api/admin/groups/:id/driver`
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Request Body (Menugaskan / Memindahkan Driver)
+```json
+{
+  "driverId": "d0912384-1234-4bc1-9022-771199aabb01"
+}
+```
+
+##### Request Body (Mencopot Driver dari Grup)
+```json
+{
+  "driverId": null
+}
+```
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Driver Pak Joko Santoso successfully assigned to Group #1",
+  "data": {
+    "id": "f128c9a0-4412-4eb2-a102-bcde91230001",
+    "driverId": "d0912384-1234-4bc1-9022-771199aabb01",
+    "groupNumber": 1,
+    "driver": {
+      "id": "d0912384-1234-4bc1-9022-771199aabb01",
+      "fullName": "Pak Joko Santoso",
+      "phoneNumber": "+6281233445566",
+      "vehicleType": "Toyota HiAce Premio",
+      "plateNumber": "N 1234 XY",
+      "isAvailable": true
+    }
+  },
+  "timestamp": "2026-09-05T13:35:00.000Z"
+}
+```
+
+---
+
+#### 10.9.6 Hapus Grup Armada Kosong (`DELETE /api/admin/groups/:id`)
+Menghapus grup armada mobil. Otomatis dilindungi jika grup masih memiliki peserta aktif (ditolak dengan status `400 Bad Request`).
+
+- **Method**: `DELETE`
+- **Path**: `/api/admin/groups/:id`
+- **Auth**: `Bearer <admin_jwt_token>`
+
+##### Response Sukses (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Booking group deleted successfully",
+  "data": {
+    "id": "f128c9a0-4412-4eb2-a102-bcde91230002",
+    "deleted": true
+  },
+  "timestamp": "2026-09-05T13:35:00.000Z"
+}
+```
+
+##### Response Error Jika Grup Masih Berpenumpang (`400 Bad Request`)
+```json
+{
+  "success": false,
+  "message": "Cannot delete booking group with existing participants. Please move or cancel participants first.",
+  "details": {},
+  "timestamp": "2026-09-05T13:35:00.000Z"
 }
 ```
 

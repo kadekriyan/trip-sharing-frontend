@@ -11,6 +11,8 @@ import type {
   BookingGroup,
   CreateTripPayload,
   UpdateTripPayload,
+  CreateBookingGroupPayload,
+  UpdateBookingGroupPayload,
 } from "@/src/types";
 import { MOCK_TRIPS, MOCK_DESTINATIONS, MOCK_DRIVERS, MOCK_PARTICIPANTS } from "@/src/services/mockData";
 
@@ -518,6 +520,331 @@ export const adminService = {
     }
 
     return [];
+  },
+
+  async getGroups(params?: {
+    tripId?: string;
+    driverId?: string;
+    status?: string;
+    search?: string;
+  }): Promise<BookingGroup[]> {
+    let apiGroups: BookingGroup[] = [];
+    try {
+      const res = await apiClient.get<BookingGroup[]>("/admin/groups", {
+        params,
+      });
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        apiGroups = res.data;
+      }
+    } catch {
+      // Fallback to local
+    }
+
+    const localGroups: BookingGroup[] = [];
+    for (const trip of MOCK_TRIPS) {
+      if (Array.isArray(trip.groups)) {
+        for (const group of trip.groups) {
+          const matchedDriver = group.driverId
+            ? MOCK_DRIVERS.find((d) => d.id === group.driverId) || group.driver
+            : group.driver;
+          const groupParts = MOCK_PARTICIPANTS.filter(
+            (p) => p.bookingGroupId === group.id || (p.tripId === trip.id && !p.bookingGroupId)
+          );
+          localGroups.push({
+            ...group,
+            tripId: trip.id,
+            trip: trip,
+            driverId: group.driverId || (matchedDriver ? matchedDriver.id : null),
+            driver: matchedDriver || null,
+            participants: groupParts,
+            currentParticipants: Math.max(group.currentParticipants || 0, groupParts.length),
+            maxParticipants: group.capacity || group.maxParticipants || 6,
+            pricePerPerson: group.pricePerPerson || trip.pricePerPax,
+            totalPrice:
+              group.totalPrice ||
+              (group.pricePerPerson || trip.pricePerPax) * (group.capacity || 6),
+          });
+        }
+      }
+    }
+
+    let filtered = [...localGroups];
+    if (params?.tripId && params.tripId !== "all") {
+      filtered = filtered.filter((g) => g.tripId === params.tripId);
+    }
+    if (params?.driverId && params.driverId !== "all") {
+      filtered = filtered.filter((g) => g.driverId === params.driverId);
+    }
+    if (params?.status && params.status !== "all") {
+      filtered = filtered.filter((g) => g.status === params.status);
+    }
+    if (params?.search) {
+      const q = params.search.toLowerCase();
+      filtered = filtered.filter((g) => {
+        const destName = g.trip?.destination?.name || "";
+        const driverName = g.driver?.fullName || g.driver?.name || "";
+        const plate = g.driver?.plateNumber || g.driver?.vehiclePlat || "";
+        const vehicle = g.driver?.vehicleType || g.driver?.vehicleModel || "";
+        const groupName = g.name || `Grup Mobil #${g.groupNumber}`;
+        return (
+          destName.toLowerCase().includes(q) ||
+          driverName.toLowerCase().includes(q) ||
+          plate.toLowerCase().includes(q) ||
+          vehicle.toLowerCase().includes(q) ||
+          groupName.toLowerCase().includes(q)
+        );
+      });
+    }
+
+    if (apiGroups.length === 0) {
+      return filtered;
+    }
+
+    const apiIds = new Set(apiGroups.map((g) => g.id));
+    const merged = [...apiGroups];
+    for (const lg of filtered) {
+      if (!apiIds.has(lg.id)) {
+        merged.unshift(lg);
+      }
+    }
+    return merged;
+  },
+
+  async getGroupById(id: string): Promise<BookingGroup | null> {
+    try {
+      const res = await apiClient.get<BookingGroup>(`/admin/groups/${id}`);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback to local
+    }
+
+    for (const trip of MOCK_TRIPS) {
+      const found = trip.groups?.find((g) => g.id === id);
+      if (found) {
+        const matchedDriver = found.driverId
+          ? MOCK_DRIVERS.find((d) => d.id === found.driverId) || found.driver
+          : found.driver;
+        const groupParts = MOCK_PARTICIPANTS.filter((p) => p.bookingGroupId === found.id);
+        return {
+          ...found,
+          tripId: trip.id,
+          trip,
+          driverId: found.driverId || (matchedDriver ? matchedDriver.id : null),
+          driver: matchedDriver || null,
+          participants: groupParts,
+          currentParticipants: Math.max(found.currentParticipants || 0, groupParts.length),
+          maxParticipants: found.capacity || found.maxParticipants || 6,
+          pricePerPerson: found.pricePerPerson || trip.pricePerPax,
+          totalPrice:
+            found.totalPrice ||
+            (found.pricePerPerson || trip.pricePerPax) * (found.capacity || 6),
+        };
+      }
+    }
+    return null;
+  },
+
+  async createGroup(payload: CreateBookingGroupPayload): Promise<BookingGroup> {
+    try {
+      const res = await apiClient.post<BookingGroup>("/admin/groups", payload);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback to local
+    }
+
+    const targetTrip = MOCK_TRIPS.find((t) => t.id === payload.tripId);
+    if (!targetTrip) {
+      throw new Error("Jadwal trip tidak ditemukan untuk membuat grup baru.");
+    }
+
+    const nextGroupNum = payload.groupNumber || (targetTrip.groups?.length || 0) + 1;
+    const capacity = payload.maxParticipants || payload.capacity || 6;
+    const price = payload.pricePerPerson || targetTrip.pricePerPax;
+    const driver = payload.driverId
+      ? MOCK_DRIVERS.find((d) => d.id === payload.driverId) || null
+      : null;
+
+    const newGroup: BookingGroup = {
+      id: `grp-${targetTrip.id}-${Date.now()}`,
+      tripId: targetTrip.id,
+      trip: targetTrip,
+      groupNumber: nextGroupNum,
+      capacity: capacity,
+      maxParticipants: capacity,
+      currentParticipants: 0,
+      pricePerPerson: price,
+      totalPrice: price * capacity,
+      status: payload.status || "open",
+      driverId: payload.driverId || null,
+      driver: driver,
+      name: `Grup Mobil #${nextGroupNum}`,
+      notes: `Grup Armada Mobil #${nextGroupNum}`,
+      participants: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (!Array.isArray(targetTrip.groups)) {
+      targetTrip.groups = [];
+    }
+    targetTrip.groups.push(newGroup);
+
+    return newGroup;
+  },
+
+  async updateGroup(id: string, payload: UpdateBookingGroupPayload): Promise<BookingGroup> {
+    try {
+      const res = await apiClient.patch<BookingGroup>(`/admin/groups/${id}`, payload);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback to local
+    }
+
+    for (const trip of MOCK_TRIPS) {
+      const found = trip.groups?.find((g) => g.id === id);
+      if (found) {
+        if (payload.maxParticipants !== undefined || payload.capacity !== undefined) {
+          found.capacity = payload.maxParticipants || payload.capacity || found.capacity;
+          found.maxParticipants = found.capacity;
+        }
+        if (payload.status) {
+          found.status = payload.status;
+        }
+        if (payload.groupNumber) {
+          found.groupNumber = payload.groupNumber;
+        }
+        if (payload.pricePerPerson !== undefined) {
+          found.pricePerPerson = payload.pricePerPerson;
+          found.totalPrice = (found.pricePerPerson || 0) * (found.capacity || 6);
+        }
+        if (payload.driverId !== undefined) {
+          found.driverId = payload.driverId;
+          found.driver = payload.driverId
+            ? MOCK_DRIVERS.find((d) => d.id === payload.driverId) || null
+            : null;
+        }
+        found.updatedAt = new Date().toISOString();
+        return {
+          ...found,
+          trip,
+        };
+      }
+    }
+
+    throw new Error("Grup armada tidak ditemukan untuk diperbarui.");
+  },
+
+  async assignDriverToGroup(
+    groupId: string,
+    driverId: string | null
+  ): Promise<{ success: boolean; message: string; data?: BookingGroup }> {
+    try {
+      const res = await apiClient.patch<BookingGroup>(
+        `/admin/groups/${groupId}/driver`,
+        { driverId }
+      );
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || (driverId ? "Driver berhasil ditugaskan ke grup armada" : "Driver berhasil dicopot dari grup armada"),
+          data: res.data,
+        };
+      }
+    } catch {
+      try {
+        const altRes = await apiClient.post<BookingGroup>(
+          `/admin/groups/${groupId}/assign-driver`,
+          { driverId }
+        );
+        if (altRes.success) {
+          return {
+            success: true,
+            message: altRes.message || (driverId ? "Driver berhasil ditugaskan ke grup armada" : "Driver berhasil dicopot dari grup armada"),
+            data: altRes.data,
+          };
+        }
+      } catch {
+        // Fallback local
+      }
+    }
+
+    let updatedGroup: BookingGroup | undefined;
+    for (const trip of MOCK_TRIPS) {
+      const found = trip.groups?.find((g) => g.id === groupId);
+      if (found) {
+        found.driverId = driverId;
+        const driverObj = driverId ? MOCK_DRIVERS.find((d) => d.id === driverId) || null : null;
+        found.driver = driverObj;
+        found.updatedAt = new Date().toISOString();
+        updatedGroup = { ...found, trip };
+        break;
+      }
+    }
+
+    const driverName = driverId
+      ? MOCK_DRIVERS.find((d) => d.id === driverId)?.fullName || "Driver"
+      : null;
+
+    return {
+      success: true,
+      message: driverId
+        ? `Driver ${driverName} berhasil ditugaskan ke grup armada`
+        : "Driver berhasil dicopot dari grup armada",
+      data: updatedGroup,
+    };
+  },
+
+  async deleteGroup(id: string): Promise<{ success: boolean; message: string }> {
+    for (const trip of MOCK_TRIPS) {
+      const found = trip.groups?.find((g) => g.id === id);
+      if (found) {
+        const parts = MOCK_PARTICIPANTS.filter((p) => p.bookingGroupId === id);
+        if ((found.currentParticipants || 0) > 0 || parts.length > 0) {
+          throw new Error(
+            "Tidak dapat menghapus grup armada yang masih memiliki peserta. Silakan pindahkan atau batalkan peserta terlebih dahulu."
+          );
+        }
+      }
+    }
+
+    try {
+      const res = await apiClient.delete<{ success: boolean; message: string }>(
+        `/admin/groups/${id}`
+      );
+      if (res.success) {
+        for (const trip of MOCK_TRIPS) {
+          if (Array.isArray(trip.groups)) {
+            trip.groups = trip.groups.filter((g) => g.id !== id);
+          }
+        }
+        return {
+          success: true,
+          message: res.message || "Grup armada berhasil dihapus",
+        };
+      }
+    } catch (err: unknown) {
+      const errorMsg = (err as { message?: string })?.message;
+      if (errorMsg && errorMsg.toLowerCase().includes("cannot delete")) {
+        throw new Error(errorMsg);
+      }
+    }
+
+    for (const trip of MOCK_TRIPS) {
+      if (Array.isArray(trip.groups)) {
+        trip.groups = trip.groups.filter((g) => g.id !== id);
+      }
+    }
+
+    return {
+      success: true,
+      message: "Grup armada berhasil dihapus",
+    };
   },
 
 
