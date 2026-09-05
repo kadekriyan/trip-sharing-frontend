@@ -239,6 +239,25 @@ export interface CreateBookingPayload {
   healthNotes?: string;
   hasInsurance: boolean;
   captchaToken: string;
+  departureDate?: string;
+}
+
+export interface CreateTripPayload {
+  destinationId: string;
+  departureDate: string;
+  returnDate: string;
+  pricePerPax: number;
+  maxGroups?: number;
+  initialDriverId?: string;
+  notes?: string;
+}
+
+export interface UpdateTripPayload {
+  departureDate?: string;
+  returnDate?: string;
+  pricePerPax?: number;
+  maxGroups?: number;
+  status?: "scheduled" | "ongoing" | "completed" | "cancelled";
 }
 
 export interface MoveParticipantPayload {
@@ -267,4 +286,5 @@ export interface AuthResponse {
   refreshToken?: string;
   user: User;
 }
+
 

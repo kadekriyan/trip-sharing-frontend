@@ -10,6 +10,7 @@ import {
   MapPin,
   Car,
   FileText,
+  Calendar,
   LogOut,
   Menu,
   X,
@@ -25,8 +26,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navigationItems = [
     { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
+    { label: "Jadwal Trip", href: "/admin/trips", icon: Calendar },
     { label: "Manajemen Peserta", href: "/admin/participants", icon: Users },
-    { label: "Destinasi & Trip", href: "/admin/destinations", icon: MapPin },
+    { label: "Katalog Destinasi", href: "/admin/destinations", icon: MapPin },
     { label: "Driver & Armada", href: "/admin/drivers", icon: Car },
     { label: "CMS Artikel Blog", href: "/admin/blogs", icon: FileText },
   ];

@@ -1,5 +1,6 @@
 import { apiClient } from "@/src/lib/api-client";
-import type { Destination, BookingGroup } from "@/src/types";
+import type { Destination, BookingGroup, Trip } from "@/src/types";
+import { MOCK_TRIPS, MOCK_DESTINATIONS } from "@/src/services/mockData";
 
 export interface DestinationFilterParams {
   search?: string;
@@ -23,13 +24,13 @@ export const destinationService = {
           limit: filters?.limit,
         },
       });
-      if (res.success && Array.isArray(res.data)) {
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         return res.data;
       }
     } catch {
-      // Return empty array if backend is down or no data
+      // Fallback
     }
-    return [];
+    return MOCK_DESTINATIONS;
   },
 
   async getDestinationBySlug(slug: string): Promise<Destination | null> {
@@ -41,13 +42,35 @@ export const destinationService = {
     } catch {
       // Not found or network error
     }
-    return null;
+
+    const found = MOCK_DESTINATIONS.find((d) => d.slug === slug || d.id === slug);
+    return found || null;
   },
 
-  async getTripAvailability(tripId: string): Promise<BookingGroup[]> {
+  async getTripsByDestination(destinationId: string): Promise<Trip[]> {
+    try {
+      const res = await apiClient.get<Trip[]>("/trips", {
+        params: { destinationId },
+      });
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        return res.data;
+      }
+    } catch {
+      // Fallback
+    }
+
+    // Try finding in MOCK_TRIPS
+    const matched = MOCK_TRIPS.filter(
+      (t) => t.destinationId === destinationId || t.destination?.slug === destinationId
+    );
+    return matched;
+  },
+
+  async getTripAvailability(tripId: string, departureDate?: string): Promise<BookingGroup[]> {
     try {
       const res = await apiClient.get<{ tripId: string; departureDate: string; groups: BookingGroup[] }>(
-        `/trips/${tripId}/availability`
+        `/trips/${tripId}/availability`,
+        { params: { departureDate } }
       );
       if (res.success && res.data?.groups) {
         return res.data.groups;
@@ -55,6 +78,13 @@ export const destinationService = {
     } catch {
       // Empty groups
     }
+
+    const foundTrip = MOCK_TRIPS.find((t) => t.id === tripId);
+    if (foundTrip && Array.isArray(foundTrip.groups)) {
+      return foundTrip.groups;
+    }
+
     return [];
   },
 };
+

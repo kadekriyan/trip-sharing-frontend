@@ -19,6 +19,9 @@ import {
   AlertCircle,
   Loader2,
   PackageOpen,
+  CalendarPlus,
+  Clock,
+  Car,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -31,8 +34,15 @@ import {
 } from "@/src/components/ui/dialog";
 import { destinationService } from "@/src/services/destination.service";
 import { bookingService } from "@/src/services/booking.service";
-import { formatCurrency, formatDuration, calculateOccupancyPercent, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
-import type { Destination, BookingGroup } from "@/src/types";
+import {
+  formatCurrency,
+  formatDuration,
+  calculateOccupancyPercent,
+  getDestinationTitle,
+  getDestinationPrice,
+  formatDate,
+} from "@/src/lib/utils";
+import type { Destination, BookingGroup, Trip } from "@/src/types";
 
 interface DestinationDetailClientProps {
   initialDestination: Destination | null;
@@ -43,6 +53,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const router = useRouter();
 
   const [destination] = useState<Destination | null>(initialDestination);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [selectedTripId, setSelectedTripId] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [isCustomDateMode, setIsCustomDateMode] = useState<boolean>(false);
+  const [customDateInput, setCustomDateInput] = useState<string>("");
+
   const [groups, setGroups] = useState<BookingGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>("");
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(true);
@@ -65,37 +81,128 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [createdParticipantId, setCreatedParticipantId] = useState<string>("");
 
+  // Min date for custom date picker (Tomorrow)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minCustomDate = tomorrow.toISOString().split("T")[0];
+
   useEffect(() => {
     let isMounted = true;
-    async function loadAvailability() {
+    async function loadTripsAndAvailability() {
       if (!initialDestination?.id) {
         setIsLoadingAvailability(false);
         return;
       }
 
+      setIsLoadingAvailability(true);
       try {
-        const availGroups = await destinationService.getTripAvailability(initialDestination.id);
-        if (isMounted) {
-          setGroups(availGroups || []);
-          const openGroup = availGroups?.find((g) => g.status === "open" && g.currentParticipants < 6);
+        const loadedTrips = await destinationService.getTripsByDestination(initialDestination.id);
+        if (!isMounted) return;
+
+        setTrips(loadedTrips);
+
+        if (loadedTrips.length > 0) {
+          const firstTrip = loadedTrips[0];
+          setSelectedTripId(firstTrip.id);
+          setSelectedDate(firstTrip.departureDate);
+          setIsCustomDateMode(false);
+
+          const tripGroups = firstTrip.groups || [];
+          setGroups(tripGroups);
+
+          const openGroup = tripGroups.find((g) => g.status === "open" && g.currentParticipants < 6);
           if (openGroup) {
             setSelectedGroup(openGroup.id);
-          } else if (availGroups && availGroups.length > 0) {
-            setSelectedGroup(availGroups[0].id);
+          } else if (tripGroups.length > 0) {
+            setSelectedGroup(tripGroups[0].id);
           }
+        } else {
+          // No existing trips scheduled yet, switch to initiator mode
+          setIsCustomDateMode(true);
+          setCustomDateInput(minCustomDate);
+          setSelectedDate(minCustomDate);
+          setGroups([
+            {
+              id: "grp-initiator-01",
+              tripId: "trip-new",
+              groupNumber: 1,
+              capacity: 6,
+              currentParticipants: 0,
+              status: "open",
+              name: "Grup Mobil Inisiator #1",
+              notes: "Grup Baru - Jadilah pemesan pertama!",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          ]);
+          setSelectedGroup("grp-initiator-01");
         }
       } catch {
-        // Silently handled
+        // Fallback gracefully
       } finally {
         if (isMounted) setIsLoadingAvailability(false);
       }
     }
 
-    loadAvailability();
+    loadTripsAndAvailability();
     return () => {
       isMounted = false;
     };
-  }, [initialDestination]);
+  }, [initialDestination, minCustomDate]);
+
+  // Handle choosing a scheduled trip
+  const handleSelectTrip = (trip: Trip) => {
+    setIsCustomDateMode(false);
+    setSelectedTripId(trip.id);
+    setSelectedDate(trip.departureDate);
+    setCustomDateInput("");
+
+    const tripGroups = trip.groups || [];
+    setGroups(tripGroups);
+
+    const openGroup = tripGroups.find((g) => g.status === "open" && g.currentParticipants < 6);
+    if (openGroup) {
+      setSelectedGroup(openGroup.id);
+    } else if (tripGroups.length > 0) {
+      setSelectedGroup(tripGroups[0].id);
+    } else {
+      setSelectedGroup("");
+    }
+  };
+
+  // Handle custom date selection by traveler (Model B: On-Demand Trip Initiator)
+  const handleCustomDateChange = (dateValue: string) => {
+    setCustomDateInput(dateValue);
+    setSelectedDate(dateValue);
+
+    // Check if the chosen date matches an existing trip
+    const matchedTrip = trips.find((t) => {
+      const tripDate = t.departureDate.split("T")[0];
+      return tripDate === dateValue;
+    });
+
+    if (matchedTrip) {
+      handleSelectTrip(matchedTrip);
+    } else {
+      setIsCustomDateMode(true);
+      setSelectedTripId("");
+      // Simulated new initiator group
+      const initiatorGroup: BookingGroup = {
+        id: `grp-initiator-${dateValue}`,
+        tripId: `trip-ondemand-${dateValue}`,
+        groupNumber: 1,
+        capacity: 6,
+        currentParticipants: 0,
+        status: "open",
+        name: "Grup Inisiator #1",
+        notes: "Grup Baru - Kursi pertama siap dikunci!",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setGroups([initiatorGroup]);
+      setSelectedGroup(initiatorGroup.id);
+    }
+  };
 
   if (!destination) {
     return (
@@ -117,7 +224,9 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
     );
   }
 
-  const basePrice = getDestinationPrice(destination);
+  // Selected trip or base price
+  const activeTrip = trips.find((t) => t.id === selectedTripId);
+  const basePrice = activeTrip?.pricePerPax || getDestinationPrice(destination);
   const insuranceFee = hasInsurance ? 50000 : 0;
   const roomSurcharge = roomPref === "single" ? 350000 : 0;
   const totalAmount = basePrice + insuranceFee + roomSurcharge;
@@ -131,10 +240,16 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       return;
     }
 
+    if (!selectedDate && !customDateInput) {
+      setErrorMessage("Mohon pilih tanggal keberangkatan trip.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      const targetTripId = selectedTripId || `trip-ondemand-${Date.now()}`;
       const payload = {
-        tripId: destination.id,
+        tripId: targetTripId,
         destinationId: destination.id,
         bookingGroupId: selectedGroup || undefined,
         fullName,
@@ -145,6 +260,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         roomPreference: roomPref,
         hasInsurance,
         healthNotes: healthNotes || undefined,
+        departureDate: selectedDate || customDateInput,
         captchaToken: "mock-captcha-token-verified-pass",
       };
 
@@ -229,7 +345,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               </span>
               <span>•</span>
               <span className="flex items-center gap-1 font-medium">
-                <Calendar className="h-4 w-4 text-[#00a3c4]" />
+                <Clock className="h-4 w-4 text-[#00a3c4]" />
                 {formatDuration(destination.durationDays || 2, destination.durationNights || 1)}
               </span>
               <span>•</span>
@@ -301,7 +417,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   <ul className="space-y-2 text-xs text-slate-600">
                     {exclusions.map((item, idx) => (
                       <li key={idx} className="flex items-start gap-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-400 mt-1.5 shrink-0" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -310,38 +426,58 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               </div>
             </div>
 
-            {/* Daily Itinerary Section */}
-            {destination.itinerary && destination.itinerary.length > 0 && (
+            {/* Meeting Point Card */}
+            {destination.meetingPoint && (
+              <div className="p-6 rounded-3xl bg-white border border-slate-100 shadow-stitch-card flex items-start gap-4">
+                <div className="p-3 rounded-2xl bg-[#00677d]/10 text-[#00677d] shrink-0">
+                  <MapPin className="h-6 w-6" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                    Titik Kumpul / Penjemputan Resmi
+                  </span>
+                  <h3 className="font-heading font-extrabold text-base text-[#191c1e] mt-0.5">
+                    {destination.meetingPoint}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Driver akan menunggu di area meeting point 30 menit sebelum jam keberangkatan.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Itinerary Timeline Card */}
+            {Array.isArray(destination.itinerary) && destination.itinerary.length > 0 && (
               <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-100 shadow-stitch-card space-y-6">
-                <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-[#191c1e]">
+                <h2 className="font-heading font-extrabold text-xl text-[#191c1e]">
                   Rencana Perjalanan (Itinerary)
                 </h2>
-
-                <div className="space-y-6 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-200">
-                  {destination.itinerary.map((itin, idx) => (
-                    <div key={idx} className="relative flex items-start gap-4">
-                      <div className="h-7 w-7 rounded-full bg-[#00677d] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md ring-4 ring-white z-10">
-                        {itin.day}
-                      </div>
-
-                      <div className="flex-1 bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-heading font-bold text-sm text-[#191c1e]">
-                            {itin.title}
-                          </h4>
-                          <span className="text-[11px] font-bold text-[#00677d] bg-white px-2 py-0.5 rounded-full border border-slate-200">
-                            Hari {itin.day}
-                          </span>
-                        </div>
-
-                        <ul className="space-y-1.5 text-xs text-slate-600">
-                          {itin.activities?.map((act, aIdx) => (
-                            <li key={aIdx} className="flex items-start gap-2">
-                              <span className="text-[#ff7f50] font-bold">•</span>
-                              <span>{act}</span>
-                            </li>
-                          ))}
-                        </ul>
+                <div className="space-y-6">
+                  {destination.itinerary.map((day) => (
+                    <div key={day.day} className="relative pl-6 sm:pl-8 border-l-2 border-[#00677d]/20 pb-4 last:pb-0">
+                      <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-[#00677d] border-2 border-white shadow-sm" />
+                      <div className="space-y-1.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#ff7f50]">
+                          Hari Ke-{day.day}
+                        </span>
+                        <h3 className="font-heading font-bold text-base text-[#191c1e]">
+                          {day.title}
+                        </h3>
+                        {day.description && (
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            {day.description}
+                          </p>
+                        )}
+                        {Array.isArray(day.activities) && day.activities.length > 0 && (
+                          <ul className="space-y-1.5 pt-2">
+                            {day.activities.map((act, actIdx) => (
+                              <li key={actIdx} className="text-xs text-slate-500 flex items-start gap-2">
+                                <Clock className="h-3.5 w-3.5 text-[#00677d] mt-0.5 shrink-0" />
+                                <span>{act}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -350,7 +486,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             )}
           </div>
 
-          {/* RIGHT: AUTO-GROUPING & BOOKING FORM (5 Cols) */}
+          {/* RIGHT: DATE SELECTION, AUTO-GROUPING & BOOKING FORM (5 Cols) */}
           <div className="lg:col-span-5 space-y-6 sticky top-24">
             <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-100 shadow-stitch-card space-y-6">
               {/* Price Header */}
@@ -366,10 +502,109 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 </Badge>
               </div>
 
-              {/* Group Availability Visualizer */}
+              {/* STEP 1: DATE SELECTION & CALENDAR (Traveler Model) */}
               <div className="space-y-3">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Pilih Grup Mobil (Maksimal 6 Orang)
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4" />
+                    1. Pilih Tanggal Keberangkatan
+                  </label>
+                  {isCustomDateMode && (
+                    <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800">
+                      Inisiator Trip
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Available Trip Dates Pills */}
+                {trips.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-semibold text-slate-500 block">
+                      Jadwal Tersedia Terdekat:
+                    </span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {trips.map((trp) => {
+                        const isSelected = selectedTripId === trp.id && !isCustomDateMode;
+                        const totalParticipants = trp.groups?.reduce(
+                          (acc, g) => acc + (g.currentParticipants || 0),
+                          0
+                        ) || 0;
+                        const totalCapacity = (trp.groups?.length || 1) * 6;
+                        const remainingSeats = totalCapacity - totalParticipants;
+
+                        return (
+                          <button
+                            key={trp.id}
+                            type="button"
+                            onClick={() => handleSelectTrip(trp)}
+                            className={`p-3 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                              isSelected
+                                ? "border-[#00677d] bg-[#00677d]/5 ring-2 ring-[#00677d]/20 shadow-sm"
+                                : "border-slate-200 hover:border-slate-300 bg-white"
+                            }`}
+                          >
+                            <div className="space-y-0.5">
+                              <span className="font-heading font-bold text-xs text-[#191c1e] block">
+                                {formatDate(trp.departureDate)}
+                              </span>
+                              <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-[#00677d]" />
+                                s.d. {formatDate(trp.returnDate)}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-bold text-[#00677d] block">
+                                {remainingSeats > 0 ? `Sisa ${remainingSeats} Kursi` : "Penuh"}
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                {trp.groups?.length || 1} Armada
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Option to Pick Custom Date (Model B: On-Demand Trip Initiator) */}
+                <div className="pt-2 border-t border-dashed border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="custom-date-picker" className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+                      <CalendarPlus className="h-3.5 w-3.5 text-[#ff7f50]" />
+                      Ingin tanggal lain? Pilih Tanggal Sendiri:
+                    </label>
+                  </div>
+                  <Input
+                    id="custom-date-picker"
+                    type="date"
+                    min={minCustomDate}
+                    value={customDateInput}
+                    onChange={(e) => handleCustomDateChange(e.target.value)}
+                    className="text-xs bg-slate-50 border-slate-200 h-9 font-medium"
+                  />
+
+                  {/* Initiator Info Callout */}
+                  {isCustomDateMode && customDateInput && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                        <Sparkles className="h-4 w-4 text-[#ff7f50]" />
+                        <span>Jadilah Inisiator Trip!</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-relaxed font-normal">
+                        Belum ada grup di tanggal <strong>{formatDate(customDateInput)}</strong>. 
+                        Pemesanan Anda akan otomatis membuka <strong>Grup Mobil #1</strong> baru, dan traveler lain dapat bergabung.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* STEP 2: GROUP AVAILABILITY VISUALIZER */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
+                  <Car className="h-4 w-4" />
+                  2. Pilih Grup Mobil (Maksimal 6 Orang)
                 </label>
 
                 {isLoadingAvailability ? (
@@ -412,6 +647,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                             </span>
                           </div>
 
+                          {grp.driver && (
+                            <span className="text-[10px] text-slate-500 block mt-1">
+                              Driver: <strong>{grp.driver.fullName}</strong> ({grp.driver.vehicleModel})
+                            </span>
+                          )}
+
                           <div className="h-1.5 w-full rounded-full bg-slate-200 overflow-hidden mt-2">
                             <div
                               className={`h-full rounded-full ${
@@ -427,8 +668,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 )}
               </div>
 
-              {/* Booking Form */}
+              {/* STEP 3: BOOKING FORM */}
               <form onSubmit={handleBookingSubmit} className="space-y-4 pt-2 border-t border-slate-100">
+                <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] block">
+                  3. Data Diri Pemesan
+                </label>
+
                 {errorMessage && (
                   <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -569,6 +814,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
 
                 {/* Price Breakdown Summary */}
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                  <div className="flex justify-between text-xs text-slate-600">
+                    <span>Tanggal Dipilih:</span>
+                    <span className="font-bold text-[#00677d]">
+                      {selectedDate ? formatDate(selectedDate) : "Belum dipilih"}
+                    </span>
+                  </div>
                   <div className="flex justify-between text-xs text-slate-600">
                     <span>Tiket Trip Sharing:</span>
                     <span>{formatCurrency(basePrice)}</span>

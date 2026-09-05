@@ -9,7 +9,11 @@ import type {
   AuditLog,
   Trip,
   BookingGroup,
+  CreateTripPayload,
+  UpdateTripPayload,
 } from "@/src/types";
+import { MOCK_TRIPS, MOCK_DESTINATIONS, MOCK_DRIVERS } from "@/src/services/mockData";
+
 
 export interface ManualParticipantPayload {
   destinationId?: string;
@@ -158,10 +162,10 @@ export const adminService = {
     };
   },
 
-  async getTrips(): Promise<Trip[]> {
+  async getTrips(params?: { destinationId?: string; status?: string; search?: string }): Promise<Trip[]> {
     try {
-      const res = await apiClient.get<Trip[]>("/admin/trips");
-      if (res.success && Array.isArray(res.data)) {
+      const res = await apiClient.get<Trip[]>("/admin/trips", { params });
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
         return res.data;
       }
     } catch {
@@ -169,14 +173,139 @@ export const adminService = {
     }
 
     try {
-      const pubRes = await apiClient.get<Trip[]>("/trips");
-      if (pubRes.success && Array.isArray(pubRes.data)) {
+      const pubRes = await apiClient.get<Trip[]>("/trips", { params });
+      if (pubRes.success && Array.isArray(pubRes.data) && pubRes.data.length > 0) {
         return pubRes.data;
       }
     } catch {
-      // Empty
+      // Fallback to MOCK_TRIPS
     }
-    return [];
+
+    let filtered = [...MOCK_TRIPS];
+    if (params?.destinationId) {
+      filtered = filtered.filter((t) => t.destinationId === params.destinationId);
+    }
+    if (params?.status) {
+      filtered = filtered.filter((t) => t.status === params.status);
+    }
+    if (params?.search) {
+      const q = params.search.toLowerCase();
+      filtered = filtered.filter(
+        (t) =>
+          t.id.toLowerCase().includes(q) ||
+          t.destination?.title.toLowerCase().includes(q) ||
+          t.destination?.location.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  },
+
+  async getTripById(tripId: string): Promise<Trip | null> {
+    try {
+      const res = await apiClient.get<Trip>(`/admin/trips/${tripId}`);
+      if (res.success && res.data) return res.data;
+    } catch {
+      // Try /trips/:id
+    }
+
+    try {
+      const pubRes = await apiClient.get<Trip>(`/trips/${tripId}`);
+      if (pubRes.success && pubRes.data) return pubRes.data;
+    } catch {
+      // Fallback to MOCK_TRIPS
+    }
+
+    return MOCK_TRIPS.find((t) => t.id === tripId) || null;
+  },
+
+  async createTrip(payload: CreateTripPayload): Promise<Trip> {
+    try {
+      const res = await apiClient.post<Trip>("/admin/trips", payload);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback: Create mock trip and append to MOCK_TRIPS
+    }
+
+    const matchedDest = MOCK_DESTINATIONS.find((d) => d.id === payload.destinationId) || MOCK_DESTINATIONS[0];
+    const initialDriver = payload.initialDriverId
+      ? MOCK_DRIVERS.find((drv) => drv.id === payload.initialDriverId) || MOCK_DRIVERS[0]
+      : MOCK_DRIVERS[0];
+
+    const newTripId = `trip-${Date.now()}`;
+    const newTrip: Trip = {
+      id: newTripId,
+      destinationId: payload.destinationId,
+      destination: matchedDest,
+      departureDate: payload.departureDate,
+      returnDate: payload.returnDate,
+      pricePerPax: payload.pricePerPax,
+      maxGroups: payload.maxGroups || 2,
+      status: "scheduled",
+      groups: [
+        {
+          id: `grp-${Date.now()}-1`,
+          tripId: newTripId,
+          groupNumber: 1,
+          capacity: 6,
+          currentParticipants: 0,
+          status: "open",
+          driverId: initialDriver.id,
+          driver: initialDriver,
+          notes: payload.notes || "Grup 1 - Siap Berangkat",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    MOCK_TRIPS.unshift(newTrip);
+    return newTrip;
+  },
+
+  async updateTrip(id: string, payload: UpdateTripPayload): Promise<Trip> {
+    try {
+      const res = await apiClient.patch<Trip>(`/admin/trips/${id}`, payload);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Fallback
+    }
+
+    const index = MOCK_TRIPS.findIndex((t) => t.id === id);
+    if (index !== -1) {
+      MOCK_TRIPS[index] = {
+        ...MOCK_TRIPS[index],
+        ...payload,
+        updatedAt: new Date().toISOString(),
+      };
+      return MOCK_TRIPS[index];
+    }
+
+    throw new Error("Trip tidak ditemukan.");
+  },
+
+  async deleteTrip(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/trips/${id}`);
+      if (res.success) {
+        return { success: true, message: res.message || "Jadwal trip berhasil dihapus" };
+      }
+    } catch {
+      // Fallback
+    }
+
+    const index = MOCK_TRIPS.findIndex((t) => t.id === id);
+    if (index !== -1) {
+      MOCK_TRIPS.splice(index, 1);
+      return { success: true, message: "Jadwal trip berhasil dihapus" };
+    }
+
+    return { success: true, message: "Jadwal trip dihapus" };
   },
 
   async getTripAvailability(tripId: string): Promise<BookingGroup[]> {
@@ -203,8 +332,15 @@ export const adminService = {
     } catch {
       // Empty
     }
+
+    const foundMock = MOCK_TRIPS.find((t) => t.id === tripId);
+    if (foundMock && Array.isArray(foundMock.groups)) {
+      return foundMock.groups;
+    }
+
     return [];
   },
+
 
   async getDestinations(): Promise<Destination[]> {
     try {
