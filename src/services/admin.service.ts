@@ -184,17 +184,66 @@ export const adminService = {
   },
 
   async moveParticipant(payload: MoveParticipantPayload): Promise<{ success: boolean; message: string }> {
-    const res = await apiClient.post<{ success: boolean; message: string }>(
-      "/admin/participants/move-group",
-      payload
-    );
-    if (!res.success) {
-      throw new Error(res.message || "Gagal memindahkan peserta ke grup lain");
+    let finalTargetGroupId = payload.targetGroupId;
+
+    if (finalTargetGroupId === "new-group" && payload.targetTripId) {
+      // Find current max group number for the target trip
+      const existingGroups = await this.getGroups({ tripId: payload.targetTripId });
+      const nextGroupNumber =
+        existingGroups.length > 0
+          ? Math.max(...existingGroups.map((g) => g.groupNumber || 0)) + 1
+          : 1;
+
+      const createdGroup = await this.createGroup({
+        tripId: payload.targetTripId,
+        groupNumber: nextGroupNumber,
+        maxParticipants: 6,
+        status: "open",
+      });
+      finalTargetGroupId = createdGroup.id;
     }
-    return {
-      success: true,
-      message: res.message || "Peserta berhasil dipindahkan ke armada/grup tujuan",
-    };
+
+    try {
+      const res = await apiClient.post<{ success: boolean; message: string }>(
+        "/admin/participants/move-group",
+        {
+          participantId: payload.participantId,
+          targetGroupId: finalTargetGroupId,
+          currentGroupId: payload.currentGroupId,
+          currentTripId: payload.currentTripId,
+          targetTripId: payload.targetTripId,
+          reason: payload.reason,
+        }
+      );
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || "Peserta berhasil dipindahkan ke armada/grup tujuan",
+        };
+      }
+    } catch (err: unknown) {
+      try {
+        const altRes = await apiClient.patch<{ success: boolean; message: string }>(
+          `/admin/participants/${payload.participantId}/move`,
+          {
+            targetGroupId: finalTargetGroupId,
+            currentGroupId: payload.currentGroupId,
+            reason: payload.reason,
+          }
+        );
+        if (altRes.success) {
+          return {
+            success: true,
+            message: altRes.message || "Peserta berhasil dipindahkan ke armada/grup tujuan",
+          };
+        }
+      } catch (altErr: unknown) {
+        throw err instanceof Error ? err : altErr;
+      }
+      throw err;
+    }
+
+    throw new Error("Gagal memindahkan peserta ke grup lain");
   },
 
   async updateParticipantPaymentStatus(
@@ -284,6 +333,31 @@ export const adminService = {
       }
     }
 
+    // Enrich trips with groups from /admin/groups if groups are missing or empty
+    try {
+      const groupsRes = await apiClient.get<BookingGroup[]>("/admin/groups");
+      if (groupsRes.success && Array.isArray(groupsRes.data)) {
+        const groupsByTrip = new Map<string, BookingGroup[]>();
+        for (const g of groupsRes.data) {
+          const tId = g.tripId || g.trip?.id;
+          if (tId) {
+            if (!groupsByTrip.has(tId)) {
+              groupsByTrip.set(tId, []);
+            }
+            groupsByTrip.get(tId)!.push(g);
+          }
+        }
+        for (const trip of merged) {
+          const fetchedGroups = groupsByTrip.get(trip.id);
+          if (fetchedGroups && fetchedGroups.length > 0) {
+            trip.groups = fetchedGroups;
+          }
+        }
+      }
+    } catch {
+      // Continue silently
+    }
+
     // Populate participants into trips and groups
     for (const trip of merged) {
       const tripParts = MOCK_PARTICIPANTS.filter((p) => p.tripId === trip.id);
@@ -301,21 +375,39 @@ export const adminService = {
   },
 
   async getTripById(tripId: string): Promise<Trip | null> {
+    let trip: Trip | null = null;
     try {
       const res = await apiClient.get<Trip>(`/admin/trips/${tripId}`);
-      if (res.success && res.data) return res.data;
+      if (res.success && res.data) trip = res.data;
     } catch {
       // Try /trips/:id
     }
 
-    try {
-      const pubRes = await apiClient.get<Trip>(`/trips/${tripId}`);
-      if (pubRes.success && pubRes.data) return pubRes.data;
-    } catch {
-      // Fallback to MOCK_TRIPS
+    if (!trip) {
+      try {
+        const pubRes = await apiClient.get<Trip>(`/trips/${tripId}`);
+        if (pubRes.success && pubRes.data) trip = pubRes.data;
+      } catch {
+        // Fallback to MOCK_TRIPS
+      }
     }
 
-    return MOCK_TRIPS.find((t) => t.id === tripId) || null;
+    if (!trip) {
+      trip = MOCK_TRIPS.find((t) => t.id === tripId) || null;
+    }
+
+    if (trip && (!trip.groups || trip.groups.length === 0)) {
+      try {
+        const groups = await this.getGroups({ tripId });
+        if (groups && groups.length > 0) {
+          trip.groups = groups;
+        }
+      } catch {
+        // Ignore
+      }
+    }
+
+    return trip;
   },
 
   async createTrip(payload: CreateTripPayload): Promise<Trip> {

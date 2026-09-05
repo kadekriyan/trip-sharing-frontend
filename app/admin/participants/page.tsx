@@ -26,11 +26,12 @@ import {
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
 import { getPaymentBadge, formatCurrency, formatDate, getDestinationTitle } from "@/src/lib/utils";
-import type { Participant, Trip } from "@/src/types";
+import type { Participant, Trip, BookingGroup } from "@/src/types";
 
 export default function ParticipantsManagementPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [allGroups, setAllGroups] = useState<BookingGroup[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
@@ -51,15 +52,32 @@ export default function ParticipantsManagementPage() {
   const reloadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [partsData, tripsData] = await Promise.all([
+      const [partsData, tripsData, groupsData] = await Promise.all([
         adminService.getParticipants({
           status: statusFilter === "all" ? undefined : statusFilter,
           search: searchQuery || undefined,
         }),
         adminService.getTrips(),
+        adminService.getGroups(),
       ]);
+
+      const groupsByTrip = new Map<string, BookingGroup[]>();
+      for (const g of groupsData) {
+        const tId = g.tripId || g.trip?.id;
+        if (tId) {
+          if (!groupsByTrip.has(tId)) groupsByTrip.set(tId, []);
+          groupsByTrip.get(tId)!.push(g);
+        }
+      }
+
+      const enrichedTrips = tripsData.map((t) => ({
+        ...t,
+        groups: t.groups && t.groups.length > 0 ? t.groups : groupsByTrip.get(t.id) || [],
+      }));
+
       setParticipants(partsData);
-      setTrips(tripsData);
+      setTrips(enrichedTrips);
+      setAllGroups(groupsData);
     } catch {
       // Silently handled
     } finally {
@@ -75,11 +93,27 @@ export default function ParticipantsManagementPage() {
         search: searchQuery || undefined,
       }),
       adminService.getTrips(),
+      adminService.getGroups(),
     ])
-      .then(([partsData, tripsData]) => {
+      .then(([partsData, tripsData, groupsData]) => {
         if (isMounted) {
+          const groupsByTrip = new Map<string, BookingGroup[]>();
+          for (const g of groupsData) {
+            const tId = g.tripId || g.trip?.id;
+            if (tId) {
+              if (!groupsByTrip.has(tId)) groupsByTrip.set(tId, []);
+              groupsByTrip.get(tId)!.push(g);
+            }
+          }
+
+          const enrichedTrips = tripsData.map((t) => ({
+            ...t,
+            groups: t.groups && t.groups.length > 0 ? t.groups : groupsByTrip.get(t.id) || [],
+          }));
+
           setParticipants(partsData);
-          setTrips(tripsData);
+          setTrips(enrichedTrips);
+          setAllGroups(groupsData);
           setIsLoading(false);
         }
       })
@@ -111,12 +145,24 @@ export default function ParticipantsManagementPage() {
 
   const handleOpenMoveModal = (p: Participant) => {
     setMovingParticipant(p);
-    const pTripId = p.tripId || p.trip?.id || (trips[0]?.id ?? "");
+    const pTripId =
+      p.tripId ||
+      p.trip?.id ||
+      p.bookingGroup?.tripId ||
+      p.group?.tripId ||
+      (trips[0]?.id ?? "");
     setTargetTripId(pTripId);
-    const currTrip = trips.find((t) => t.id === pTripId) || trips[0];
+
+    const currTrip = trips.find((t) => t.id === pTripId);
+    const availableGroups =
+      (currTrip?.groups && currTrip.groups.length > 0)
+        ? currTrip.groups
+        : allGroups.filter((g) => (g.tripId || g.trip?.id) === pTripId);
+
+    const pGroupId = p.bookingGroupId || p.group?.id || p.bookingGroup?.id;
     const initialGrp =
-      currTrip?.groups?.find((g) => g.id !== p.bookingGroupId)?.id ||
-      currTrip?.groups?.[0]?.id ||
+      availableGroups.find((g) => g.id !== pGroupId)?.id ||
+      availableGroups[0]?.id ||
       "new-group";
     setTargetGroupId(initialGrp);
     setMoveReason("");
@@ -126,10 +172,20 @@ export default function ParticipantsManagementPage() {
   const handleTargetTripChange = (newTripId: string) => {
     setTargetTripId(newTripId);
     const selTrip = trips.find((t) => t.id === newTripId);
-    if (selTrip && Array.isArray(selTrip.groups) && selTrip.groups.length > 0) {
+    const availableGroups =
+      (selTrip?.groups && selTrip.groups.length > 0)
+        ? selTrip.groups
+        : allGroups.filter((g) => (g.tripId || g.trip?.id) === newTripId);
+
+    const currentGroupId =
+      movingParticipant?.bookingGroupId ||
+      movingParticipant?.group?.id ||
+      movingParticipant?.bookingGroup?.id;
+
+    if (availableGroups.length > 0) {
       const defaultG =
-        selTrip.groups.find((g) => g.id !== movingParticipant?.bookingGroupId)?.id ||
-        selTrip.groups[0].id;
+        availableGroups.find((g) => g.id !== currentGroupId)?.id ||
+        availableGroups[0].id;
       setTargetGroupId(defaultG);
     } else {
       setTargetGroupId("new-group");
@@ -140,10 +196,22 @@ export default function ParticipantsManagementPage() {
     if (!movingParticipant) return;
 
     try {
+      const currentGroupId =
+        movingParticipant.bookingGroupId ||
+        movingParticipant.group?.id ||
+        movingParticipant.bookingGroup?.id ||
+        "";
+      const currentTripId =
+        movingParticipant.tripId ||
+        movingParticipant.trip?.id ||
+        movingParticipant.bookingGroup?.tripId ||
+        movingParticipant.group?.tripId ||
+        "";
+
       const res = await adminService.moveParticipant({
         participantId: movingParticipant.id,
-        currentGroupId: movingParticipant.bookingGroupId,
-        currentTripId: movingParticipant.tripId,
+        currentGroupId,
+        currentTripId,
         targetGroupId,
         targetTripId,
         reason: moveReason || "Pemindahan grup atas persetujuan admin",
@@ -483,7 +551,28 @@ export default function ParticipantsManagementPage() {
 
           {movingParticipant && (() => {
             const activeTrip = trips.find((t) => t.id === targetTripId) || trips[0];
-            const activeGroups = activeTrip?.groups || [];
+            const activeGroups =
+              activeTrip?.groups && activeTrip.groups.length > 0
+                ? activeTrip.groups
+                : allGroups.filter((g) => (g.tripId || g.trip?.id) === targetTripId);
+
+            const currentGroupId =
+              movingParticipant.bookingGroupId ||
+              movingParticipant.group?.id ||
+              movingParticipant.bookingGroup?.id;
+            const currentTripId = String(
+              movingParticipant.tripId ||
+              movingParticipant.trip?.id ||
+              movingParticipant.bookingGroup?.tripId ||
+              movingParticipant.group?.tripId ||
+              "-"
+            );
+            const currentGroupNum = Number(
+              movingParticipant.group?.groupNumber ??
+              movingParticipant.bookingGroup?.groupNumber ??
+              (movingParticipant as unknown as Record<string, unknown>).groupNumber ??
+              1
+            );
 
             return (
               <div className="space-y-4 pt-2">
@@ -502,7 +591,7 @@ export default function ParticipantsManagementPage() {
                   <div className="flex justify-between">
                     <span className="text-slate-500">Jadwal & Grup Asal:</span>
                     <span className="font-semibold text-slate-700">
-                      Grup #{movingParticipant.group?.groupNumber || 1} (Trip #{movingParticipant.tripId})
+                      Grup #{currentGroupNum} (Trip #{currentTripId})
                     </span>
                   </div>
                 </div>
@@ -540,10 +629,17 @@ export default function ParticipantsManagementPage() {
                     className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
                   >
                     {activeGroups.map((g) => {
-                      const isFull = g.currentParticipants >= (g.capacity || 6);
+                      const capacity = g.maxParticipants || g.capacity || 6;
+                      const currentPax = g.currentParticipants ?? g.participants?.length ?? 0;
+                      const isFull = currentPax >= capacity;
+                      const isCurrentGroup = g.id === currentGroupId && targetTripId === currentTripId;
+                      const driverName = g.driver?.fullName || g.driver?.name;
+                      const driverInfo = driverName ? ` [Driver: ${driverName}]` : " [Driver belum ada]";
                       return (
-                        <option key={g.id} value={g.id} disabled={isFull}>
-                          {g.name || `Grup Mobil #${g.groupNumber}`} ({g.currentParticipants}/{g.capacity || 6} Pax){isFull ? " [PENUH]" : ""}
+                        <option key={g.id} value={g.id} disabled={isFull || isCurrentGroup}>
+                          {g.name || `Grup Mobil #${g.groupNumber}`} ({currentPax}/{capacity} Pax)
+                          {driverInfo}
+                          {isCurrentGroup ? " [Grup Asal Saat Ini]" : isFull ? " [PENUH]" : ""}
                         </option>
                       );
                     })}
