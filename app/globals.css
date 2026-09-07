@@ -94,12 +94,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   PRINT STYLES (Clean 1-Page E-Voucher & Ticket Printing)
+   PRINT STYLES (Compact E-Ticket / Boarding Pass Badge Printing)
    ========================================================================== */
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 8mm 12mm;
+    size: auto;
+    margin: 8mm;
   }
 
   html,
@@ -108,12 +108,12 @@ h1, h2, h3, h4, h5, h6 {
     color: #0f172a !important;
     margin: 0 !important;
     padding: 0 !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Sembunyikan elemen web umum, tombol, header, dan footer */
+  /* Sembunyikan elemen web umum, tombol, header, footer, dan navigasi */
   header,
   footer,
   nav,
@@ -126,10 +126,11 @@ h1, h2, h3, h4, h5, h6 {
     display: none !important;
   }
 
-  /* Reset portal Radix Dialog agar tidak mengambang */
+  /* Reset portal Radix Dialog agar memposisikan kartu tiket di tengah */
   [data-radix-portal] {
     position: static !important;
     display: block !important;
+    margin: 0 auto !important;
   }
 
   [data-radix-portal] > div {
@@ -144,8 +145,8 @@ h1, h2, h3, h4, h5, h6 {
   [role="dialog"] {
     position: static !important;
     transform: none !important;
-    max-width: 100% !important;
-    width: 100% !important;
+    max-width: 380px !important;
+    width: 380px !important;
     margin: 0 auto !important;
     padding: 0 !important;
     border: none !important;
@@ -153,12 +154,12 @@ h1, h2, h3, h4, h5, h6 {
     background: transparent !important;
   }
 
-  /* Kartu E-Voucher tercetak rapi di tengah halaman */
+  /* Kartu Tiket E-Voucher Ringkas (Ukuran Tiket / Boarding Pass Fisik) */
   .print-voucher-card {
-    width: 100% !important;
-    max-width: 500px !important;
-    margin: 0 auto !important;
-    border: 1.5px solid #cbd5e1 !important;
+    width: 380px !important;
+    max-width: 380px !important;
+    margin: 10px auto !important;
+    border: 1.5px dashed #94a3b8 !important;
     border-radius: 16px !important;
     overflow: hidden !important;
     box-shadow: none !important;
@@ -167,4 +168,5 @@ h1, h2, h3, h4, h5, h6 {
     break-inside: avoid !important;
   }
 }
+
 
