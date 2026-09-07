@@ -57,11 +57,65 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
     };
   }, [searchQuery, selectedLocation, selectedDuration, sortBy]);
 
+  // Extract dynamic location options from destination list
+  const availableLocations = useMemo(() => {
+    const locationMap = new Map<string, { id: string; label: string; count: number }>();
+    const totalCount = destinations?.length || 0;
+
+    (destinations || []).forEach((dest) => {
+      if (!dest?.location) return;
+      const rawLoc = dest.location.trim();
+      const parts = rawLoc.split(",").map((p) => p.trim()).filter(Boolean);
+      // Use main province/region (last part if multiple, else full name)
+      const regionKey = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+
+      const existing = locationMap.get(regionKey);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        locationMap.set(regionKey, {
+          id: regionKey,
+          label: regionKey,
+          count: 1,
+        });
+      }
+    });
+
+    const list = Array.from(locationMap.values()).map((item) => ({
+      id: item.id,
+      label: `${item.label} (${item.count})`,
+    }));
+
+    return [{ id: "all", label: `Semua Wilayah (${totalCount})` }, ...list];
+  }, [destinations]);
+
+  // Extract dynamic duration options
+  const availableDurations = useMemo(() => {
+    const total = destinations?.length || 0;
+    let countShort = 0;
+    let countLong = 0;
+
+    (destinations || []).forEach((dest) => {
+      const days = dest.durationDays || 0;
+      if (days <= 2) {
+        countShort += 1;
+      } else {
+        countLong += 1;
+      }
+    });
+
+    return [
+      { id: "all", label: `Semua Durasi (${total})` },
+      { id: "1-2", label: `1 - 2 Hari (Weekend Trip) (${countShort})` },
+      { id: "3+", label: `3 Hari ke Atas (Long Trip) (${countLong})` },
+    ];
+  }, [destinations]);
+
   const filteredDestinations = useMemo(() => {
     if (!Array.isArray(destinations)) return [];
     return destinations.filter((dest) => {
       if (!dest) return false;
-      const title = (dest.title || dest.tagline || "").toLowerCase();
+      const title = (dest.title || dest.name || dest.tagline || "").toLowerCase();
       const loc = (dest.location || "").toLowerCase();
       const query = (searchQuery || "").toLowerCase();
 
@@ -164,13 +218,8 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                   Wilayah / Destinasi
                 </span>
                 <div className="space-y-2 text-xs text-slate-700">
-                  {[
-                    { id: "all", label: "Semua Wilayah" },
-                    { id: "Jawa Timur", label: "Jawa Timur (Bromo/Ijen)" },
-                    { id: "Labuan Bajo", label: "NTT (Komodo/Padar)" },
-                    { id: "Bali", label: "Bali & Nusa Penida" },
-                  ].map((loc) => (
-                    <label key={loc.id} className="flex items-center gap-2.5 cursor-pointer py-1 text-slate-700">
+                  {availableLocations.map((loc) => (
+                    <label key={loc.id} className="flex items-center gap-2.5 cursor-pointer py-1 text-slate-700 hover:text-[#00677d] transition-colors">
                       <input
                         type="radio"
                         name="location"
@@ -190,12 +239,8 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                   Durasi Perjalanan
                 </span>
                 <div className="space-y-2 text-xs text-slate-700">
-                  {[
-                    { id: "all", label: "Semua Durasi" },
-                    { id: "1-2", label: "1 - 2 Hari (Weekend Trip)" },
-                    { id: "3+", label: "3 Hari ke Atas (Long Trip)" },
-                  ].map((dur) => (
-                    <label key={dur.id} className="flex items-center gap-2.5 cursor-pointer py-1 text-slate-700">
+                  {availableDurations.map((dur) => (
+                    <label key={dur.id} className="flex items-center gap-2.5 cursor-pointer py-1 text-slate-700 hover:text-[#00677d] transition-colors">
                       <input
                         type="radio"
                         name="duration"
