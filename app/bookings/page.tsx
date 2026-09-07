@@ -26,6 +26,7 @@ import {
 import { bookingService } from "@/src/services/booking.service";
 import { useAuth } from "@/src/context/auth-context";
 import { formatCurrency, formatDate, getPaymentBadge, getDestinationTitle } from "@/src/lib/utils";
+import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import type { Participant } from "@/src/types";
 
 function MyBookingsContent() {
@@ -509,7 +510,23 @@ function MyBookingsContent() {
 
                 <div className="pt-2 no-print">
                   <Button
-                    onClick={() => window.print()}
+                    onClick={() => {
+                      const destTitle =
+                        getDestinationTitle(selectedVoucher.destination) !== "Paket Wisata"
+                          ? getDestinationTitle(selectedVoucher.destination)
+                          : getDestinationTitle(selectedVoucher.trip?.destination) || "Trip Sharing Platform";
+                      printTicketVoucher({
+                        bookingCode: selectedVoucher.bookingCode,
+                        destinationTitle: destTitle,
+                        fullName: selectedVoucher.fullName,
+                        identityNumber: selectedVoucher.identityNumber,
+                        groupNumber: selectedVoucher.group?.groupNumber || 1,
+                        driverName: selectedVoucher.group?.driver?.fullName,
+                        vehicleModel: selectedVoucher.group?.driver?.vehicleModel,
+                        plateNumber: selectedVoucher.group?.driver?.plateNumber,
+                        departureDate: formatDate(selectedVoucher.createdAt),
+                      });
+                    }}
                     className="w-full justify-center text-xs font-bold"
                   >
                     Cetak / Simpan E-Voucher (PDF)

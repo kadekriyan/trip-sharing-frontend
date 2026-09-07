@@ -94,7 +94,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
-   PRINT STYLES (Compact E-Ticket / Boarding Pass Badge Printing)
+   PRINT STYLES
    ========================================================================== */
 @media print {
   @page {
@@ -108,64 +108,15 @@ h1, h2, h3, h4, h5, h6 {
     color: #0f172a !important;
     margin: 0 !important;
     padding: 0 !important;
-    font-size: 11px !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  /* Sembunyikan elemen web umum, tombol, header, footer, dan navigasi */
   header,
   footer,
   nav,
   .no-print {
     display: none !important;
-  }
-
-  /* Saat modal e-voucher dicetak, sembunyikan seluruh halaman latar belakang */
-  body:has(.print-voucher-card) > *:not([data-radix-portal]) {
-    display: none !important;
-  }
-
-  /* Reset portal Radix Dialog agar memposisikan kartu tiket di tengah */
-  [data-radix-portal] {
-    position: static !important;
-    display: block !important;
-    margin: 0 auto !important;
-  }
-
-  [data-radix-portal] > div {
-    position: static !important;
-    display: block !important;
-    background: transparent !important;
-    backdrop-filter: none !important;
-    box-shadow: none !important;
-    border: none !important;
-  }
-
-  [role="dialog"] {
-    position: static !important;
-    transform: none !important;
-    max-width: 380px !important;
-    width: 380px !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-
-  /* Kartu Tiket E-Voucher Ringkas (Ukuran Tiket / Boarding Pass Fisik) */
-  .print-voucher-card {
-    width: 380px !important;
-    max-width: 380px !important;
-    margin: 10px auto !important;
-    border: 1.5px dashed #94a3b8 !important;
-    border-radius: 16px !important;
-    overflow: hidden !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
   }
 }
 

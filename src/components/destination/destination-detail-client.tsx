@@ -47,6 +47,7 @@ import {
   formatDate,
   getImageUrl,
 } from "@/src/lib/utils";
+import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import type { Destination, BookingGroup, Trip, Participant } from "@/src/types";
 
 interface DestinationDetailClientProps {
@@ -1105,7 +1106,18 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (typeof window !== "undefined") window.print();
+                    const destTitle = getDestinationTitle(destination);
+                    printTicketVoucher({
+                      bookingCode: createdBooking?.bookingCode || "TRV-SUCCESS",
+                      destinationTitle: destTitle,
+                      fullName: createdBooking?.fullName || fullName || "Traveler",
+                      identityNumber: createdBooking?.identityNumber || identityNumber || "-",
+                      groupNumber: createdBooking?.group?.groupNumber || 1,
+                      driverName: createdBooking?.group?.driver?.fullName,
+                      vehicleModel: createdBooking?.group?.driver?.vehicleModel,
+                      plateNumber: createdBooking?.group?.driver?.plateNumber,
+                      departureDate: formatDate(selectedDate || customDateInput),
+                    });
                   }}
                   className="flex-1 text-xs font-semibold gap-1.5 text-slate-600"
                 >
