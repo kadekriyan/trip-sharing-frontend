@@ -41,14 +41,75 @@ export default function AdminOverviewPage() {
     async function loadAdminData() {
       setIsLoading(true);
       try {
-        const [met, parts, allGroups] = await Promise.all([
+        const [met, allParts, allGroups] = await Promise.all([
           adminService.getMetrics(),
-          adminService.getParticipants({ limit: 5 }),
+          adminService.getParticipants(),
           adminService.getGroups(),
         ]);
         if (isMounted) {
-          setMetrics(met);
-          setRecentBookings(parts.slice(0, 5));
+          // Sinkronisasi metrik dari data riil partisipan & grup aktif
+          const paidParticipants = allParts.filter((p) => p.paymentStatus === "paid");
+          const calculatedRevenue = paidParticipants.reduce(
+            (sum, p) => sum + (Number(p.totalAmount) || 0),
+            0
+          );
+          const totalParticipantsCount = allParts.length;
+          const pendingCount = allParts.filter(
+            (p) => p.paymentStatus === "pending" || !p.paymentStatus
+          ).length;
+
+          const totalCapacity = allGroups.reduce(
+            (acc, g) => acc + (Number(g.maxParticipants) || 6),
+            0
+          );
+          const totalCurrentOccupancy = allGroups.reduce(
+            (acc, g) =>
+              acc +
+              (Number(g.currentParticipants) ||
+                (Array.isArray(g.participants) ? g.participants.length : 0)),
+            0
+          );
+          const calcOccupancyRate =
+            totalCapacity > 0
+              ? Math.min(100, Math.round((totalCurrentOccupancy / totalCapacity) * 100))
+              : met.averageOccupancyRate || 0;
+
+          const totalAvailableSeats = allGroups.reduce((acc, g) => {
+            const cap = Number(g.maxParticipants) || 6;
+            const cur =
+              Number(g.currentParticipants) ||
+              (Array.isArray(g.participants) ? g.participants.length : 0);
+            return acc + Math.max(0, cap - cur);
+          }, 0);
+
+          const activeTrips = new Set(
+            allGroups.map((g) => g.tripId || g.trip?.id).filter(Boolean)
+          ).size;
+
+          const synchronizedMetrics: AdminMetrics = {
+            ...met,
+            totalRevenue:
+              calculatedRevenue > 0 ? calculatedRevenue : met.totalRevenue || 0,
+            totalParticipants:
+              totalParticipantsCount > 0
+                ? totalParticipantsCount
+                : met.totalParticipants || 0,
+            totalBookings:
+              totalParticipantsCount > 0
+                ? totalParticipantsCount
+                : met.totalBookings || 0,
+            pendingPaymentsCount:
+              pendingCount > 0 ? pendingCount : met.pendingPaymentsCount || 0,
+            averageOccupancyRate:
+              allGroups.length > 0 ? calcOccupancyRate : met.averageOccupancyRate || 0,
+            availableSeats:
+              allGroups.length > 0 ? totalAvailableSeats : met.availableSeats || 0,
+            activeTripsCount:
+              activeTrips > 0 ? activeTrips : met.activeTripsCount || 0,
+          };
+
+          setMetrics(synchronizedMetrics);
+          setRecentBookings(allParts.slice(0, 5));
           setGroups(allGroups);
         }
       } catch {
