@@ -38,6 +38,23 @@ function MyBookingsContent() {
   const [searchQuery, setSearchQuery] = useState(initialCode);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedVoucher, setSelectedVoucher] = useState<Participant | null>(null);
+  const [simulatingId, setSimulatingId] = useState<string | null>(null);
+
+  const handleSimulatePayment = async (participantId: string) => {
+    setSimulatingId(participantId);
+    try {
+      const res = await bookingService.simulatePayment(participantId, "settle");
+      if (res.success) {
+        setBookings((prev) =>
+          prev.map((b) => (b.id === participantId ? { ...b, paymentStatus: "paid" } : b))
+        );
+      }
+    } catch {
+      // Silently handled
+    } finally {
+      setSimulatingId(null);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -331,13 +348,25 @@ function MyBookingsContent() {
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               {booking.paymentStatus === "pending" ? (
-                                <Button asChild size="sm" className="bg-[#ff7f50] text-white">
-                                  <Link href={`/destinations/${destSlug || "bromo-sunrise-safari"}`}>
-                                    Bayar Sekarang ({formatCurrency(booking.totalAmount)})
-                                  </Link>
-                                </Button>
+                                <>
+                                  <Button asChild size="sm" className="bg-[#ff7f50] text-white">
+                                    <Link href={`/destinations/${destSlug || "bromo-sunrise-safari"}`}>
+                                      Bayar Sekarang ({formatCurrency(booking.totalAmount)})
+                                    </Link>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={simulatingId === booking.id}
+                                    onClick={() => handleSimulatePayment(booking.id)}
+                                    className="text-[11px] font-semibold border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                                    title="Simulasi pembayaran langsung tanpa gateway Midtrans (Sandbox/Dev)"
+                                  >
+                                    {simulatingId === booking.id ? "Memproses..." : "⚡ Simulasi Lunas (Dev)"}
+                                  </Button>
+                                </>
                               ) : (
                                 <Button
                                   size="sm"

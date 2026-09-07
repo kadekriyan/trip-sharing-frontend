@@ -263,24 +263,83 @@ export const bookingService = {
     return [];
   },
 
-  async simulatePaymentSettlement(participantId: string): Promise<Payment> {
+  async simulatePayment(
+    idOrParticipantId: string,
+    action: "settle" | "settlement" | "capture" | "success" | "expire" | "expired" | "cancel" | "cancelled" | "deny" | "denied" | "failure" = "settle"
+  ): Promise<{ success: boolean; message: string; data?: unknown }> {
+    const isSuccessAction = ["settle", "settlement", "capture", "success"].includes(action);
+    const targetStatus = isSuccessAction ? "paid" : "cancelled";
+
     try {
-      const res = await apiClient.post<Payment>(`/payments/${participantId}/simulate`, {
-        action: "settle",
-      });
-      if (res.success && res.data) {
-        const found = MOCK_PARTICIPANTS.find((p) => p.id === participantId);
-        if (found) found.paymentStatus = "paid";
-        return res.data;
+      const res = await apiClient.post<{
+        id: string;
+        participant_id?: string;
+        booking_group_id?: string;
+        amount?: string | number;
+        status: string;
+      }>(`/payments/${idOrParticipantId}/simulate`, { action });
+
+      if (res.success) {
+        const found = MOCK_PARTICIPANTS.find(
+          (p) => p.id === idOrParticipantId || p.bookingCode === idOrParticipantId
+        );
+        if (found) {
+          found.paymentStatus = isSuccessAction ? "paid" : "cancelled";
+        }
+        return {
+          success: true,
+          message: res.message || `Simulasi pembayaran berhasil diproses: ${res.data?.status || action}`,
+          data: res.data,
+        };
       }
     } catch {
-      // Fallback
+      // Fallback: try /payments/participants/:id/simulate
+      try {
+        const altRes = await apiClient.post<{
+          id: string;
+          participant_id?: string;
+          status: string;
+        }>(`/payments/participants/${idOrParticipantId}/simulate`, { action });
+
+        if (altRes.success) {
+          const found = MOCK_PARTICIPANTS.find(
+            (p) => p.id === idOrParticipantId || p.bookingCode === idOrParticipantId
+          );
+          if (found) {
+            found.paymentStatus = isSuccessAction ? "paid" : "cancelled";
+          }
+          return {
+            success: true,
+            message: altRes.message || `Simulasi pembayaran berhasil: ${altRes.data?.status || action}`,
+            data: altRes.data,
+          };
+        }
+      } catch {
+        // Fallback to local mock state
+      }
     }
 
-    const found = MOCK_PARTICIPANTS.find((p) => p.id === participantId);
+    const found = MOCK_PARTICIPANTS.find(
+      (p) => p.id === idOrParticipantId || p.bookingCode === idOrParticipantId
+    );
     if (found) {
-      found.paymentStatus = "paid";
+      found.paymentStatus = isSuccessAction ? "paid" : "cancelled";
     }
+
+    return {
+      success: true,
+      message: `Simulasi pembayaran berhasil diproses (${targetStatus})`,
+      data: {
+        id: `pay-${Date.now()}`,
+        participant_id: idOrParticipantId,
+        status: isSuccessAction ? "completed" : "failed",
+      },
+    };
+  },
+
+  async simulatePaymentSettlement(participantId: string): Promise<Payment> {
+    await this.simulatePayment(participantId, "settle");
+    const found = MOCK_PARTICIPANTS.find((p) => p.id === participantId);
 
     return {
       id: `pay-${Date.now()}`,
