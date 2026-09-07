@@ -299,6 +299,7 @@ export function ImageUploader(props: ImageUploaderProps) {
               src={getImageUrl(props.value)}
               alt="Preview"
               fill
+              unoptimized
               className="object-cover transition-transform group-hover:scale-105 duration-300"
             />
           </div>
@@ -347,6 +348,7 @@ export function ImageUploader(props: ImageUploaderProps) {
                   src={getImageUrl(imgUrl)}
                   alt={`Galeri ${index + 1}`}
                   fill
+                  unoptimized
                   className="object-cover"
                 />
                 <button
