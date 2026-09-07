@@ -1014,7 +1014,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
 
       {/* PAYMENT SUCCESS CONFIRMATION MODAL */}
       <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-white border border-slate-100 shadow-2xl rounded-3xl">
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-white border border-slate-100 shadow-2xl rounded-3xl print-voucher-card">
           <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-6 text-white text-center space-y-2">
             <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center mx-auto shadow-inner">
               <CheckCircle2 className="h-8 w-8 text-white" />
@@ -1040,7 +1040,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <button
                   type="button"
                   onClick={() => handleCopyCode(createdBooking?.bookingCode || "TRV-SUCCESS")}
-                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-[#00677d] transition-colors shadow-sm"
+                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-[#00677d] transition-colors shadow-sm no-print"
                   title="Salin Kode Booking"
                 >
                   {isCopiedBookingCode ? (
@@ -1086,7 +1086,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2 pt-2 no-print">
               <Button
                 size="lg"
                 onClick={() => {

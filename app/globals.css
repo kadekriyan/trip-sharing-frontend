@@ -92,3 +92,79 @@ h1, h2, h3, h4, h5, h6 {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* ==========================================================================
+   PRINT STYLES (Clean 1-Page E-Voucher & Ticket Printing)
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 12px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Sembunyikan elemen web umum, tombol, header, dan footer */
+  header,
+  footer,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Saat modal e-voucher dicetak, sembunyikan seluruh halaman latar belakang */
+  body:has(.print-voucher-card) > *:not([data-radix-portal]) {
+    display: none !important;
+  }
+
+  /* Reset portal Radix Dialog agar tidak mengambang */
+  [data-radix-portal] {
+    position: static !important;
+    display: block !important;
+  }
+
+  [data-radix-portal] > div {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  [role="dialog"] {
+    position: static !important;
+    transform: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Kartu E-Voucher tercetak rapi di tengah halaman */
+  .print-voucher-card {
+    width: 100% !important;
+    max-width: 500px !important;
+    margin: 0 auto !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+

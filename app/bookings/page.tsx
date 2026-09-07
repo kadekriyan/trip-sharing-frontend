@@ -442,7 +442,7 @@ function MyBookingsContent() {
 
       {/* DIGITAL E-VOUCHER DIALOG */}
       <Dialog open={!!selectedVoucher} onOpenChange={() => setSelectedVoucher(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-white">
+        <DialogContent className="max-w-md p-0 overflow-hidden bg-white print-voucher-card">
           {selectedVoucher && (
             <div>
               <div className="bg-[#00677d] p-6 text-white text-center space-y-1">
@@ -450,17 +450,19 @@ function MyBookingsContent() {
                   Official E-Voucher
                 </Badge>
                 <h3 className="font-heading font-extrabold text-xl">
-                  Trip Sharing Platform
+                  {getDestinationTitle(selectedVoucher.destination) !== "Paket Wisata"
+                    ? getDestinationTitle(selectedVoucher.destination)
+                    : getDestinationTitle(selectedVoucher.trip?.destination) || "Trip Sharing Platform"}
                 </h3>
                 <p className="text-xs text-slate-100">
                   Tunjukkan kode QR ini kepada Driver saat penjemputan.
                 </p>
               </div>
 
-              <div className="p-6 space-y-6 text-center">
+              <div className="p-6 space-y-5 text-center">
                 {/* QR Code */}
                 <div className="bg-slate-50 p-4 rounded-2xl border-2 border-dashed border-slate-200 inline-block">
-                  <div className="relative h-40 w-40 mx-auto bg-white p-2 rounded-xl shadow-sm">
+                  <div className="relative h-36 w-36 mx-auto bg-white p-2 rounded-xl shadow-sm">
                     <Image
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${selectedVoucher.bookingCode}`}
                       alt="Booking QR Code"
@@ -495,14 +497,24 @@ function MyBookingsContent() {
                       Grup #{selectedVoucher.group?.groupNumber || 1}
                     </span>
                   </div>
+                  {selectedVoucher.group?.driver && (
+                    <div className="flex justify-between border-t border-slate-200 pt-1.5">
+                      <span className="text-slate-500">Armada & Driver:</span>
+                      <span className="font-semibold text-slate-800">
+                        {selectedVoucher.group.driver.fullName} ({selectedVoucher.group.driver.vehicleModel})
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                <Button
-                  onClick={() => window.print()}
-                  className="w-full justify-center text-xs font-bold"
-                >
-                  Cetak / Simpan E-Voucher (PDF)
-                </Button>
+                <div className="pt-2 no-print">
+                  <Button
+                    onClick={() => window.print()}
+                    className="w-full justify-center text-xs font-bold"
+                  >
+                    Cetak / Simpan E-Voucher (PDF)
+                  </Button>
+                </div>
               </div>
             </div>
           )}
