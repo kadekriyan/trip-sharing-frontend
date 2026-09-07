@@ -202,9 +202,12 @@ export default function AdminOverviewPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {groups.map((group) => {
-              const isFull = group.currentParticipants >= group.capacity;
-              const remaining = group.capacity - group.currentParticipants;
+              const capacity = Number(group.capacity || group.maxParticipants || 6);
+              const currentPax = Number(group.currentParticipants || group.participants?.length || 0);
+              const isFull = currentPax >= capacity;
+              const remaining = Math.max(0, capacity - currentPax);
               const driver = group.driver;
+              const groupNum = group.groupNumber || 1;
 
               return (
                 <Card
@@ -214,27 +217,27 @@ export default function AdminOverviewPage() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-xs font-bold text-[#00677d] uppercase tracking-wider">
-                        Grup Mobil #{group.groupNumber}
+                        Grup Mobil #{groupNum}
                       </span>
                       <h3 className="font-heading font-bold text-base text-[#191c1e] mt-0.5">
-                        {driver ? `${driver.vehicleModel} (${driver.plateNumber})` : "Armada Standby"}
+                        {driver ? `${driver.vehicleModel || "Armada"} (${driver.plateNumber || "-"})` : "Armada Standby"}
                       </h3>
                     </div>
                     <Badge variant={isFull ? "destructive" : "azure"} className="font-bold">
-                      {isFull ? "Grup Penuh (6/6)" : `${remaining} Kursi Tersedia`}
+                      {isFull ? `Grup Penuh (${capacity}/${capacity})` : `${remaining} Kursi Tersedia`}
                     </Badge>
                   </div>
 
                   {/* Visual 6-Seat Grid */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-slate-500 font-semibold">
-                      <span>Visual Kursi (Maks 6 Orang):</span>
-                      <span>{group.currentParticipants} / {group.capacity} Terisi</span>
+                      <span>Visual Kursi (Maks {capacity} Orang):</span>
+                      <span>{currentPax} / {capacity} Terisi</span>
                     </div>
 
                     <div className="grid grid-cols-6 gap-2">
-                      {Array.from({ length: 6 }).map((_, i) => {
-                        const isOccupied = i < group.currentParticipants;
+                      {Array.from({ length: capacity }).map((_, i) => {
+                        const isOccupied = i < currentPax;
                         return (
                           <div
                             key={i}
@@ -257,7 +260,7 @@ export default function AdminOverviewPage() {
                     <div
                       className="h-full bg-gradient-to-r from-[#00a3c4] to-[#00677d] rounded-full transition-all"
                       style={{
-                        width: `${calculateOccupancyPercent(group.currentParticipants, group.capacity)}%`,
+                        width: `${calculateOccupancyPercent(currentPax, capacity)}%`,
                       }}
                     />
                   </div>

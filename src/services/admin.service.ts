@@ -43,6 +43,52 @@ export interface ManualParticipantPayload {
   notes?: string;
 }
 
+export function normalizeBookingGroup(raw: Record<string, unknown>, tripIdFallback?: string): BookingGroup {
+  const id = String(raw.id || "");
+  const tripId = String(raw.tripId || raw.trip_id || tripIdFallback || "");
+  const groupNumber = Number(raw.groupNumber || raw.group_number || 1);
+  const capacity = Number(raw.capacity || raw.maxParticipants || raw.max_participants || 6);
+  const participants = Array.isArray(raw.participants) ? (raw.participants as Participant[]) : [];
+  const currentParticipants =
+    typeof raw.currentParticipants === "number"
+      ? raw.currentParticipants
+      : typeof raw.current_participants === "number"
+      ? raw.current_participants
+      : participants.length;
+  const status = (raw.status as BookingGroup["status"]) || "open";
+  const driverId = raw.driverId || raw.driver_id ? String(raw.driverId || raw.driver_id) : null;
+  const driver = (raw.driver as Driver) || null;
+  const name = typeof raw.name === "string" ? raw.name : undefined;
+  const notes = typeof raw.notes === "string" ? raw.notes : undefined;
+  const pricePerPerson =
+    typeof raw.pricePerPerson === "number"
+      ? raw.pricePerPerson
+      : typeof raw.price_per_person === "number"
+      ? raw.price_per_person
+      : typeof raw.pricePerPax === "number"
+      ? raw.pricePerPax
+      : undefined;
+
+  return {
+    id,
+    tripId,
+    trip: raw.trip as Trip | undefined,
+    groupNumber,
+    capacity,
+    maxParticipants: capacity,
+    currentParticipants,
+    pricePerPerson,
+    status,
+    driverId,
+    driver,
+    name,
+    notes,
+    participants,
+    createdAt: String(raw.createdAt || raw.created_at || new Date().toISOString()),
+    updatedAt: String(raw.updatedAt || raw.updated_at || new Date().toISOString()),
+  };
+}
+
 export function normalizeTrip(raw: Record<string, unknown>): Trip {
   const destinationId = String(raw.destinationId || raw.destination_id || "");
   const departureDate = String(raw.departureDate || raw.departure_date || "");
@@ -77,22 +123,16 @@ export function normalizeTrip(raw: Record<string, unknown>): Trip {
     ? raw.groups
     : [];
 
-  const groups: BookingGroup[] = (rawGroups as Array<Record<string, unknown>>).map((g, idx) => ({
-    id: String(g.id || `grp-${raw.id}-${idx + 1}`),
-    tripId: String(raw.id || ""),
-    groupNumber: Number(g.groupNumber || g.group_number || idx + 1),
-    capacity: Number(g.capacity || g.maxParticipants || g.max_participants || 6),
-    maxParticipants: Number(g.maxParticipants || g.max_participants || g.capacity || 6),
-    currentParticipants: Number(g.currentParticipants || g.current_participants || 0),
-    status: (g.status as BookingGroup["status"]) || "open",
-    driverId: g.driverId || g.driver_id ? String(g.driverId || g.driver_id) : null,
-    driver: (g.driver as Driver) || null,
-    name: typeof g.name === "string" ? g.name : undefined,
-    notes: typeof g.notes === "string" ? g.notes : undefined,
-    participants: Array.isArray(g.participants) ? (g.participants as Participant[]) : [],
-    createdAt: String(g.createdAt || g.created_at || new Date().toISOString()),
-    updatedAt: String(g.updatedAt || g.updated_at || new Date().toISOString()),
-  }));
+  const groups: BookingGroup[] = (rawGroups as Array<Record<string, unknown>>).map((g, idx) =>
+    normalizeBookingGroup(
+      {
+        ...g,
+        id: g.id || `grp-${raw.id}-${idx + 1}`,
+        groupNumber: g.groupNumber || g.group_number || idx + 1,
+      },
+      String(raw.id || "")
+    )
+  );
 
   const destination = raw.destination as Destination | undefined;
   const guide = raw.guide as Trip["guide"];
@@ -637,11 +677,11 @@ export const adminService = {
     search?: string;
   }): Promise<BookingGroup[]> {
     try {
-      const res = await apiClient.get<BookingGroup[]>("/admin/groups", {
+      const res = await apiClient.get<Record<string, unknown>[]>("/admin/groups", {
         params,
       });
       if (res.success && Array.isArray(res.data)) {
-        return res.data;
+        return res.data.map((raw) => normalizeBookingGroup(raw));
       }
     } catch {
       // Empty
@@ -651,9 +691,9 @@ export const adminService = {
 
   async getGroupById(id: string): Promise<BookingGroup | null> {
     try {
-      const res = await apiClient.get<BookingGroup>(`/admin/groups/${id}`);
+      const res = await apiClient.get<Record<string, unknown>>(`/admin/groups/${id}`);
       if (res.success && res.data) {
-        return res.data;
+        return normalizeBookingGroup(res.data);
       }
     } catch {
       // Not found
