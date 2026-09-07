@@ -14,7 +14,6 @@ import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
-import { destinationService } from "@/src/services/destination.service";
 import {
   formatCurrency,
   calculateOccupancyPercent,
@@ -42,18 +41,15 @@ export default function AdminOverviewPage() {
     async function loadAdminData() {
       setIsLoading(true);
       try {
-        const [met, parts, dests] = await Promise.all([
+        const [met, parts, allGroups] = await Promise.all([
           adminService.getMetrics(),
           adminService.getParticipants({ limit: 5 }),
-          destinationService.getAllDestinations(),
+          adminService.getGroups(),
         ]);
         if (isMounted) {
           setMetrics(met);
           setRecentBookings(parts.slice(0, 5));
-          if (dests.length > 0) {
-            const avail = await destinationService.getTripAvailability(dests[0].id);
-            if (isMounted) setGroups(avail);
-          }
+          setGroups(allGroups);
         }
       } catch {
         // Silently handled
