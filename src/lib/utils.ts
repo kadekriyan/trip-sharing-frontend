@@ -222,12 +222,10 @@ export function getImageUrl(path?: string | null, fallback?: string): string {
 
   const clean = path.trim();
 
-  // Blob URLs are in-memory client-side only; during SSR fallback to default image
+  // Blob URLs from local sessions are transient and cannot be loaded across SSR or persistent storage.
+  // Return defaultFallback deterministically on both server and client to prevent React hydration mismatch.
   if (clean.startsWith("blob:")) {
-    if (typeof window === "undefined") {
-      return defaultFallback;
-    }
-    return clean;
+    return defaultFallback;
   }
 
   if (
