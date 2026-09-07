@@ -56,30 +56,6 @@ function LoginFormContent() {
     }
   };
 
-  const handleQuickDemoLogin = async (type: "admin" | "traveler") => {
-    setErrorMsg(null);
-    setIsSubmitting(true);
-    const demoEmail = type === "admin" ? "admin@tripsharing.id" : "budi@example.com";
-    const demoPass = "Password123!";
-
-    setEmail(demoEmail);
-    setPassword(demoPass);
-
-    try {
-      const loggedUser = await login({ email: demoEmail, password: demoPass });
-      if (loggedUser.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push(redirectPath.startsWith("/admin") ? "/bookings" : redirectPath);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Gagal login demo.";
-      setErrorMsg(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -198,35 +174,6 @@ function LoginFormContent() {
               {isSubmitting ? "Memverifikasi..." : `Masuk sebagai ${activeTab === "admin" ? "Staff Admin" : "Traveler"}`}
             </Button>
           </form>
-
-          {/* Quick 1-Click Demo Section */}
-          <div className="pt-4 border-t border-slate-100 space-y-2">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-              Akses Cepat Pengujian (1-Click Demo)
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDemoLogin("admin")}
-                className="text-xs text-[#00677d] border-[#00677d]/30 hover:bg-[#00677d]/5 justify-center gap-1"
-              >
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Demo Admin
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleQuickDemoLogin("traveler")}
-                className="text-xs text-[#ff7f50] border-[#ff7f50]/30 hover:bg-[#ff7f50]/5 justify-center gap-1"
-              >
-                <User className="h-3.5 w-3.5" />
-                Demo Traveler
-              </Button>
-            </div>
-          </div>
         </Card>
 
         {/* Footer Link to Register */}
