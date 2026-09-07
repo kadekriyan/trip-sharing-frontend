@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { PaymentStatus, GroupStatus, Destination } from "@/src/types";
+import type { PaymentStatus, GroupStatus, Destination, TripStatus } from "@/src/types";
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
@@ -158,3 +158,54 @@ export function getPaymentBadge(status: PaymentStatus): { label: string; classNa
       };
   }
 }
+
+export function getTripStatusBadge(status: TripStatus | string): { label: string; className: string } {
+  switch (status) {
+    case "planning":
+      return {
+        label: "Perencanaan",
+        className: "bg-slate-100 text-slate-700 border-slate-300",
+      };
+    case "published":
+      return {
+        label: "Dipublikasikan",
+        className: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      };
+    case "scheduled":
+      return {
+        label: "Terjadwal",
+        className: "bg-sky-50 text-sky-700 border-sky-200",
+      };
+    case "active":
+      return {
+        label: "Aktif",
+        className: "bg-teal-50 text-teal-700 border-teal-200",
+      };
+    case "ongoing":
+      return {
+        label: "Sedang Berjalan",
+        className: "bg-amber-50 text-amber-700 border-amber-200",
+      };
+    case "departed":
+      return {
+        label: "Berangkat",
+        className: "bg-violet-50 text-violet-700 border-violet-200",
+      };
+    case "completed":
+      return {
+        label: "Selesai",
+        className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      };
+    case "cancelled":
+      return {
+        label: "Dibatalkan",
+        className: "bg-rose-50 text-rose-700 border-rose-200",
+      };
+    default:
+      return {
+        label: status,
+        className: "bg-slate-100 text-slate-700 border-slate-300",
+      };
+  }
+}
+

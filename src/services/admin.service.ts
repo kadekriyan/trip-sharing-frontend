@@ -43,6 +43,89 @@ export interface ManualParticipantPayload {
   notes?: string;
 }
 
+export function normalizeTrip(raw: Record<string, unknown>): Trip {
+  const destinationId = String(raw.destinationId || raw.destination_id || "");
+  const departureDate = String(raw.departureDate || raw.departure_date || "");
+  const returnDate = String(raw.returnDate || raw.return_date || "");
+  const maxParticipants =
+    typeof raw.maxParticipants === "number"
+      ? raw.maxParticipants
+      : typeof raw.max_participants === "number"
+      ? raw.max_participants
+      : 6;
+  const currentParticipants =
+    typeof raw.currentParticipants === "number"
+      ? raw.currentParticipants
+      : typeof raw.current_participants === "number"
+      ? raw.current_participants
+      : 0;
+  const pricePerPax =
+    typeof raw.pricePerPax === "number"
+      ? raw.pricePerPax
+      : typeof raw.price_per_pax === "number"
+      ? raw.price_per_pax
+      : typeof raw.price === "number"
+      ? raw.price
+      : 850000;
+  const guideId = (raw.guideId || raw.guide_id) ? String(raw.guideId || raw.guide_id) : null;
+  const status = (raw.status as Trip["status"]) || "planning";
+  const notes = typeof raw.notes === "string" ? raw.notes : undefined;
+
+  const rawGroups = Array.isArray(raw.booking_groups)
+    ? raw.booking_groups
+    : Array.isArray(raw.groups)
+    ? raw.groups
+    : [];
+
+  const groups: BookingGroup[] = (rawGroups as Array<Record<string, unknown>>).map((g, idx) => ({
+    id: String(g.id || `grp-${raw.id}-${idx + 1}`),
+    tripId: String(raw.id || ""),
+    groupNumber: Number(g.groupNumber || g.group_number || idx + 1),
+    capacity: Number(g.capacity || g.maxParticipants || g.max_participants || 6),
+    maxParticipants: Number(g.maxParticipants || g.max_participants || g.capacity || 6),
+    currentParticipants: Number(g.currentParticipants || g.current_participants || 0),
+    status: (g.status as BookingGroup["status"]) || "open",
+    driverId: g.driverId || g.driver_id ? String(g.driverId || g.driver_id) : null,
+    driver: (g.driver as Driver) || null,
+    name: typeof g.name === "string" ? g.name : undefined,
+    notes: typeof g.notes === "string" ? g.notes : undefined,
+    participants: Array.isArray(g.participants) ? (g.participants as Participant[]) : [],
+    createdAt: String(g.createdAt || g.created_at || new Date().toISOString()),
+    updatedAt: String(g.updatedAt || g.updated_at || new Date().toISOString()),
+  }));
+
+  const destination = raw.destination as Destination | undefined;
+  const guide = raw.guide as Trip["guide"];
+
+  return {
+    id: String(raw.id || ""),
+    destinationId,
+    destination_id: destinationId,
+    destination,
+    departureDate,
+    departure_date: departureDate,
+    returnDate,
+    return_date: returnDate,
+    pricePerPax,
+    maxParticipants,
+    max_participants: maxParticipants,
+    currentParticipants,
+    current_participants: currentParticipants,
+    maxGroups: typeof raw.maxGroups === "number" ? raw.maxGroups : Math.max(1, Math.ceil(maxParticipants / 6)),
+    guideId,
+    guide_id: guideId,
+    guide,
+    status,
+    notes,
+    groups,
+    booking_groups: groups,
+    createdAt: String(raw.createdAt || raw.created_at || new Date().toISOString()),
+    created_at: String(raw.createdAt || raw.created_at || new Date().toISOString()),
+    updatedAt: String(raw.updatedAt || raw.updated_at || new Date().toISOString()),
+    updated_at: String(raw.updatedAt || raw.updated_at || new Date().toISOString()),
+  };
+}
+
 export const adminService = {
   async getMetrics(): Promise<AdminMetrics> {
     try {
@@ -324,12 +407,23 @@ export const adminService = {
     return { success: true, message: "Status pembayaran berhasil diperbarui" };
   },
 
-  async getTrips(params?: { destinationId?: string; status?: string; search?: string }): Promise<Trip[]> {
+  async getTrips(params?: {
+    destinationId?: string;
+    destination_id?: string;
+    status?: string;
+    search?: string;
+  }): Promise<Trip[]> {
     let apiTrips: Trip[] = [];
+    const queryParams = {
+      ...params,
+      destination_id: params?.destination_id || params?.destinationId,
+      destinationId: params?.destinationId || params?.destination_id,
+    };
+
     try {
-      const res = await apiClient.get<Trip[]>("/admin/trips", { params });
+      const res = await apiClient.get<Record<string, unknown>[]>("/admin/trips", { params: queryParams });
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        apiTrips = res.data;
+        apiTrips = res.data.map((raw) => normalizeTrip(raw));
       }
     } catch {
       // Try public /trips
@@ -337,9 +431,9 @@ export const adminService = {
 
     if (apiTrips.length === 0) {
       try {
-        const pubRes = await apiClient.get<Trip[]>("/trips", { params });
+        const pubRes = await apiClient.get<Record<string, unknown>[]>("/trips", { params: queryParams });
         if (pubRes.success && Array.isArray(pubRes.data) && pubRes.data.length > 0) {
-          apiTrips = pubRes.data;
+          apiTrips = pubRes.data.map((raw) => normalizeTrip(raw));
         }
       } catch {
         // Fallback to MOCK_TRIPS
@@ -347,10 +441,11 @@ export const adminService = {
     }
 
     let localFiltered = [...MOCK_TRIPS];
-    if (params?.destinationId) {
-      localFiltered = localFiltered.filter((t) => t.destinationId === params.destinationId);
+    const targetDestId = params?.destinationId || params?.destination_id;
+    if (targetDestId) {
+      localFiltered = localFiltered.filter((t) => t.destinationId === targetDestId || t.destination_id === targetDestId);
     }
-    if (params?.status) {
+    if (params?.status && params.status !== "all") {
       localFiltered = localFiltered.filter((t) => t.status === params.status);
     }
     if (params?.search) {
@@ -358,8 +453,10 @@ export const adminService = {
       localFiltered = localFiltered.filter(
         (t) =>
           t.id.toLowerCase().includes(q) ||
-          t.destination?.title.toLowerCase().includes(q) ||
-          t.destination?.location.toLowerCase().includes(q)
+          t.destination?.title?.toLowerCase().includes(q) ||
+          t.destination?.name?.toLowerCase().includes(q) ||
+          t.destination?.location?.toLowerCase().includes(q) ||
+          t.notes?.toLowerCase().includes(q)
       );
     }
 
@@ -394,6 +491,7 @@ export const adminService = {
           const fetchedGroups = groupsByTrip.get(trip.id);
           if (fetchedGroups && fetchedGroups.length > 0) {
             trip.groups = fetchedGroups;
+            trip.booking_groups = fetchedGroups;
           }
         }
       }
@@ -420,16 +518,16 @@ export const adminService = {
   async getTripById(tripId: string): Promise<Trip | null> {
     let trip: Trip | null = null;
     try {
-      const res = await apiClient.get<Trip>(`/admin/trips/${tripId}`);
-      if (res.success && res.data) trip = res.data;
+      const res = await apiClient.get<Record<string, unknown>>(`/admin/trips/${tripId}`);
+      if (res.success && res.data) trip = normalizeTrip(res.data);
     } catch {
       // Try /trips/:id
     }
 
     if (!trip) {
       try {
-        const pubRes = await apiClient.get<Trip>(`/trips/${tripId}`);
-        if (pubRes.success && pubRes.data) trip = pubRes.data;
+        const pubRes = await apiClient.get<Record<string, unknown>>(`/trips/${tripId}`);
+        if (pubRes.success && pubRes.data) trip = normalizeTrip(pubRes.data);
       } catch {
         // Fallback to MOCK_TRIPS
       }
@@ -444,6 +542,7 @@ export const adminService = {
         const groups = await this.getGroups({ tripId });
         if (groups && groups.length > 0) {
           trip.groups = groups;
+          trip.booking_groups = groups;
         }
       } catch {
         // Ignore
@@ -454,16 +553,39 @@ export const adminService = {
   },
 
   async createTrip(payload: CreateTripPayload): Promise<Trip> {
+    const destId = payload.destinationId || payload.destination_id || "";
+    const departDate = payload.departureDate || payload.departure_date || "";
+    const retDate = payload.returnDate || payload.return_date || "";
+    const maxPax = payload.maxParticipants || payload.max_participants || (payload.maxGroups ? payload.maxGroups * 6 : 6);
+    const gId = payload.guideId !== undefined ? payload.guideId : payload.guide_id;
+
+    const requestBody = {
+      destinationId: destId,
+      destination_id: destId,
+      departureDate: departDate,
+      departure_date: departDate,
+      returnDate: retDate,
+      return_date: retDate,
+      maxParticipants: maxPax,
+      max_participants: maxPax,
+      guideId: gId,
+      guide_id: gId,
+      status: payload.status || "planning",
+      notes: payload.notes || "",
+      pricePerPax: payload.pricePerPax,
+      maxGroups: payload.maxGroups || Math.ceil(maxPax / 6) || 2,
+    };
+
     try {
-      const res = await apiClient.post<Trip>("/admin/trips", payload);
+      const res = await apiClient.post<Record<string, unknown>>("/admin/trips", requestBody);
       if (res.success && res.data) {
-        return res.data;
+        return normalizeTrip(res.data);
       }
     } catch {
       // Fallback: Create mock trip and append to MOCK_TRIPS
     }
 
-    const matchedDest = MOCK_DESTINATIONS.find((d) => d.id === payload.destinationId) || MOCK_DESTINATIONS[0];
+    const matchedDest = MOCK_DESTINATIONS.find((d) => d.id === destId) || MOCK_DESTINATIONS[0];
     const initialDriver = payload.initialDriverId
       ? MOCK_DRIVERS.find((drv) => drv.id === payload.initialDriverId) || MOCK_DRIVERS[0]
       : MOCK_DRIVERS[0];
@@ -471,13 +593,23 @@ export const adminService = {
     const newTripId = `trip-${Date.now()}`;
     const newTrip: Trip = {
       id: newTripId,
-      destinationId: payload.destinationId,
+      destinationId: destId,
+      destination_id: destId,
       destination: matchedDest,
-      departureDate: payload.departureDate,
-      returnDate: payload.returnDate,
-      pricePerPax: payload.pricePerPax,
-      maxGroups: payload.maxGroups || 2,
-      status: "scheduled",
+      departureDate: departDate,
+      departure_date: departDate,
+      returnDate: retDate,
+      return_date: retDate,
+      pricePerPax: payload.pricePerPax || matchedDest.pricePerPax || 850000,
+      maxGroups: payload.maxGroups || Math.ceil(maxPax / 6) || 2,
+      maxParticipants: maxPax,
+      max_participants: maxPax,
+      currentParticipants: 0,
+      current_participants: 0,
+      guideId: gId || null,
+      guide_id: gId || null,
+      status: payload.status || "planning",
+      notes: payload.notes || "Meeting point siap",
       groups: [
         {
           id: `grp-${Date.now()}-1`,
@@ -502,13 +634,55 @@ export const adminService = {
   },
 
   async updateTrip(id: string, payload: UpdateTripPayload): Promise<Trip> {
+    const destId = payload.destinationId || payload.destination_id;
+    const departDate = payload.departureDate || payload.departure_date;
+    const retDate = payload.returnDate || payload.return_date;
+    const maxPax = payload.maxParticipants || payload.max_participants;
+    const gId = payload.guideId !== undefined ? payload.guideId : payload.guide_id;
+
+    const requestBody: Record<string, unknown> = {
+      status: payload.status,
+      notes: payload.notes,
+      pricePerPax: payload.pricePerPax,
+      maxGroups: payload.maxGroups,
+    };
+
+    if (destId) {
+      requestBody.destinationId = destId;
+      requestBody.destination_id = destId;
+    }
+    if (departDate) {
+      requestBody.departureDate = departDate;
+      requestBody.departure_date = departDate;
+    }
+    if (retDate) {
+      requestBody.returnDate = retDate;
+      requestBody.return_date = retDate;
+    }
+    if (maxPax !== undefined) {
+      requestBody.maxParticipants = maxPax;
+      requestBody.max_participants = maxPax;
+    }
+    if (gId !== undefined) {
+      requestBody.guideId = gId;
+      requestBody.guide_id = gId;
+    }
+
     try {
-      const res = await apiClient.patch<Trip>(`/admin/trips/${id}`, payload);
+      const res = await apiClient.patch<Record<string, unknown>>(`/admin/trips/${id}`, requestBody);
       if (res.success && res.data) {
-        return res.data;
+        return normalizeTrip(res.data);
       }
     } catch {
-      // Fallback
+      // Fallback to PUT
+      try {
+        const putRes = await apiClient.put<Record<string, unknown>>(`/admin/trips/${id}`, requestBody);
+        if (putRes.success && putRes.data) {
+          return normalizeTrip(putRes.data);
+        }
+      } catch {
+        // Fallback to mock
+      }
     }
 
     const index = MOCK_TRIPS.findIndex((t) => t.id === id);
@@ -530,8 +704,9 @@ export const adminService = {
       if (res.success) {
         return { success: true, message: res.message || "Jadwal trip berhasil dihapus" };
       }
-    } catch {
-      // Fallback
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal trip.";
+      throw new Error(msg);
     }
 
     const index = MOCK_TRIPS.findIndex((t) => t.id === id);

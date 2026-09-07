@@ -42,8 +42,9 @@ import {
   calculateOccupancyPercent,
   getDestinationTitle,
   getPaymentBadge,
+  getTripStatusBadge,
 } from "@/src/lib/utils";
-import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload } from "@/src/types";
+import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload, TripStatus } from "@/src/types";
 
 export default function AdminTripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -63,8 +64,10 @@ export default function AdminTripsPage() {
   const [formDepartureDate, setFormDepartureDate] = useState("");
   const [formReturnDate, setFormReturnDate] = useState("");
   const [formPricePerPax, setFormPricePerPax] = useState<number>(0);
+  const [formMaxParticipants, setFormMaxParticipants] = useState<number>(6);
   const [formMaxGroups, setFormMaxGroups] = useState<number>(2);
   const [formDriverId, setFormDriverId] = useState("");
+  const [formStatus, setFormStatus] = useState<TripStatus>("planning");
   const [formNotes, setFormNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -72,11 +75,13 @@ export default function AdminTripsPage() {
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
-  const [editStatus, setEditStatus] = useState<"scheduled" | "ongoing" | "completed" | "cancelled">("scheduled");
+  const [editStatus, setEditStatus] = useState<TripStatus>("scheduled");
   const [editPricePerPax, setEditPricePerPax] = useState<number>(0);
   const [editDepartureDate, setEditDepartureDate] = useState("");
   const [editReturnDate, setEditReturnDate] = useState("");
+  const [editMaxParticipants, setEditMaxParticipants] = useState<number>(6);
   const [editMaxGroups, setEditMaxGroups] = useState<number>(2);
+  const [editNotes, setEditNotes] = useState("");
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -169,8 +174,10 @@ export default function AdminTripsPage() {
 
     setFormDepartureDate(formatLocal(depart));
     setFormReturnDate(formatLocal(ret));
+    setFormMaxParticipants(6);
     setFormMaxGroups(2);
     setFormDriverId(drivers[0]?.id || "");
+    setFormStatus("planning");
     setFormNotes("");
     setIsCreateModalOpen(true);
   };
@@ -206,11 +213,17 @@ export default function AdminTripsPage() {
     try {
       const payload: CreateTripPayload = {
         destinationId: formDestinationId,
+        destination_id: formDestinationId,
         departureDate: departDateObj.toISOString(),
+        departure_date: departDateObj.toISOString(),
         returnDate: returnDateObj.toISOString(),
+        return_date: returnDateObj.toISOString(),
         pricePerPax: Number(formPricePerPax) || 850000,
-        maxGroups: Number(formMaxGroups) || 2,
+        maxParticipants: Number(formMaxParticipants) || 6,
+        max_participants: Number(formMaxParticipants) || 6,
+        maxGroups: Number(formMaxGroups) || Math.ceil((Number(formMaxParticipants) || 6) / 6),
         initialDriverId: formDriverId || undefined,
+        status: formStatus,
         notes: formNotes || undefined,
       };
 
@@ -241,7 +254,13 @@ export default function AdminTripsPage() {
     setEditReturnDate(
       trip.returnDate ? formatLocal(new Date(trip.returnDate)) : ""
     );
-    setEditMaxGroups(trip.maxGroups || 2);
+    setEditMaxParticipants(
+      trip.maxParticipants ||
+        trip.max_participants ||
+        (trip.groups?.length ? trip.groups.length * 6 : 6)
+    );
+    setEditMaxGroups(trip.maxGroups || (trip.groups?.length ? trip.groups.length : 2));
+    setEditNotes(trip.notes || "");
     setIsEditModalOpen(true);
   };
 
@@ -253,7 +272,7 @@ export default function AdminTripsPage() {
     if (editDepartureDate) {
       const editDepartObj = new Date(editDepartureDate);
       const now = new Date(Date.now() - 60000);
-      if (editDepartObj < now && editingTrip.status === "scheduled") {
+      if (editDepartObj < now && (editingTrip.status === "scheduled" || editingTrip.status === "planning")) {
         setFeedback({ type: "error", message: "Tanggal berangkat tidak boleh di masa lampau." });
         return;
       }
@@ -272,8 +291,13 @@ export default function AdminTripsPage() {
         status: editStatus,
         pricePerPax: Number(editPricePerPax),
         departureDate: editDepartureDate ? new Date(editDepartureDate).toISOString() : undefined,
+        departure_date: editDepartureDate ? new Date(editDepartureDate).toISOString() : undefined,
         returnDate: editReturnDate ? new Date(editReturnDate).toISOString() : undefined,
+        return_date: editReturnDate ? new Date(editReturnDate).toISOString() : undefined,
+        maxParticipants: Number(editMaxParticipants),
+        max_participants: Number(editMaxParticipants),
         maxGroups: Number(editMaxGroups),
+        notes: editNotes,
       };
 
       await adminService.updateTrip(editingTrip.id, payload);
@@ -314,10 +338,11 @@ export default function AdminTripsPage() {
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const title = (t.destination?.title || "").toLowerCase();
+      const title = (t.destination?.title || t.destination?.name || "").toLowerCase();
       const loc = (t.destination?.location || "").toLowerCase();
       const id = t.id.toLowerCase();
-      if (!title.includes(q) && !loc.includes(q) && !id.includes(q)) {
+      const notes = (t.notes || "").toLowerCase();
+      if (!title.includes(q) && !loc.includes(q) && !id.includes(q) && !notes.includes(q)) {
         return false;
       }
     }
@@ -325,32 +350,34 @@ export default function AdminTripsPage() {
   });
 
   // Analytics Metrics
-  const totalScheduled = trips.filter((t) => t.status === "scheduled").length;
-  const totalOngoing = trips.filter((t) => t.status === "ongoing").length;
+  const totalScheduled = trips.filter((t) => ["scheduled", "planning", "published", "active"].includes(t.status)).length;
+  const totalOngoing = trips.filter((t) => ["ongoing", "departed"].includes(t.status)).length;
   const totalArmadaCount = trips.reduce((acc, t) => acc + (t.groups?.length || 0), 0);
   const totalParticipantsAll = trips.reduce(
     (acc, t) =>
       acc +
-      (t.groups?.reduce((gAcc, g) => gAcc + (g.currentParticipants || 0), 0) || 0),
+      (t.currentParticipants ||
+        t.groups?.reduce((gAcc, g) => gAcc + (g.currentParticipants || 0), 0) ||
+        0),
     0
   );
-  const totalCapacityAll = totalArmadaCount * 6;
+  const totalCapacityAll = trips.reduce(
+    (acc, t) =>
+      acc + (t.maxParticipants || t.max_participants || (t.groups?.length || 1) * 6),
+    0
+  );
   const avgOccupancy =
     totalCapacityAll > 0 ? Math.round((totalParticipantsAll / totalCapacityAll) * 100) : 0;
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "scheduled":
-        return <Badge variant="secondary" className="bg-sky-100 text-sky-800 border-sky-200">Terjadwal</Badge>;
-      case "ongoing":
-        return <Badge variant="coral" className="bg-amber-100 text-amber-900 border-amber-200">Sedang Jalan</Badge>;
-      case "completed":
-        return <Badge variant="success" className="bg-emerald-100 text-emerald-800 border-emerald-200">Selesai</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">Dibatalkan</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+  const getStatusBadge = (status: TripStatus | string) => {
+    const badgeInfo = getTripStatusBadge(status);
+    return (
+      <span
+        className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${badgeInfo.className}`}
+      >
+        {badgeInfo.label}
+      </span>
+    );
   };
 
   return (
@@ -493,10 +520,14 @@ export default function AdminTripsPage() {
               className="h-9 rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-semibold text-slate-800 focus:outline-none"
             >
               <option value="all">Semua Status</option>
-              <option value="scheduled">Terjadwal</option>
-              <option value="ongoing">Sedang Jalan</option>
-              <option value="completed">Selesai</option>
-              <option value="cancelled">Dibatalkan</option>
+              <option value="planning">Perencanaan (Planning)</option>
+              <option value="published">Dipublikasikan (Published)</option>
+              <option value="scheduled">Terjadwal (Scheduled)</option>
+              <option value="active">Aktif (Active)</option>
+              <option value="ongoing">Sedang Berjalan (Ongoing)</option>
+              <option value="departed">Berangkat (Departed)</option>
+              <option value="completed">Selesai (Completed)</option>
+              <option value="cancelled">Dibatalkan (Cancelled)</option>
             </select>
           </div>
         </div>
@@ -660,6 +691,27 @@ export default function AdminTripsPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Notes and Guide Display if available */}
+                {(trip.notes || trip.guide) && (
+                  <div className="flex flex-wrap items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/60 text-xs">
+                    {trip.notes && (
+                      <div className="text-slate-600">
+                        <span className="font-bold text-slate-700">Catatan:</span> {trip.notes}
+                      </div>
+                    )}
+                    {trip.notes && trip.guide && <span className="text-slate-300">•</span>}
+                    {trip.guide && (
+                      <div className="text-slate-600 flex items-center gap-1.5">
+                        <span className="font-bold text-slate-700">Pemandu:</span>
+                        <span className="font-semibold text-[#00677d]">{trip.guide.name}</span>
+                        {trip.guide.phone && (
+                          <span className="text-slate-400 font-mono text-[11px]">({trip.guide.phone})</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Sub-group / Armada List */}
                 {Array.isArray(trip.groups) && trip.groups.length > 0 && (
@@ -907,6 +959,45 @@ export default function AdminTripsPage() {
               </div>
             </div>
 
+            {/* Status & Max Participants */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label htmlFor="create-status-select" className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                  Status Awal *
+                </label>
+                <select
+                  id="create-status-select"
+                  value={formStatus}
+                  onChange={(e) => setFormStatus(e.target.value as TripStatus)}
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
+                >
+                  <option value="planning">Perencanaan (Planning)</option>
+                  <option value="published">Dipublikasikan (Published)</option>
+                  <option value="scheduled">Terjadwal (Scheduled)</option>
+                  <option value="active">Aktif (Active)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                  Kapasitas Total Peserta (Pax) *
+                </label>
+                <Input
+                  required
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={formMaxParticipants}
+                  onChange={(e) => {
+                    const p = Number(e.target.value);
+                    setFormMaxParticipants(p);
+                    setFormMaxGroups(Math.max(1, Math.ceil(p / 6)));
+                  }}
+                  className="text-xs bg-slate-50 border-slate-200 font-bold"
+                />
+              </div>
+            </div>
+
             {/* Price & Max Groups */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -932,7 +1023,7 @@ export default function AdminTripsPage() {
                   required
                   type="number"
                   min="1"
-                  max="10"
+                  max="20"
                   value={formMaxGroups}
                   onChange={(e) => setFormMaxGroups(Number(e.target.value))}
                   className="text-xs bg-slate-50 border-slate-200"
@@ -963,10 +1054,10 @@ export default function AdminTripsPage() {
             {/* Notes */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                Catatan Operasional (Opsional)
+                Catatan Operasional / Meeting Point (Opsional)
               </label>
               <Input
-                placeholder="Misal: Trip spesial libur nasional, standby di pintu barat..."
+                placeholder="Misal: Meeting point di Stasiun Karangasem, standby jam 06:00..."
                 value={formNotes}
                 onChange={(e) => setFormNotes(e.target.value)}
                 className="text-xs bg-slate-50 border-slate-200"
@@ -1011,29 +1102,53 @@ export default function AdminTripsPage() {
                 id="modal-status-select"
                 value={editStatus}
                 onChange={(e) =>
-                  setEditStatus(e.target.value as "scheduled" | "ongoing" | "completed" | "cancelled")
+                  setEditStatus(e.target.value as TripStatus)
                 }
                 className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
               >
+                <option value="planning">Perencanaan (Planning)</option>
+                <option value="published">Dipublikasikan (Published)</option>
                 <option value="scheduled">Terjadwal (Scheduled)</option>
+                <option value="active">Aktif (Active)</option>
                 <option value="ongoing">Sedang Berjalan (Ongoing)</option>
+                <option value="departed">Berangkat (Departed)</option>
                 <option value="completed">Selesai (Completed)</option>
                 <option value="cancelled">Dibatalkan (Cancelled)</option>
               </select>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                Tarif Per Pax (IDR)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                step="10000"
-                value={editPricePerPax}
-                onChange={(e) => setEditPricePerPax(Number(e.target.value))}
-                className="text-xs bg-slate-50 border-slate-200 font-bold"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                  Kapasitas Peserta (Pax)
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={editMaxParticipants}
+                  onChange={(e) => {
+                    const p = Number(e.target.value);
+                    setEditMaxParticipants(p);
+                    setEditMaxGroups(Math.max(1, Math.ceil(p / 6)));
+                  }}
+                  className="text-xs bg-slate-50 border-slate-200 font-bold"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                  Tarif Per Pax (IDR)
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="10000"
+                  value={editPricePerPax}
+                  onChange={(e) => setEditPricePerPax(Number(e.target.value))}
+                  className="text-xs bg-slate-50 border-slate-200 font-bold"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1069,6 +1184,18 @@ export default function AdminTripsPage() {
                   className="text-xs bg-slate-50 border-slate-200"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+                Catatan Operasional / Meeting Point
+              </label>
+              <Input
+                placeholder="Misal: Jadwal telah dikonfirmasi pemandu..."
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                className="text-xs bg-slate-50 border-slate-200"
+              />
             </div>
 
             <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">

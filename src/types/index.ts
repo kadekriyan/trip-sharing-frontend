@@ -67,19 +67,50 @@ export interface BookingGroup {
   updatedAt: string;
 }
 
+export type TripStatus =
+  | "planning"
+  | "published"
+  | "scheduled"
+  | "active"
+  | "ongoing"
+  | "departed"
+  | "completed"
+  | "cancelled";
+
+export interface TripGuide {
+  id: string;
+  name: string;
+  phone?: string;
+  phoneNumber?: string;
+}
+
 export interface Trip {
   id: string;
   destinationId: string;
+  destination_id?: string;
   destination?: Destination;
   departureDate: string;
+  departure_date?: string;
   returnDate: string;
+  return_date?: string;
   pricePerPax: number;
-  maxGroups: number;
-  status: "scheduled" | "ongoing" | "completed" | "cancelled";
+  maxGroups?: number;
+  maxParticipants?: number;
+  max_participants?: number;
+  currentParticipants?: number;
+  current_participants?: number;
+  guideId?: string | null;
+  guide_id?: string | null;
+  guide?: TripGuide | Driver | null;
+  status: TripStatus;
+  notes?: string;
   groups: BookingGroup[];
+  booking_groups?: BookingGroup[];
   participants?: Participant[];
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
 }
 
 export interface Participant {
@@ -253,20 +284,37 @@ export interface CreateBookingPayload {
 
 export interface CreateTripPayload {
   destinationId: string;
+  destination_id?: string;
   departureDate: string;
+  departure_date?: string;
   returnDate: string;
-  pricePerPax: number;
+  return_date?: string;
+  maxParticipants?: number;
+  max_participants?: number;
+  guideId?: string | null;
+  guide_id?: string | null;
+  pricePerPax?: number;
   maxGroups?: number;
   initialDriverId?: string;
+  status?: TripStatus;
   notes?: string;
 }
 
 export interface UpdateTripPayload {
+  destinationId?: string;
+  destination_id?: string;
   departureDate?: string;
+  departure_date?: string;
   returnDate?: string;
+  return_date?: string;
   pricePerPax?: number;
   maxGroups?: number;
-  status?: "scheduled" | "ongoing" | "completed" | "cancelled";
+  maxParticipants?: number;
+  max_participants?: number;
+  guideId?: string | null;
+  guide_id?: string | null;
+  status?: TripStatus;
+  notes?: string;
 }
 
 export interface MoveParticipantPayload {
