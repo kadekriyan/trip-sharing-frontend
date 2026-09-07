@@ -14,7 +14,7 @@ import type {
   CreateBookingGroupPayload,
   UpdateBookingGroupPayload,
 } from "@/src/types";
-import { MOCK_TRIPS, MOCK_DESTINATIONS, MOCK_DRIVERS, MOCK_PARTICIPANTS } from "@/src/services/mockData";
+import { MOCK_DESTINATIONS, MOCK_DRIVERS, MOCK_PARTICIPANTS } from "@/src/services/mockData";
 
 
 export interface ManualParticipantPayload {
@@ -422,35 +422,24 @@ export const adminService = {
 
     try {
       const res = await apiClient.get<Record<string, unknown>[]>("/admin/trips", { params: queryParams });
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         apiTrips = res.data.map((raw) => normalizeTrip(raw));
       }
     } catch {
       // Try public /trips
-    }
-
-    if (apiTrips.length === 0) {
       try {
         const pubRes = await apiClient.get<Record<string, unknown>[]>("/trips", { params: queryParams });
-        if (pubRes.success && Array.isArray(pubRes.data) && pubRes.data.length > 0) {
+        if (pubRes.success && Array.isArray(pubRes.data)) {
           apiTrips = pubRes.data.map((raw) => normalizeTrip(raw));
         }
       } catch {
-        // Fallback to MOCK_TRIPS
+        // Return empty array
       }
     }
 
-    let localFiltered = [...MOCK_TRIPS];
-    const targetDestId = params?.destinationId || params?.destination_id;
-    if (targetDestId) {
-      localFiltered = localFiltered.filter((t) => t.destinationId === targetDestId || t.destination_id === targetDestId);
-    }
-    if (params?.status && params.status !== "all") {
-      localFiltered = localFiltered.filter((t) => t.status === params.status);
-    }
-    if (params?.search) {
+    if (params?.search && apiTrips.length > 0) {
       const q = params.search.toLowerCase();
-      localFiltered = localFiltered.filter(
+      apiTrips = apiTrips.filter(
         (t) =>
           t.id.toLowerCase().includes(q) ||
           t.destination?.title?.toLowerCase().includes(q) ||
@@ -460,59 +449,35 @@ export const adminService = {
       );
     }
 
-    let merged: Trip[] = [];
-    if (apiTrips.length === 0) {
-      merged = localFiltered;
-    } else {
-      const apiIds = new Set(apiTrips.map((t) => t.id));
-      merged = [...apiTrips];
-      for (const lt of localFiltered) {
-        if (!apiIds.has(lt.id)) {
-          merged.unshift(lt);
-        }
-      }
-    }
-
     // Enrich trips with groups from /admin/groups if groups are missing or empty
-    try {
-      const groupsRes = await apiClient.get<BookingGroup[]>("/admin/groups");
-      if (groupsRes.success && Array.isArray(groupsRes.data)) {
-        const groupsByTrip = new Map<string, BookingGroup[]>();
-        for (const g of groupsRes.data) {
-          const tId = g.tripId || g.trip?.id;
-          if (tId) {
-            if (!groupsByTrip.has(tId)) {
-              groupsByTrip.set(tId, []);
+    if (apiTrips.length > 0) {
+      try {
+        const groupsRes = await apiClient.get<BookingGroup[]>("/admin/groups");
+        if (groupsRes.success && Array.isArray(groupsRes.data)) {
+          const groupsByTrip = new Map<string, BookingGroup[]>();
+          for (const g of groupsRes.data) {
+            const tId = g.tripId || g.trip?.id;
+            if (tId) {
+              if (!groupsByTrip.has(tId)) {
+                groupsByTrip.set(tId, []);
+              }
+              groupsByTrip.get(tId)!.push(g);
             }
-            groupsByTrip.get(tId)!.push(g);
+          }
+          for (const trip of apiTrips) {
+            const fetchedGroups = groupsByTrip.get(trip.id);
+            if (fetchedGroups && fetchedGroups.length > 0) {
+              trip.groups = fetchedGroups;
+              trip.booking_groups = fetchedGroups;
+            }
           }
         }
-        for (const trip of merged) {
-          const fetchedGroups = groupsByTrip.get(trip.id);
-          if (fetchedGroups && fetchedGroups.length > 0) {
-            trip.groups = fetchedGroups;
-            trip.booking_groups = fetchedGroups;
-          }
-        }
-      }
-    } catch {
-      // Continue silently
-    }
-
-    // Populate participants into trips and groups
-    for (const trip of merged) {
-      const tripParts = MOCK_PARTICIPANTS.filter((p) => p.tripId === trip.id);
-      trip.participants = tripParts;
-      if (Array.isArray(trip.groups)) {
-        for (const group of trip.groups) {
-          const groupParts = tripParts.filter((p) => p.bookingGroupId === group.id);
-          group.participants = groupParts;
-          group.currentParticipants = Math.max(group.currentParticipants || 0, groupParts.length);
-        }
+      } catch {
+        // Continue silently
       }
     }
 
-    return merged;
+    return apiTrips;
   },
 
   async getTripById(tripId: string): Promise<Trip | null> {
@@ -529,12 +494,8 @@ export const adminService = {
         const pubRes = await apiClient.get<Record<string, unknown>>(`/trips/${tripId}`);
         if (pubRes.success && pubRes.data) trip = normalizeTrip(pubRes.data);
       } catch {
-        // Fallback to MOCK_TRIPS
+        // Return null
       }
-    }
-
-    if (!trip) {
-      trip = MOCK_TRIPS.find((t) => t.id === tripId) || null;
     }
 
     if (trip && (!trip.groups || trip.groups.length === 0)) {
@@ -576,61 +537,12 @@ export const adminService = {
       maxGroups: payload.maxGroups || Math.ceil(maxPax / 6) || 2,
     };
 
-    try {
-      const res = await apiClient.post<Record<string, unknown>>("/admin/trips", requestBody);
-      if (res.success && res.data) {
-        return normalizeTrip(res.data);
-      }
-    } catch {
-      // Fallback: Create mock trip and append to MOCK_TRIPS
+    const res = await apiClient.post<Record<string, unknown>>("/admin/trips", requestBody);
+    if (res.success && res.data) {
+      return normalizeTrip(res.data);
     }
 
-    const matchedDest = MOCK_DESTINATIONS.find((d) => d.id === destId) || MOCK_DESTINATIONS[0];
-    const initialDriver = payload.initialDriverId
-      ? MOCK_DRIVERS.find((drv) => drv.id === payload.initialDriverId) || MOCK_DRIVERS[0]
-      : MOCK_DRIVERS[0];
-
-    const newTripId = `trip-${Date.now()}`;
-    const newTrip: Trip = {
-      id: newTripId,
-      destinationId: destId,
-      destination_id: destId,
-      destination: matchedDest,
-      departureDate: departDate,
-      departure_date: departDate,
-      returnDate: retDate,
-      return_date: retDate,
-      pricePerPax: payload.pricePerPax || matchedDest.pricePerPax || 850000,
-      maxGroups: payload.maxGroups || Math.ceil(maxPax / 6) || 2,
-      maxParticipants: maxPax,
-      max_participants: maxPax,
-      currentParticipants: 0,
-      current_participants: 0,
-      guideId: gId || null,
-      guide_id: gId || null,
-      status: payload.status || "planning",
-      notes: payload.notes || "Meeting point siap",
-      groups: [
-        {
-          id: `grp-${Date.now()}-1`,
-          tripId: newTripId,
-          groupNumber: 1,
-          capacity: 6,
-          currentParticipants: 0,
-          status: "open",
-          driverId: initialDriver.id,
-          driver: initialDriver,
-          notes: payload.notes || "Grup 1 - Siap Berangkat",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    MOCK_TRIPS.unshift(newTrip);
-    return newTrip;
+    throw new Error(res.message || "Gagal membuat jadwal trip baru.");
   },
 
   async updateTrip(id: string, payload: UpdateTripPayload): Promise<Trip> {
@@ -674,48 +586,21 @@ export const adminService = {
         return normalizeTrip(res.data);
       }
     } catch {
-      // Fallback to PUT
-      try {
-        const putRes = await apiClient.put<Record<string, unknown>>(`/admin/trips/${id}`, requestBody);
-        if (putRes.success && putRes.data) {
-          return normalizeTrip(putRes.data);
-        }
-      } catch {
-        // Fallback to mock
+      const putRes = await apiClient.put<Record<string, unknown>>(`/admin/trips/${id}`, requestBody);
+      if (putRes.success && putRes.data) {
+        return normalizeTrip(putRes.data);
       }
     }
 
-    const index = MOCK_TRIPS.findIndex((t) => t.id === id);
-    if (index !== -1) {
-      MOCK_TRIPS[index] = {
-        ...MOCK_TRIPS[index],
-        ...payload,
-        updatedAt: new Date().toISOString(),
-      };
-      return MOCK_TRIPS[index];
-    }
-
-    throw new Error("Trip tidak ditemukan.");
+    throw new Error("Gagal memperbarui jadwal trip.");
   },
 
   async deleteTrip(id: string): Promise<{ success: boolean; message: string }> {
-    try {
-      const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/trips/${id}`);
-      if (res.success) {
-        return { success: true, message: res.message || "Jadwal trip berhasil dihapus" };
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal trip.";
-      throw new Error(msg);
+    const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/trips/${id}`);
+    if (res.success) {
+      return { success: true, message: res.message || "Jadwal trip berhasil dihapus" };
     }
-
-    const index = MOCK_TRIPS.findIndex((t) => t.id === id);
-    if (index !== -1) {
-      MOCK_TRIPS.splice(index, 1);
-      return { success: true, message: "Jadwal trip berhasil dihapus" };
-    }
-
-    return { success: true, message: "Jadwal trip dihapus" };
+    throw new Error(res.message || "Gagal menghapus jadwal trip.");
   },
 
   async getTripAvailability(tripId: string): Promise<BookingGroup[]> {
