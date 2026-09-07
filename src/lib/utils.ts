@@ -221,10 +221,18 @@ export function getImageUrl(path?: string | null, fallback?: string): string {
   }
 
   const clean = path.trim();
+
+  // Blob URLs are in-memory client-side only; during SSR fallback to default image
+  if (clean.startsWith("blob:")) {
+    if (typeof window === "undefined") {
+      return defaultFallback;
+    }
+    return clean;
+  }
+
   if (
     clean.startsWith("http://") ||
     clean.startsWith("https://") ||
-    clean.startsWith("blob:") ||
     clean.startsWith("data:")
   ) {
     return clean;

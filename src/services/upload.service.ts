@@ -29,13 +29,11 @@ export const uploadService = {
 
     const formData = new FormData();
     formData.append("image", file);
-    formData.append("file", file);
 
     const endpoints = [
       `/upload?folder=${folder}`,
       `/upload/image?folder=${folder}`,
       `/upload/file?folder=${folder}`,
-      `/admin/upload?folder=${folder}`,
     ];
 
     let lastError: Error | null = null;
@@ -50,17 +48,7 @@ export const uploadService = {
       }
     }
 
-    // Fallback if backend upload fails in dev environment: Create local blob/data preview
-    console.warn("Upload service API failed, falling back to local object URL for preview:", lastError?.message);
-    const localUrl = URL.createObjectURL(file);
-    return {
-      url: localUrl,
-      path: localUrl,
-      filename: file.name,
-      originalName: file.name,
-      mimetype: file.type,
-      size: file.size,
-    };
+    throw new Error(lastError?.message || "Gagal mengunggah gambar ke server backend");
   },
 
   /**
@@ -83,13 +71,11 @@ export const uploadService = {
     const formData = new FormData();
     validFiles.forEach((file) => {
       formData.append("images", file);
-      formData.append("files", file);
     });
 
     const endpoints = [
       `/upload/multiple?folder=${folder}`,
       `/upload/files?folder=${folder}`,
-      `/upload?folder=${folder}`,
     ];
 
     for (const ep of endpoints) {
@@ -110,22 +96,11 @@ export const uploadService = {
     // Fallback: Upload one by one sequentially
     const results: UploadResult[] = [];
     for (const file of validFiles) {
-      try {
-        const single = await this.uploadImage(file, folder);
-        results.push(single);
-      } catch {
-        const localUrl = URL.createObjectURL(file);
-        results.push({
-          url: localUrl,
-          path: localUrl,
-          filename: file.name,
-          originalName: file.name,
-          mimetype: file.type,
-          size: file.size,
-        });
-      }
+      const single = await this.uploadImage(file, folder);
+      results.push(single);
     }
 
     return results;
   },
 };
+
