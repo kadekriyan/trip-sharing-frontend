@@ -9,6 +9,8 @@ import {
   Star,
   Phone,
   ShieldCheck,
+  UserCheck,
+  User,
   Loader2,
   PackageOpen,
   Edit,
@@ -191,13 +193,9 @@ export default function DriversAdminPage() {
                 >
                   <div className="space-y-4">
                     <div className="flex items-start gap-3.5">
-                      <div className="relative h-14 w-14 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                        <Image
-                          src={driver.photoUrl || driver.user?.profileImageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"}
-                          alt={driverName}
-                          fill
-                          className="object-cover"
-                        />
+                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#00677d] to-[#004f60] text-white flex flex-col items-center justify-center shrink-0 shadow-sm border border-teal-600/20">
+                        <UserCheck className="h-6 w-6 text-teal-200 mb-0.5" />
+                        <span className="text-[9px] font-extrabold tracking-wider uppercase opacity-90">Driver</span>
                       </div>
 
                       <div className="flex-1 min-w-0">

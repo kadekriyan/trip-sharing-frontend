@@ -45,6 +45,7 @@ import {
   getDestinationTitle,
   getDestinationPrice,
   formatDate,
+  getImageUrl,
 } from "@/src/lib/utils";
 import type { Destination, BookingGroup, Trip, Participant } from "@/src/types";
 
@@ -319,7 +320,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       {/* Header Banner */}
       <div className="relative h-[45vh] min-h-[340px] max-h-[480px] w-full bg-slate-900">
         <Image
-          src={destination.coverImage || destination.image || destination.imageUrl || "/images/dest-bromo.jpg"}
+          src={getImageUrl(destination.coverImage || destination.image || destination.imageUrl)}
           alt={getDestinationTitle(destination)}
           fill
           priority
@@ -444,6 +445,30 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 </div>
               </div>
             </div>
+
+            {/* Gallery Photos Card */}
+            {Array.isArray(destination.galleryImages) && destination.galleryImages.length > 0 && (
+              <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-100 shadow-stitch-card space-y-4">
+                <h2 className="font-heading font-extrabold text-lg text-[#191c1e]">
+                  Galeri Dokumentasi & Suasana Trip
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {destination.galleryImages.map((imgUrl, idx) => (
+                    <div
+                      key={idx}
+                      className="relative aspect-video rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 group shadow-sm"
+                    >
+                      <Image
+                        src={getImageUrl(imgUrl)}
+                        alt={`Galeri ${getDestinationTitle(destination)} ${idx + 1}`}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Meeting Point Card */}
             {destination.meetingPoint && (

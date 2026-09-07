@@ -17,6 +17,7 @@ import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
+import { ImageUploader } from "@/src/components/ui/image-uploader";
 import { adminService } from "@/src/services/admin.service";
 import { getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
 import type { ItineraryDay } from "@/src/types";
@@ -38,6 +39,7 @@ export default function EditDestinationPage() {
   const [durationNights, setDurationNights] = useState(1);
   const [pricePerPax, setPricePerPax] = useState(850000);
   const [coverImage, setCoverImage] = useState("");
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [meetingPoint, setMeetingPoint] = useState("");
   const [isPopular, setIsPopular] = useState(false);
   const [isActive, setIsActive] = useState(true);
@@ -65,6 +67,9 @@ export default function EditDestinationPage() {
           setDurationNights(dest.durationNights || 1);
           setPricePerPax(getDestinationPrice(dest) || 850000);
           setCoverImage(dest.coverImage || dest.image || dest.imageUrl || "");
+          const rawDest = dest as unknown as Record<string, unknown>;
+          const gallery = (dest.galleryImages || rawDest.gallery || rawDest.images || []) as string[];
+          setGalleryImages(Array.isArray(gallery) ? gallery : []);
           setMeetingPoint(dest.meetingPoint || "Stasiun / Bandara Terdekat");
           setIsPopular(Boolean(dest.isPopular));
           setIsActive(dest.isActive !== undefined ? Boolean(dest.isActive) : true);
@@ -150,6 +155,7 @@ export default function EditDestinationPage() {
         durationNights: Number(durationNights),
         pricePerPax: Number(pricePerPax),
         coverImage,
+        galleryImages,
         meetingPoint,
         isPopular,
         isActive,
@@ -304,15 +310,26 @@ export default function EditDestinationPage() {
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-              URL Foto Sampul (Cover Image)
-            </label>
-            <Input
-              placeholder="https://images.unsplash.com/..."
+          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+            <ImageUploader
+              mode="single"
+              folder="destinations"
+              label="Foto Cover Destinasi *"
               value={coverImage}
-              onChange={(e) => setCoverImage(e.target.value)}
-              className="text-xs"
+              onChange={setCoverImage}
+              helperText="Unggah gambar utama beresolusi tinggi (16:9) untuk cover katalog destinasi."
+            />
+          </div>
+
+          <div className="space-y-1.5 pt-2 border-t border-slate-100">
+            <ImageUploader
+              mode="multiple"
+              folder="destinations"
+              label="Galeri Foto Destinasi (Maks. 10 Foto)"
+              values={galleryImages}
+              onChangeMultiple={setGalleryImages}
+              helperText="Unggah foto-foto suasana dan dokumentasi destinasi."
+              maxFiles={10}
             />
           </div>
 

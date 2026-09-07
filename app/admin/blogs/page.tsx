@@ -28,7 +28,7 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
-import { formatDate } from "@/src/lib/utils";
+import { formatDate, getImageUrl } from "@/src/lib/utils";
 import type { Article } from "@/src/types";
 
 export default function BlogsAdminPage() {
@@ -226,7 +226,7 @@ export default function BlogsAdminPage() {
                         <div className="flex items-center gap-3">
                           <div className="relative h-12 w-16 rounded-lg overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                             <Image
-                              src={art.coverImage || "/images/dest-bromo.jpg"}
+                              src={getImageUrl(art.coverImage)}
                               alt={art.title || "Cover Artikel"}
                               fill
                               className="object-cover"

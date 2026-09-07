@@ -20,6 +20,7 @@ import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
+import { ImageUploader } from "@/src/components/ui/image-uploader";
 import { adminService } from "@/src/services/admin.service";
 
 export default function EditBlogArticlePage() {
@@ -335,18 +336,18 @@ export default function EditBlogArticlePage() {
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                URL Foto Sampul (Cover Image)
-              </label>
-              <Input
-                placeholder="https://images.unsplash.com/..."
+            <div className="space-y-1.5 sm:col-span-2">
+              <ImageUploader
+                mode="single"
+                folder="articles"
+                label="Foto Sampul Artikel *"
                 value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
+                onChange={setCoverImage}
+                helperText="Unggah gambar header artikel blog (format 16:9 disarankan)."
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Estimasi Waktu Baca (Menit)
               </label>

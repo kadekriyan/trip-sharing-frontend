@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { Button } from "@/src/components/ui/button";
 import { articleService } from "@/src/services/article.service";
-import { formatDate } from "@/src/lib/utils";
+import { formatDate, getImageUrl } from "@/src/lib/utils";
 import type { Article } from "@/src/types";
 
 interface BlogListClientProps {
@@ -153,7 +153,7 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
                 <div>
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                     <Image
-                      src={art.coverImage || "/images/dest-bromo.jpg"}
+                      src={getImageUrl(art.coverImage)}
                       alt={art.title}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 400px"

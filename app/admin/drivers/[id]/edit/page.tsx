@@ -34,7 +34,6 @@ export default function EditDriverPage() {
   const [vehicleModel, setVehicleModel] = useState("Toyota HiAce Premio VIP (6-Seater)");
   const [plateNumber, setPlateNumber] = useState("");
   const [experienceYears, setExperienceYears] = useState(5);
-  const [photoUrl, setPhotoUrl] = useState("");
   const [isAvailable, setIsAvailable] = useState(true);
 
   useEffect(() => {
@@ -52,7 +51,6 @@ export default function EditDriverPage() {
           setVehicleModel(driver.vehicleModel || driver.vehicleType || "Toyota HiAce Premio VIP (6-Seater)");
           setPlateNumber(driver.plateNumber || driver.vehiclePlat || "");
           setExperienceYears(driver.experienceYears || 5);
-          setPhotoUrl(driver.photoUrl || driver.user?.profileImageUrl || "");
           setIsAvailable(driver.isAvailable !== undefined ? Boolean(driver.isAvailable) : driver.status === "available");
         }
       } catch {
@@ -88,7 +86,6 @@ export default function EditDriverPage() {
         vehicleModel,
         plateNumber: plateNumber.toUpperCase(),
         experienceYears: Number(experienceYears),
-        photoUrl: photoUrl || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300",
         isAvailable,
         status: isAvailable ? "available" : "maintenance",
       });
@@ -235,18 +232,6 @@ export default function EditDriverPage() {
                 className="text-xs"
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-              URL Foto Driver
-            </label>
-            <Input
-              placeholder="https://images.unsplash.com/..."
-              value={photoUrl}
-              onChange={(e) => setPhotoUrl(e.target.value)}
-              className="text-xs"
-            />
           </div>
         </Card>
 

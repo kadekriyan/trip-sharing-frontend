@@ -18,6 +18,7 @@ import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
+import { ImageUploader } from "@/src/components/ui/image-uploader";
 import { adminService } from "@/src/services/admin.service";
 
 export default function NewBlogArticlePage() {
@@ -230,12 +231,13 @@ export default function NewBlogArticlePage() {
                 Gambar Utama
               </h3>
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Cover Image URL
-                </label>
-                <Input
+                <ImageUploader
+                  mode="single"
+                  folder="articles"
+                  label="Foto Sampul Artikel *"
                   value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
+                  onChange={setCoverImage}
+                  helperText="Unggah gambar header artikel blog (format 16:9 disarankan)."
                 />
               </div>
 

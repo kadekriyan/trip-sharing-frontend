@@ -168,7 +168,7 @@ export interface Driver {
   status: DriverStatus;
   rating: number;
   totalTrips: number;
-  photoUrl: string;
+  photoUrl?: string;
   notes?: string;
   user?: {
     id?: string;

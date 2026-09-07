@@ -29,7 +29,7 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
-import { formatCurrency, formatDuration, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
+import { formatCurrency, formatDuration, getDestinationTitle, getDestinationPrice, getImageUrl } from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 export default function DestinationsAdminPage() {
@@ -195,7 +195,7 @@ export default function DestinationsAdminPage() {
                     {/* Image Container with Badges */}
                     <div className="relative aspect-video w-full overflow-hidden">
                       <Image
-                        src={dest.coverImage || dest.image || dest.imageUrl || "/images/dest-bromo.jpg"}
+                        src={getImageUrl(dest.coverImage || dest.image || dest.imageUrl)}
                         alt={title}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"

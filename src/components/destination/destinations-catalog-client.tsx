@@ -16,7 +16,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { destinationService } from "@/src/services/destination.service";
-import { formatCurrency, formatDuration, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
+import { formatCurrency, formatDuration, getDestinationTitle, getDestinationPrice, getImageUrl } from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 interface DestinationsCatalogClientProps {
@@ -307,7 +307,7 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                       {/* Image Container with strict Aspect Ratio (Anti-CLS) */}
                       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                         <Image
-                          src={dest.coverImage || dest.image || dest.imageUrl || "/images/dest-bromo.jpg"}
+                          src={getImageUrl(dest.coverImage || dest.image || dest.imageUrl)}
                           alt={`Paket Wisata ${getDestinationTitle(dest)}`}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"

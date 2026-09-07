@@ -56,9 +56,13 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
   }
 
   const defaultHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
     Accept: "application/json",
   };
+
+  // Jangan set Content-Type jika body adalah FormData (agar browser set multipart boundary otomatis)
+  if (!(customConfig.body instanceof FormData)) {
+    defaultHeaders["Content-Type"] = "application/json";
+  }
 
   // Attach token if stored in localStorage (for client-side admin/user session)
   const token = getAuthToken();
@@ -123,21 +127,28 @@ export const apiClient = {
     request<T>(endpoint, {
       ...options,
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+    }),
+
+  postForm: <T>(endpoint: string, formData: FormData, options?: RequestOptions) =>
+    request<T>(endpoint, {
+      ...options,
+      method: "POST",
+      body: formData,
     }),
 
   put: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       ...options,
       method: "PUT",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }),
 
   patch: <T>(endpoint: string, body?: unknown, options?: RequestOptions) =>
     request<T>(endpoint, {
       ...options,
       method: "PATCH",
-      body: body ? JSON.stringify(body) : undefined,
+      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
     }),
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>

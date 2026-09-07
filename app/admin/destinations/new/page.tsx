@@ -15,6 +15,7 @@ import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
+import { ImageUploader } from "@/src/components/ui/image-uploader";
 import { adminService } from "@/src/services/admin.service";
 import type { ItineraryDay } from "@/src/types";
 
@@ -31,6 +32,7 @@ export default function NewDestinationPage() {
   const [coverImage, setCoverImage] = useState(
     "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800"
   );
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [meetingPoint, setMeetingPoint] = useState("Meeting Point Utama (Stasiun / Bandara)");
 
   // Inclusions & Exclusions String
@@ -100,6 +102,7 @@ export default function NewDestinationPage() {
         durationNights: Number(durationNights),
         pricePerPax: Number(pricePerPax),
         coverImage,
+        galleryImages,
         meetingPoint,
         inclusions: inclusionsText.split(",").map((s) => s.trim()),
         exclusions: exclusionsText.split(",").map((s) => s.trim()),
@@ -230,13 +233,26 @@ export default function NewDestinationPage() {
               />
             </div>
 
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Cover Image URL
-              </label>
-              <Input
+            <div className="space-y-1.5 sm:col-span-2 pt-2 border-t border-slate-100">
+              <ImageUploader
+                mode="single"
+                folder="destinations"
+                label="Foto Cover Destinasi *"
                 value={coverImage}
-                onChange={(e) => setCoverImage(e.target.value)}
+                onChange={setCoverImage}
+                helperText="Unggah gambar utama lanskap resolusi tinggi (16:9) untuk cover katalog."
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2 pt-2 border-t border-slate-100">
+              <ImageUploader
+                mode="multiple"
+                folder="destinations"
+                label="Galeri Foto Destinasi (Maks. 10 Foto)"
+                values={galleryImages}
+                onChangeMultiple={setGalleryImages}
+                helperText="Unggah foto-foto suasana trip atau dokumentasi keindahan alam destinasi."
+                maxFiles={10}
               />
             </div>
 

@@ -24,9 +24,6 @@ export default function NewDriverPage() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [vehicleModel, setVehicleModel] = useState("Toyota HiAce Commuter (6-Seater VIP)");
   const [plateNumber, setPlateNumber] = useState("");
-  const [photoUrl, setPhotoUrl] = useState(
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300"
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -49,7 +46,6 @@ export default function NewDriverPage() {
         passengerCapacity: 6,
         status: "available",
         isAvailable: true,
-        photoUrl,
         rating: 5.0,
         totalTrips: 0,
       });
@@ -144,16 +140,6 @@ export default function NewDriverPage() {
                 placeholder="SIM-A-98721..."
                 value={licenseNumber}
                 onChange={(e) => setLicenseNumber(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Foto Profil URL
-              </label>
-              <Input
-                value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
               />
             </div>
           </div>

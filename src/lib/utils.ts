@@ -209,3 +209,30 @@ export function getTripStatusBadge(status: TripStatus | string): { label: string
   }
 }
 
+/**
+ * Normalizes image URL (handles relative /uploads/ paths from backend)
+ */
+export function getImageUrl(path?: string | null, fallback?: string): string {
+  const defaultFallback =
+    fallback || "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&auto=format&fit=crop&q=80";
+
+  if (!path || typeof path !== "string" || path.trim() === "") {
+    return defaultFallback;
+  }
+
+  const clean = path.trim();
+  if (
+    clean.startsWith("http://") ||
+    clean.startsWith("https://") ||
+    clean.startsWith("blob:") ||
+    clean.startsWith("data:")
+  ) {
+    return clean;
+  }
+
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api").replace(/\/api\/?$/, "");
+  const normalizedPath = clean.startsWith("/") ? clean : `/${clean}`;
+  return `${baseUrl}${normalizedPath}`;
+}
+
+

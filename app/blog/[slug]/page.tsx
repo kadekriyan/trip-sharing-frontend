@@ -6,7 +6,7 @@ import { ArrowLeft, Clock, Calendar, Tag, Compass, PackageOpen } from "lucide-re
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { articleService } from "@/src/services/article.service";
-import { formatDate } from "@/src/lib/utils";
+import { formatDate, getImageUrl } from "@/src/lib/utils";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -150,7 +150,7 @@ export default async function BlogDetailPage({ params }: PageProps) {
         {/* Cover Image */}
         <div className="relative aspect-video w-full rounded-3xl overflow-hidden shadow-stitch-card border border-slate-200/80 bg-slate-900">
           <Image
-            src={article.coverImage || "/images/dest-bromo.jpg"}
+            src={getImageUrl(article.coverImage)}
             alt={article.title}
             fill
             priority
