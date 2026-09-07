@@ -1,6 +1,5 @@
 import { apiClient } from "@/src/lib/api-client";
 import type { Destination, BookingGroup, Trip } from "@/src/types";
-import { MOCK_TRIPS, MOCK_DESTINATIONS } from "@/src/services/mockData";
 
 export interface DestinationFilterParams {
   search?: string;
@@ -24,13 +23,13 @@ export const destinationService = {
           limit: filters?.limit,
         },
       });
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+      if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
     } catch {
-      // Fallback
+      // Return empty array on network/server error
     }
-    return MOCK_DESTINATIONS;
+    return [];
   },
 
   async getDestinationBySlug(slug: string): Promise<Destination | null> {
@@ -42,43 +41,21 @@ export const destinationService = {
     } catch {
       // Not found or network error
     }
-
-    const found = MOCK_DESTINATIONS.find((d) => d.slug === slug || d.id === slug);
-    return found || null;
+    return null;
   },
 
   async getTripsByDestination(destinationId: string): Promise<Trip[]> {
-    let apiTrips: Trip[] = [];
     try {
       const res = await apiClient.get<Trip[]>("/trips", {
         params: { destinationId },
       });
-      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        apiTrips = res.data;
+      if (res.success && Array.isArray(res.data)) {
+        return res.data;
       }
     } catch {
-      // Fallback
+      // Return empty array on network/server error
     }
-
-    const localMatched = MOCK_TRIPS.filter(
-      (t) =>
-        t.destinationId === destinationId ||
-        t.destination?.slug === destinationId ||
-        t.destination?.id === destinationId
-    );
-
-    if (apiTrips.length === 0) {
-      return localMatched;
-    }
-
-    const apiTripIds = new Set(apiTrips.map((t) => t.id));
-    const merged = [...apiTrips];
-    for (const lt of localMatched) {
-      if (!apiTripIds.has(lt.id)) {
-        merged.unshift(lt);
-      }
-    }
-    return merged;
+    return [];
   },
 
   async getTripAvailability(tripId: string, departureDate?: string): Promise<BookingGroup[]> {
@@ -87,19 +64,14 @@ export const destinationService = {
         `/trips/${tripId}/availability`,
         { params: { departureDate } }
       );
-      if (res.success && res.data?.groups) {
+      if (res.success && res.data?.groups && Array.isArray(res.data.groups)) {
         return res.data.groups;
       }
     } catch {
-      // Empty groups
+      // Return empty groups on error
     }
-
-    const foundTrip = MOCK_TRIPS.find((t) => t.id === tripId);
-    if (foundTrip && Array.isArray(foundTrip.groups)) {
-      return foundTrip.groups;
-    }
-
     return [];
   },
 };
+
 
