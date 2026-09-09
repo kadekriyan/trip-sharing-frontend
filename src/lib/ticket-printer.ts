@@ -6,6 +6,8 @@ export interface TicketPrintPayload {
   bookingCode: string;
   destinationTitle: string;
   fullName: string;
+  email?: string;
+  phoneNumber?: string;
   identityNumber?: string;
   groupNumber?: number | string;
   driverName?: string;
@@ -175,11 +177,31 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
           <span class="detail-val">${data.fullName}</span>
         </div>
         ${
-          data.identityNumber
+          data.identityNumber && data.identityNumber !== "-"
             ? `
         <div class="detail-row">
-          <span class="detail-label">Nomor Identitas</span>
-          <span class="detail-val">${data.identityNumber}</span>
+          <span class="detail-label">Nomor Identitas (NIK)</span>
+          <span class="detail-val font-mono">${data.identityNumber}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          data.phoneNumber
+            ? `
+        <div class="detail-row">
+          <span class="detail-label">No. Telepon / WA</span>
+          <span class="detail-val">${data.phoneNumber}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          data.email
+            ? `
+        <div class="detail-row">
+          <span class="detail-label">Email Penumpang</span>
+          <span class="detail-val" style="font-size: 10px; max-width: 200px; word-break: break-all;">${data.email}</span>
         </div>
         `
             : ""

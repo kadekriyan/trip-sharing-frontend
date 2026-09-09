@@ -14,6 +14,9 @@ import {
   Search,
   User as UserIcon,
   LogIn,
+  Mail,
+  ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -374,15 +377,53 @@ function MyBookingsContent() {
                             </div>
                           )}
 
+                          {/* Data Identitas Penumpang Box */}
+                          <div className="rounded-xl bg-slate-50/80 p-3.5 text-xs text-slate-700 border border-slate-200/80 space-y-2">
+                            <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                              <span className="font-bold text-[#00677d] text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                                <UserIcon className="h-3.5 w-3.5 text-[#00677d]" />
+                                Data Identitas Penumpang
+                              </span>
+                              {booking.hasInsurance && (
+                                <span className="text-emerald-700 font-bold text-[10px] flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                  <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                                  Termasuk Asuransi
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400 text-[11px] min-w-[70px]">Nama:</span>
+                                <strong className="text-slate-800">{booking.fullName || "Guest Traveler"}</strong>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400 text-[11px] min-w-[70px]">NIK:</span>
+                                <span className="font-mono font-bold text-slate-700">
+                                  {booking.identityNumber && booking.identityNumber !== "-" ? booking.identityNumber : "—"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400 text-[11px] min-w-[70px]">No. Telepon:</span>
+                                <span className="text-slate-700 flex items-center gap-1">
+                                  <Phone className="h-3 w-3 text-slate-400 shrink-0" />
+                                  {booking.phoneNumber || "—"}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-400 text-[11px] min-w-[70px]">Email:</span>
+                                <span className="text-slate-700 flex items-center gap-1 truncate">
+                                  <Mail className="h-3 w-3 text-slate-400 shrink-0" />
+                                  <span className="truncate">{booking.email || "—"}</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
                           {/* Card Footer Actions */}
                           <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
                             <div className="text-xs text-slate-500">
-                              <span>Traveler: <strong className="text-slate-800">{booking.fullName || "Guest Traveler"}</strong></span>
-                              {booking.hasInsurance && (
-                                <span className="text-emerald-600 font-semibold ml-2">
-                                  • Termasuk Asuransi
-                                </span>
-                              )}
+                              <span>Total Biaya: <strong className="text-slate-800 font-heading font-extrabold">{formatCurrency(booking.totalAmount)}</strong></span>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
@@ -519,13 +560,25 @@ function MyBookingsContent() {
                     <span className="font-bold text-slate-800">{selectedVoucher.fullName || "Traveler"}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Nomor Identitas:</span>
+                    <span className="text-slate-500">Nomor Identitas (NIK):</span>
                     <span className="font-mono font-medium text-slate-800">
                       {selectedVoucher.identityNumber && selectedVoucher.identityNumber !== "-"
                         ? selectedVoucher.identityNumber
                         : "-"}
                     </span>
                   </div>
+                  {selectedVoucher.phoneNumber && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">No. Telepon / WA:</span>
+                      <span className="font-medium text-slate-800">{selectedVoucher.phoneNumber}</span>
+                    </div>
+                  )}
+                  {selectedVoucher.email && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Email Penumpang:</span>
+                      <span className="font-medium text-slate-800 truncate max-w-[210px] text-right">{selectedVoucher.email}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-slate-500">Tanggal Trip:</span>
                     <span className="font-bold text-[#00677d]">
@@ -586,6 +639,8 @@ function MyBookingsContent() {
                         bookingCode: selectedVoucher.bookingCode,
                         destinationTitle: destTitle,
                         fullName: selectedVoucher.fullName || "Traveler",
+                        email: selectedVoucher.email,
+                        phoneNumber: selectedVoucher.phoneNumber,
                         identityNumber: selectedVoucher.identityNumber || "-",
                         groupNumber: selectedVoucher.group?.groupNumber || 1,
                         driverName: selectedVoucher.group?.driver?.fullName,
