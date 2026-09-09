@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { MapPin, Loader2, X, CheckCircle2, AlertCircle } from "lucide-react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { MapPin, Loader2, X, CheckCircle2, AlertCircle, Search, Navigation } from "lucide-react";
 import { Input } from "@/src/components/ui/input";
 
 export interface PlaceSelection {
@@ -22,6 +22,13 @@ interface GooglePlacesAutocompleteProps {
   longitude?: number;
 }
 
+interface PredictionItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  prediction: any;
+}
+
 declare global {
   interface Window {
     google?: any;
@@ -30,20 +37,19 @@ declare global {
   }
 }
 
-// Global script loader helper to prevent duplicate script tags
+// Global script loader helper for Places API (New)
 function loadGoogleMapsScript(apiKey: string): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
-  if (window.google?.maps?.places) return Promise.resolve();
+  if (window.google?.maps?.importLibrary) return Promise.resolve();
 
   if (window.__googleMapsLoadingPromise) {
     return window.__googleMapsLoadingPromise;
   }
 
   window.__googleMapsLoadingPromise = new Promise((resolve, reject) => {
-    // Check if script tag already exists
     const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
     if (existingScript) {
-      if (window.google?.maps?.places) {
+      if (window.google?.maps) {
         resolve();
       } else {
         existingScript.addEventListener("load", () => resolve());
@@ -53,7 +59,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=id&region=ID`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=places&language=id&region=ID&loading=async`;
     script.async = true;
     script.defer = true;
     script.onload = () => resolve();
@@ -74,12 +80,20 @@ export function GooglePlacesAutocomplete({
   latitude,
   longitude,
 }: GooglePlacesAutocompleteProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<any>(null);
+  const placesLibRef = useRef<any>(null);
+  const sessionTokenRef = useRef<any>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [isLoadingScript, setIsLoadingScript] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [authError, setAuthError] = useState(false);
   const [inputValue, setInputValue] = useState(value || "");
+  const [predictions, setPredictions] = useState<PredictionItem[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 
@@ -87,8 +101,21 @@ export function GooglePlacesAutocomplete({
     setInputValue(value || "");
   }, [value]);
 
+  // Close dropdown on click outside
   useEffect(() => {
-    // Hook into Google Maps auth failure callback (e.g. RefererNotAllowedMapError)
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Initialize Places API (New) library
+  useEffect(() => {
     if (typeof window !== "undefined") {
       window.gm_authFailure = () => {
         setAuthError(true);
@@ -99,55 +126,30 @@ export function GooglePlacesAutocomplete({
       };
     }
 
-    if (!apiKey) {
-      // If no API key provided, allow manual typing without google maps
-      return;
-    }
+    if (!apiKey) return;
 
     let isMounted = true;
     setIsLoadingScript(true);
 
     loadGoogleMapsScript(apiKey)
-      .then(() => {
-        if (!isMounted || !inputRef.current || !window.google?.maps?.places) return;
+      .then(async () => {
+        if (!isMounted || !window.google?.maps) return;
 
-        // Initialize Google Autocomplete on the input
-        if (!autocompleteRef.current) {
-          const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-            componentRestrictions: { country: "id" },
-            fields: ["formatted_address", "geometry", "name", "place_id", "address_components"],
-            types: ["geocode", "establishment"],
-          });
+        try {
+          const placesLib = await window.google.maps.importLibrary("places");
+          if (!isMounted) return;
 
-          autocomplete.addListener("place_changed", () => {
-            const place = autocomplete.getPlace();
-            if (!place) return;
-
-            let formatted = place.formatted_address || "";
-            if (place.name && !formatted.includes(place.name)) {
-              formatted = `${place.name}, ${formatted}`;
-            }
-            if (!formatted && place.name) {
-              formatted = place.name;
-            }
-
-            const lat = place.geometry?.location?.lat();
-            const lng = place.geometry?.location?.lng();
-
-            setInputValue(formatted);
-            onChange({
-              address: formatted,
-              latitude: typeof lat === "function" ? lat() : lat,
-              longitude: typeof lng === "function" ? lng() : lng,
-              placeName: place.name,
-            });
-          });
-
-          autocompleteRef.current = autocomplete;
+          placesLibRef.current = placesLib;
+          if (placesLib.AutocompleteSessionToken) {
+            sessionTokenRef.current = new placesLib.AutocompleteSessionToken();
+          }
+        } catch (err) {
+          console.warn("Places API (New) import library warning:", err);
+          if (isMounted) setLoadError(true);
         }
       })
       .catch((err) => {
-        console.warn("Google Maps Places API load warning (fallback to manual typing):", err);
+        console.warn("Google Maps script load warning:", err);
         if (isMounted) setLoadError(true);
       })
       .finally(() => {
@@ -157,9 +159,61 @@ export function GooglePlacesAutocomplete({
     return () => {
       isMounted = false;
     };
-  }, [apiKey, onChange]);
+  }, [apiKey]);
 
-  const handleManualChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Fetch suggestions with Places API (New)
+  const fetchSuggestions = useCallback(
+    async (query: string) => {
+      if (!query || query.trim().length < 2 || !placesLibRef.current?.AutocompleteSuggestion) {
+        setPredictions([]);
+        setShowDropdown(false);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const { AutocompleteSuggestion, AutocompleteSessionToken } = placesLibRef.current;
+
+        if (!sessionTokenRef.current && AutocompleteSessionToken) {
+          sessionTokenRef.current = new AutocompleteSessionToken();
+        }
+
+        const request = {
+          input: query,
+          sessionToken: sessionTokenRef.current,
+          includedRegionCodes: ["id"],
+          language: "id",
+        };
+
+        const response = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+        const suggestions = response?.suggestions || [];
+
+        const formattedList: PredictionItem[] = suggestions.map((s: any) => {
+          const pred = s.placePrediction;
+          const main = pred?.mainText?.text || pred?.text?.text || "";
+          const sub = pred?.secondaryText?.text || "";
+          return {
+            id: pred?.placeId || `${main}-${Math.random()}`,
+            title: main,
+            subtitle: sub,
+            prediction: pred,
+          };
+        });
+
+        setPredictions(formattedList);
+        setShowDropdown(formattedList.length > 0);
+      } catch (err) {
+        console.warn("Places API (New) fetch error:", err);
+        setPredictions([]);
+        setShowDropdown(false);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    []
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
     onChange({
@@ -167,10 +221,82 @@ export function GooglePlacesAutocomplete({
       latitude: undefined,
       longitude: undefined,
     });
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (val.trim().length >= 2) {
+      debounceTimerRef.current = setTimeout(() => {
+        fetchSuggestions(val);
+      }, 250);
+    } else {
+      setPredictions([]);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleSelectSuggestion = async (item: PredictionItem) => {
+    setIsFetchingDetails(true);
+    setShowDropdown(false);
+
+    try {
+      if (item.prediction?.toPlace) {
+        const place = item.prediction.toPlace();
+        await place.fetchFields({
+          fields: ["displayName", "formattedAddress", "location"],
+        });
+
+        const latVal = place.location?.lat;
+        const lngVal = place.location?.lng;
+        const lat = typeof latVal === "function" ? latVal() : latVal;
+        const lng = typeof lngVal === "function" ? lngVal() : lngVal;
+
+        const resolvedAddress =
+          place.formattedAddress ||
+          (item.subtitle ? `${place.displayName || item.title}, ${item.subtitle}` : place.displayName || item.title);
+
+        setInputValue(resolvedAddress);
+        onChange({
+          address: resolvedAddress,
+          latitude: typeof lat === "number" ? lat : undefined,
+          longitude: typeof lng === "number" ? lng : undefined,
+          placeName: place.displayName || item.title,
+        });
+      } else {
+        const full = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
+        setInputValue(full);
+        onChange({
+          address: full,
+          latitude: undefined,
+          longitude: undefined,
+          placeName: item.title,
+        });
+      }
+
+      // Reset session token for subsequent searches (cost optimization)
+      if (placesLibRef.current?.AutocompleteSessionToken) {
+        sessionTokenRef.current = new placesLibRef.current.AutocompleteSessionToken();
+      }
+    } catch (err) {
+      console.warn("Place details fetch failed (falling back to text):", err);
+      const full = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
+      setInputValue(full);
+      onChange({
+        address: full,
+        latitude: undefined,
+        longitude: undefined,
+        placeName: item.title,
+      });
+    } finally {
+      setIsFetchingDetails(false);
+    }
   };
 
   const handleClear = () => {
     setInputValue("");
+    setPredictions([]);
+    setShowDropdown(false);
     onChange({
       address: "",
       latitude: undefined,
@@ -184,10 +310,10 @@ export function GooglePlacesAutocomplete({
   const hasCoordinates = typeof latitude === "number" && typeof longitude === "number";
 
   return (
-    <div className={`space-y-1.5 ${className}`}>
+    <div ref={containerRef} className={`relative space-y-1.5 ${className}`}>
       <div className="relative">
         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center">
-          {isLoadingScript ? (
+          {isLoadingScript || isSearching || isFetchingDetails ? (
             <Loader2 className="h-4 w-4 animate-spin text-[#00677d]" />
           ) : (
             <MapPin className="h-4 w-4 text-[#00677d]" />
@@ -198,7 +324,12 @@ export function GooglePlacesAutocomplete({
           ref={inputRef}
           type="text"
           value={inputValue}
-          onChange={handleManualChange}
+          onChange={handleInputChange}
+          onFocus={() => {
+            if (predictions.length > 0 && inputValue.trim().length >= 2) {
+              setShowDropdown(true);
+            }
+          }}
           placeholder={placeholder}
           disabled={disabled}
           required={required}
@@ -216,6 +347,41 @@ export function GooglePlacesAutocomplete({
           </button>
         )}
       </div>
+
+      {/* Autocomplete Predictions Dropdown (Places API New) */}
+      {showDropdown && predictions.length > 0 && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="p-2 bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span className="flex items-center gap-1">
+              <Search className="h-3 w-3 text-[#00677d]" /> Rekomendasi Lokasi (Places API)
+            </span>
+            <span>Indonesia</span>
+          </div>
+
+          {predictions.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleSelectSuggestion(item)}
+              className="w-full text-left p-3 hover:bg-teal-50/60 transition-colors flex items-start gap-2.5 group"
+            >
+              <div className="h-7 w-7 rounded-xl bg-slate-100 text-slate-500 group-hover:bg-[#00677d] group-hover:text-white flex items-center justify-center shrink-0 transition-colors mt-0.5 shadow-sm">
+                <Navigation className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="font-bold text-xs text-slate-800 group-hover:text-[#00677d] block truncate transition-colors">
+                  {item.title}
+                </span>
+                {item.subtitle && (
+                  <span className="text-[11px] text-slate-500 block truncate mt-0.5">
+                    {item.subtitle}
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Coordinate & Status Badges */}
       {hasCoordinates && (
