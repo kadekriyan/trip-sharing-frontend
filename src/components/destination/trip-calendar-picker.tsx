@@ -1,0 +1,370 @@
+"use client";
+
+import React, { useState, useMemo } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Sparkles,
+  Users,
+  Check,
+  Clock,
+  Info,
+} from "lucide-react";
+import { Button } from "@/src/components/ui/button";
+import { Badge } from "@/src/components/ui/badge";
+import type { Trip } from "@/src/types";
+
+interface TripCalendarPickerProps {
+  selectedDate: string; // YYYY-MM-DD
+  onSelectDate: (dateStr: string, matchedTrip?: Trip) => void;
+  trips?: Trip[];
+  minDate?: string; // YYYY-MM-DD
+  pricePerPax?: number;
+  className?: string;
+  onClose?: () => void;
+}
+
+const MONTH_NAMES_ID = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
+
+const DAYS_HEADER = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+const DAYS_HEADER_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function padZero(num: number): string {
+  return num < 10 ? `0${num}` : `${num}`;
+}
+
+function formatDateToISO(year: number, month: number, day: number): string {
+  return `${year}-${padZero(month + 1)}-${padZero(day)}`;
+}
+
+export function TripCalendarPicker({
+  selectedDate,
+  onSelectDate,
+  trips = [],
+  minDate,
+  pricePerPax,
+  className = "",
+  onClose,
+}: TripCalendarPickerProps) {
+  // Parse initial selected date or default to current / minDate
+  const today = useMemo(() => new Date(), []);
+  const todayISO = useMemo(
+    () => formatDateToISO(today.getFullYear(), today.getMonth(), today.getDate()),
+    [today]
+  );
+  const effectiveMinDate = minDate || todayISO;
+
+  const initialViewDate = useMemo(() => {
+    if (selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
+      const [y, m] = selectedDate.split("-").map(Number);
+      return { year: y, month: m - 1 };
+    }
+    return { year: today.getFullYear(), month: today.getMonth() };
+  }, [selectedDate, today]);
+
+  const [viewYear, setViewYear] = useState<number>(initialViewDate.year);
+  const [viewMonth, setViewMonth] = useState<number>(initialViewDate.month);
+
+  // Map trips by departureDate (YYYY-MM-DD)
+  const tripsByDate = useMemo(() => {
+    const map = new Map<string, Trip>();
+    for (const trip of trips) {
+      if (trip.departureDate) {
+        const dateKey = trip.departureDate.split("T")[0];
+        map.set(dateKey, trip);
+      }
+    }
+    return map;
+  }, [trips]);
+
+  // Navigate months
+  const handlePrevMonth = () => {
+    if (viewMonth === 0) {
+      setViewYear((prev) => prev - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (viewMonth === 11) {
+      setViewYear((prev) => prev + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth((prev) => prev + 1);
+    }
+  };
+
+  // Check if we can navigate to previous month (don't go before current month)
+  const canGoPrev = useMemo(() => {
+    const minD = new Date(effectiveMinDate);
+    const minYear = minD.getFullYear();
+    const minMonth = minD.getMonth();
+    return viewYear > minYear || (viewYear === minYear && viewMonth > minMonth);
+  }, [viewYear, viewMonth, effectiveMinDate]);
+
+  // Second month for desktop view (Month N + 1)
+  const secondMonthInfo = useMemo(() => {
+    if (viewMonth === 11) {
+      return { year: viewYear + 1, month: 0 };
+    }
+    return { year: viewYear, month: viewMonth + 1 };
+  }, [viewYear, viewMonth]);
+
+  // Generate calendar grid for a specific year and month
+  const generateMonthGrid = (year: number, month: number) => {
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    // Monday is index 0 in our DAYS_HEADER:
+    const startOffset = (firstDayIndex + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const cells: Array<{
+      day: number | null;
+      dateISO: string;
+      isPast: boolean;
+      isSelected: boolean;
+      isToday: boolean;
+      trip?: Trip;
+      remainingSeats?: number;
+    }> = [];
+
+    // Empty cells before 1st day of month
+    for (let i = 0; i < startOffset; i++) {
+      cells.push({
+        day: null,
+        dateISO: "",
+        isPast: true,
+        isSelected: false,
+        isToday: false,
+      });
+    }
+
+    // Days in current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateISO = formatDateToISO(year, month, d);
+      const isPast = dateISO < effectiveMinDate;
+      const isSelected = selectedDate === dateISO;
+      const isToday = dateISO === todayISO;
+      const matchedTrip = tripsByDate.get(dateISO);
+
+      let remainingSeats: number | undefined = undefined;
+      if (matchedTrip) {
+        const totalPax =
+          matchedTrip.groups?.reduce((acc, g) => acc + (g.currentParticipants || 0), 0) || 0;
+        const totalCap = (matchedTrip.groups?.length || 1) * 6;
+        remainingSeats = Math.max(0, totalCap - totalPax);
+      }
+
+      cells.push({
+        day: d,
+        dateISO,
+        isPast,
+        isSelected,
+        isToday,
+        trip: matchedTrip,
+        remainingSeats,
+      });
+    }
+
+    return cells;
+  };
+
+  const month1Grid = useMemo(() => generateMonthGrid(viewYear, viewMonth), [viewYear, viewMonth, effectiveMinDate, selectedDate, tripsByDate]);
+  const month2Grid = useMemo(
+    () => generateMonthGrid(secondMonthInfo.year, secondMonthInfo.month),
+    [secondMonthInfo, effectiveMinDate, selectedDate, tripsByDate]
+  );
+
+  const handleDateClick = (dateISO: string, trip?: Trip) => {
+    if (dateISO < effectiveMinDate) return;
+    onSelectDate(dateISO, trip);
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  const renderMonthSection = (year: number, month: number, grid: ReturnType<typeof generateMonthGrid>) => {
+    return (
+      <div className="w-full select-none">
+        {/* Month Header Title */}
+        <div className="text-center font-heading font-extrabold text-sm sm:text-base text-slate-800 pb-3">
+          {MONTH_NAMES_ID[month]} {year}
+        </div>
+
+        {/* Days of Week Header */}
+        <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
+          {DAYS_HEADER.map((day, idx) => (
+            <div
+              key={day}
+              className={`text-[11px] font-bold uppercase tracking-wider py-1 ${
+                idx >= 5 ? "text-rose-500" : "text-slate-400"
+              }`}
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Day Cells */}
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
+          {grid.map((cell, idx) => {
+            if (cell.day === null) {
+              return <div key={`empty-${idx}`} className="h-10 sm:h-11 w-full" />;
+            }
+
+            const { day, dateISO, isPast, isSelected, isToday, trip, remainingSeats } = cell;
+
+            return (
+              <button
+                key={dateISO}
+                type="button"
+                disabled={isPast}
+                onClick={() => handleDateClick(dateISO, trip)}
+                aria-label={`Pilih tanggal ${day} ${MONTH_NAMES_ID[month]} ${year}`}
+                className={`group relative h-10 sm:h-11 w-full rounded-xl sm:rounded-2xl transition-all duration-150 flex flex-col items-center justify-center font-sans ${
+                  isPast
+                    ? "text-slate-300 cursor-not-allowed pointer-events-none"
+                    : isSelected
+                    ? "bg-[#191c1e] text-white font-extrabold shadow-md scale-105 z-10"
+                    : trip
+                    ? "bg-teal-50/70 hover:bg-[#00677d] hover:text-white text-[#00677d] font-bold border border-teal-200/80 hover:shadow-sm"
+                    : "text-slate-700 hover:bg-slate-100 font-semibold"
+                }`}
+              >
+                {/* Day Number */}
+                <span className="text-xs sm:text-sm leading-none flex items-center justify-center gap-0.5">
+                  {day}
+                  {trip && !isSelected && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse group-hover:bg-white" />
+                  )}
+                </span>
+
+                {/* Subtitle / Supertext indicator */}
+                {isSelected ? (
+                  <span className="text-[9px] text-teal-300 font-bold leading-none mt-0.5">
+                    {trip ? "Terjadwal" : "Pilihan"}
+                  </span>
+                ) : trip ? (
+                  <span className="text-[8px] sm:text-[9px] leading-none mt-0.5 opacity-90 group-hover:text-teal-100 font-medium truncate max-w-full px-0.5">
+                    {remainingSeats !== undefined && remainingSeats > 0
+                      ? `${remainingSeats} slot`
+                      : "Grup Ada"}
+                  </span>
+                ) : isToday ? (
+                  <span className="text-[8px] text-[#00677d] font-semibold leading-none mt-0.5">
+                    Hari ini
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className={`bg-white rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden p-4 sm:p-6 transition-all ${className}`}
+    >
+      {/* Top Header with Navigation Arrows */}
+      <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+        <button
+          type="button"
+          onClick={handlePrevMonth}
+          disabled={!canGoPrev}
+          className="p-2 rounded-full hover:bg-slate-100 active:scale-95 text-slate-700 disabled:opacity-20 disabled:pointer-events-none transition"
+          aria-label="Bulan Sebelumnya"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+
+        <div className="text-center font-heading font-extrabold text-sm sm:text-base text-[#191c1e] flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4 text-[#00677d]" />
+          <span>Pilih Tanggal Trip</span>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleNextMonth}
+          className="p-2 rounded-full hover:bg-slate-100 active:scale-95 text-slate-700 transition"
+          aria-label="Bulan Berikutnya"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Responsive Calendar Body: 1 Column on Mobile, 2 Columns on Desktop */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 md:divide-x md:divide-slate-100">
+        {/* Month 1 */}
+        <div className="w-full">
+          {renderMonthSection(viewYear, viewMonth, month1Grid)}
+        </div>
+
+        {/* Month 2 (Visible on Tablet/Desktop for GetYourGuide look) */}
+        <div className="w-full hidden md:block md:pl-8">
+          {renderMonthSection(secondMonthInfo.year, secondMonthInfo.month, month2Grid)}
+        </div>
+      </div>
+
+      {/* Legend / Status Indicators */}
+      <div className="mt-5 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-600">
+        <div className="flex flex-wrap items-center gap-3.5">
+          <div className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-md bg-[#191c1e] text-white flex items-center justify-center text-[9px]">
+              ✓
+            </span>
+            <span className="font-medium">Terpilih</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-md bg-teal-50 border border-teal-300 flex items-center justify-center">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <span className="font-medium">Trip Terjadwal</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-md border border-slate-200 bg-white" />
+            <span className="font-medium">Inisiator Baru (On-Demand)</span>
+          </div>
+        </div>
+
+        {onClose && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            className="text-xs h-7 px-3 rounded-full border-slate-200 font-bold"
+          >
+            Tutup
+          </Button>
+        )}
+      </div>
+
+      {/* Bottom Special Offer Banner (Inspired by GetYourGuide footer) */}
+      <div className="mt-3.5 p-2.5 rounded-2xl bg-gradient-to-r from-teal-50/80 to-emerald-50/80 border border-teal-200/60 flex items-center gap-2 text-[11px] text-teal-900">
+        <Sparkles className="h-4 w-4 text-[#00677d] shrink-0" />
+        <span className="leading-tight font-medium">
+          <strong>Garansi Pasti Berangkat:</strong> Gabung grup yang sudah ada atau pilih tanggal sendiri untuk memulai grup armada 6 pax baru.
+        </span>
+      </div>
+    </div>
+  );
+}

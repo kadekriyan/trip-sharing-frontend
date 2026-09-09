@@ -26,6 +26,7 @@ import {
   Check,
   Ticket,
   Printer,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -48,6 +49,7 @@ import {
   getImageUrl,
 } from "@/src/lib/utils";
 import { printTicketVoucher } from "@/src/lib/ticket-printer";
+import { TripCalendarPicker } from "@/src/components/destination/trip-calendar-picker";
 import type { Destination, BookingGroup, Trip, Participant } from "@/src/types";
 
 interface DestinationDetailClientProps {
@@ -64,6 +66,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [isCustomDateMode, setIsCustomDateMode] = useState<boolean>(false);
   const [customDateInput, setCustomDateInput] = useState<string>("");
+  const [isCalendarOpen, setIsCalendarOpen] = useState<boolean>(false);
 
   const [groups, setGroups] = useState<BookingGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<string>("");
@@ -547,33 +550,99 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 </Badge>
               </div>
 
-              {/* STEP 1: DATE SELECTION & CALENDAR (Traveler Model) */}
-              <div className="space-y-3">
+              {/* STEP 1: DATE SELECTION & CALENDAR (GetYourGuide Model) */}
+              <div className="space-y-3.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
                     <Calendar className="h-4 w-4" />
                     1. Pilih Tanggal Keberangkatan
                   </label>
-                  {isCustomDateMode && (
-                    <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800">
-                      Inisiator Trip
+                  {isCustomDateMode ? (
+                    <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800 font-bold">
+                      Inisiator Trip Baru
+                    </Badge>
+                  ) : (
+                    <Badge variant="success" className="text-[10px] font-bold">
+                      Trip Terjadwal Aktif
                     </Badge>
                   )}
                 </div>
 
-                {/* Available Trip Dates Pills */}
-                {trips.length > 0 && (
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-semibold text-slate-500 block">
-                      Jadwal Tersedia Terdekat:
+                {/* Primary Interactive Date Selector Trigger */}
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                    className="w-full p-3.5 sm:p-4 rounded-2xl border-2 border-slate-200 hover:border-[#00677d] bg-white transition-all shadow-sm hover:shadow text-left flex items-center justify-between group active:scale-[0.99]"
+                    aria-expanded={isCalendarOpen}
+                    aria-label="Buka kalender pemilihan tanggal trip"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-11 w-11 rounded-2xl bg-teal-50 text-[#00677d] flex items-center justify-center font-bold shrink-0 group-hover:bg-[#00677d] group-hover:text-white transition-colors shadow-inner">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Tanggal Trip Dipilih
+                        </span>
+                        <span className="font-heading font-extrabold text-sm sm:text-base text-[#191c1e] truncate block">
+                          {selectedDate || customDateInput
+                            ? formatDate(selectedDate || customDateInput)
+                            : "Ketuk untuk memilih tanggal..."}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-bold text-[#00677d] hidden sm:inline-block">
+                        {isCalendarOpen ? "Tutup Kalender" : "Pilih di Kalender"}
+                      </span>
+                      <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-teal-50 group-hover:text-[#00677d] transition">
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform duration-200 ${
+                            isCalendarOpen ? "rotate-180 text-[#00677d]" : ""
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Interactive GetYourGuide-Style Calendar (Mobile 1-Month / Desktop 2-Months) */}
+                  {isCalendarOpen && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                      <TripCalendarPicker
+                        selectedDate={selectedDate || customDateInput}
+                        minDate={minCustomDate}
+                        trips={trips}
+                        pricePerPax={destination ? getDestinationPrice(destination) : 850000}
+                        onSelectDate={(dateStr, matchedTrip) => {
+                          if (matchedTrip) {
+                            handleSelectTrip(matchedTrip);
+                          } else {
+                            handleCustomDateChange(dateStr);
+                          }
+                          setIsCalendarOpen(false);
+                        }}
+                        onClose={() => setIsCalendarOpen(false)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Shortcuts: Upcoming Scheduled Trips */}
+                {trips.length > 0 && !isCalendarOpen && (
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-bold text-slate-500 block">
+                      Jadwal Populer Terdekat:
                     </span>
-                    <div className="grid grid-cols-1 gap-2">
-                      {trips.map((trp) => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {trips.slice(0, 4).map((trp) => {
                         const isSelected = selectedTripId === trp.id && !isCustomDateMode;
-                        const totalParticipants = trp.groups?.reduce(
-                          (acc, g) => acc + (g.currentParticipants || 0),
-                          0
-                        ) || 0;
+                        const totalParticipants =
+                          trp.groups?.reduce(
+                            (acc, g) => acc + (g.currentParticipants || 0),
+                            0
+                          ) || 0;
                         const totalCapacity = (trp.groups?.length || 1) * 6;
                         const remainingSeats = totalCapacity - totalParticipants;
 
@@ -582,9 +651,9 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                             key={trp.id}
                             type="button"
                             onClick={() => handleSelectTrip(trp)}
-                            className={`p-3 rounded-2xl border text-left transition-all flex items-center justify-between ${
+                            className={`p-2.5 rounded-xl border text-left transition-all flex items-center justify-between ${
                               isSelected
-                                ? "border-[#00677d] bg-[#00677d]/5 ring-2 ring-[#00677d]/20 shadow-sm"
+                                ? "border-[#00677d] bg-teal-50/70 ring-1 ring-[#00677d] shadow-sm font-bold"
                                 : "border-slate-200 hover:border-slate-300 bg-white"
                             }`}
                           >
@@ -598,10 +667,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                               </span>
                             </div>
                             <div className="text-right">
-                              <span className="text-xs font-bold text-[#00677d] block">
-                                {remainingSeats > 0 ? `Sisa ${remainingSeats} Kursi` : "Penuh"}
+                              <span className="text-[11px] font-extrabold text-[#00677d] block">
+                                {remainingSeats > 0 ? `Sisa ${remainingSeats}` : "Penuh"}
                               </span>
-                              <span className="text-[10px] text-slate-400">
+                              <span className="text-[9px] text-slate-400">
                                 {trp.groups?.length || 1} Armada
                               </span>
                             </div>
@@ -612,37 +681,19 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   </div>
                 )}
 
-                {/* Option to Pick Custom Date (Model B: On-Demand Trip Initiator) */}
-                <div className="pt-2 border-t border-dashed border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="custom-date-picker" className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-                      <CalendarPlus className="h-3.5 w-3.5 text-[#ff7f50]" />
-                      Ingin tanggal lain? Pilih Tanggal Sendiri:
-                    </label>
-                  </div>
-                  <Input
-                    id="custom-date-picker"
-                    type="date"
-                    min={minCustomDate}
-                    value={customDateInput}
-                    onChange={(e) => handleCustomDateChange(e.target.value)}
-                    className="text-xs bg-slate-50 border-slate-200 h-9 font-medium"
-                  />
-
-                  {/* Initiator Info Callout */}
-                  {isCustomDateMode && customDateInput && (
-                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5 animate-in fade-in duration-200">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                        <Sparkles className="h-4 w-4 text-[#ff7f50]" />
-                        <span>Jadilah Inisiator Trip!</span>
-                      </div>
-                      <p className="text-[11px] text-amber-800 leading-relaxed font-normal">
-                        Belum ada grup di tanggal <strong>{formatDate(customDateInput)}</strong>. 
-                        Pemesanan Anda akan otomatis membuka <strong>Grup Mobil #1</strong> baru, dan traveler lain dapat bergabung.
-                      </p>
+                {/* Initiator Info Callout */}
+                {isCustomDateMode && (selectedDate || customDateInput) && (
+                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                      <Sparkles className="h-4 w-4 text-[#ff7f50]" />
+                      <span>Jadilah Inisiator Trip!</span>
                     </div>
-                  )}
-                </div>
+                    <p className="text-[11px] text-amber-800 leading-relaxed font-normal">
+                      Belum ada grup di tanggal <strong>{formatDate(selectedDate || customDateInput)}</strong>.
+                      Pemesanan Anda otomatis membuka <strong>Grup Mobil #1</strong> baru, dan traveler lain dapat bergabung.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* STEP 2: GROUP AVAILABILITY VISUALIZER */}
