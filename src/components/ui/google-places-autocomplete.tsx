@@ -26,6 +26,7 @@ declare global {
   interface Window {
     google?: any;
     __googleMapsLoadingPromise?: Promise<void>;
+    gm_authFailure?: () => void;
   }
 }
 
@@ -77,6 +78,7 @@ export function GooglePlacesAutocomplete({
   const autocompleteRef = useRef<any>(null);
   const [isLoadingScript, setIsLoadingScript] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [authError, setAuthError] = useState(false);
   const [inputValue, setInputValue] = useState(value || "");
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
@@ -86,6 +88,17 @@ export function GooglePlacesAutocomplete({
   }, [value]);
 
   useEffect(() => {
+    // Hook into Google Maps auth failure callback (e.g. RefererNotAllowedMapError)
+    if (typeof window !== "undefined") {
+      window.gm_authFailure = () => {
+        setAuthError(true);
+        setLoadError(true);
+        console.warn(
+          "Google Maps Auth Failure (RefererNotAllowedMapError): Pastikan domain http://localhost:3000/* sudah ditambahkan ke HTTP referrers di Google Cloud Console."
+        );
+      };
+    }
+
     if (!apiKey) {
       // If no API key provided, allow manual typing without google maps
       return;
@@ -215,7 +228,20 @@ export function GooglePlacesAutocomplete({
         </div>
       )}
 
-      {loadError && !hasCoordinates && inputValue && (
+      {/* Auth / Referrer Warning or Manual Mode Notice */}
+      {authError && (
+        <div className="flex items-start gap-1.5 text-[11px] text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200/80 animate-in fade-in">
+          <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="font-bold block">Google Maps API: Referrer Belum Diizinkan</span>
+            <span className="text-[10px] text-amber-700 block leading-relaxed">
+              Domain <code className="bg-amber-100 px-1 py-0.5 rounded text-amber-900 font-mono text-[10px]">localhost:3000</code> belum didaftarkan pada HTTP referrers di Google Cloud Console. Mode pengetikan alamat manual aktif.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {loadError && !authError && !hasCoordinates && inputValue && (
         <div className="flex items-center gap-1.5 text-[10px] text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
           <AlertCircle className="h-3 w-3 text-amber-500 shrink-0" />
           <span>Mode input manual aktif (Alamat tetap tersimpan pada pesanan).</span>
