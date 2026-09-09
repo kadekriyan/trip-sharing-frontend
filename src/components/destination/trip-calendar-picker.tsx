@@ -165,8 +165,28 @@ export function TripCalendarPicker({
       let remainingSeats: number | undefined = undefined;
       if (matchedTrip) {
         const totalPax =
-          matchedTrip.groups?.reduce((acc, g) => acc + (g.currentParticipants || 0), 0) || 0;
-        const totalCap = (matchedTrip.groups?.length || 1) * 6;
+          matchedTrip.groups && matchedTrip.groups.length > 0
+            ? matchedTrip.groups.reduce(
+                (acc, g) =>
+                  acc +
+                  (Number(g.currentParticipants) ||
+                    (Array.isArray(g.participants) ? g.participants.length : 0)),
+                0
+              )
+            : Number(matchedTrip.currentParticipants || matchedTrip.current_participants || 0);
+
+        const totalCap =
+          matchedTrip.groups && matchedTrip.groups.length > 0
+            ? matchedTrip.groups.reduce(
+                (acc, g) => acc + (Number(g.capacity || g.maxParticipants) || 6),
+                0
+              )
+            : Number(
+                matchedTrip.maxParticipants ||
+                  matchedTrip.max_participants ||
+                  (matchedTrip.maxGroups ? matchedTrip.maxGroups * 6 : 6)
+              );
+
         remainingSeats = Math.max(0, totalCap - totalPax);
       }
 

@@ -121,10 +121,22 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
           setSelectedDate(firstTrip.departureDate);
           setIsCustomDateMode(false);
 
-          const tripGroups = firstTrip.groups || [];
+          let tripGroups = firstTrip.groups || [];
+          if (tripGroups.length === 0 && firstTrip.id) {
+            try {
+              const liveGroups = await destinationService.getTripAvailability(firstTrip.id);
+              if (liveGroups && liveGroups.length > 0) {
+                tripGroups = liveGroups;
+              }
+            } catch {
+              // Fallback to existing
+            }
+          }
           setGroups(tripGroups);
 
-          const openGroup = tripGroups.find((g) => g.status === "open" && g.currentParticipants < 6);
+          const openGroup = tripGroups.find(
+            (g) => g.status === "open" && (g.currentParticipants || 0) < (g.capacity || 6)
+          );
           if (openGroup) {
             setSelectedGroup(openGroup.id);
           } else if (tripGroups.length > 0) {
@@ -165,16 +177,31 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   }, [initialDestination, minCustomDate]);
 
   // Handle choosing a scheduled trip
-  const handleSelectTrip = (trip: Trip) => {
+  const handleSelectTrip = async (trip: Trip) => {
     setIsCustomDateMode(false);
     setSelectedTripId(trip.id);
     setSelectedDate(trip.departureDate);
     setCustomDateInput("");
 
-    const tripGroups = trip.groups || [];
+    let tripGroups = trip.groups || [];
+    if (tripGroups.length === 0 && trip.id) {
+      setIsLoadingAvailability(true);
+      try {
+        const liveGroups = await destinationService.getTripAvailability(trip.id);
+        if (liveGroups && liveGroups.length > 0) {
+          tripGroups = liveGroups;
+        }
+      } catch {
+        // Silently handled
+      } finally {
+        setIsLoadingAvailability(false);
+      }
+    }
     setGroups(tripGroups);
 
-    const openGroup = tripGroups.find((g) => g.status === "open" && g.currentParticipants < 6);
+    const openGroup = tripGroups.find(
+      (g) => g.status === "open" && (g.currentParticipants || 0) < (g.capacity || 6)
+    );
     if (openGroup) {
       setSelectedGroup(openGroup.id);
     } else if (tripGroups.length > 0) {
@@ -639,12 +666,31 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       {trips.slice(0, 4).map((trp) => {
                         const isSelected = selectedTripId === trp.id && !isCustomDateMode;
                         const totalParticipants =
-                          trp.groups?.reduce(
-                            (acc, g) => acc + (g.currentParticipants || 0),
-                            0
-                          ) || 0;
-                        const totalCapacity = (trp.groups?.length || 1) * 6;
-                        const remainingSeats = totalCapacity - totalParticipants;
+                          trp.groups && trp.groups.length > 0
+                            ? trp.groups.reduce(
+                                (acc, g) =>
+                                  acc +
+                                  (Number(g.currentParticipants) ||
+                                    (Array.isArray(g.participants) ? g.participants.length : 0)),
+                                0
+                              )
+                            : Number(trp.currentParticipants || trp.current_participants || 0);
+
+                        const totalCapacity =
+                          trp.groups && trp.groups.length > 0
+                            ? trp.groups.reduce(
+                                (acc, g) => acc + (Number(g.capacity || g.maxParticipants) || 6),
+                                0
+                              )
+                            : Number(
+                                trp.maxParticipants ||
+                                  trp.max_participants ||
+                                  (trp.maxGroups ? trp.maxGroups * 6 : 6)
+                              );
+
+                        const remainingSeats = Math.max(0, totalCapacity - totalParticipants);
+                        const fleetCount =
+                          trp.groups && trp.groups.length > 0 ? trp.groups.length : trp.maxGroups || 1;
 
                         return (
                           <button
@@ -671,7 +717,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                                 {remainingSeats > 0 ? `Sisa ${remainingSeats}` : "Penuh"}
                               </span>
                               <span className="text-[9px] text-slate-400">
-                                {trp.groups?.length || 1} Armada
+                                {fleetCount} Armada
                               </span>
                             </div>
                           </button>

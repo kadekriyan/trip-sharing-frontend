@@ -1,4 +1,5 @@
 import { apiClient } from "@/src/lib/api-client";
+import { normalizeTrip, normalizeBookingGroup } from "@/src/services/admin.service";
 import type { Destination, BookingGroup, Trip } from "@/src/types";
 
 export interface DestinationFilterParams {
@@ -46,26 +47,36 @@ export const destinationService = {
 
   async getTripsByDestination(destinationId: string): Promise<Trip[]> {
     try {
-      const res = await apiClient.get<Trip[]>("/trips", {
+      const res = await apiClient.get<Record<string, unknown>[]>("/trips", {
         params: { destinationId },
       });
       if (res.success && Array.isArray(res.data)) {
-        return res.data;
+        return res.data.map((raw) => normalizeTrip(raw));
       }
     } catch {
-      // Return empty array on network/server error
+      // Fallback: Try /admin/trips
+      try {
+        const altRes = await apiClient.get<Record<string, unknown>[]>("/admin/trips", {
+          params: { destinationId },
+        });
+        if (altRes.success && Array.isArray(altRes.data)) {
+          return altRes.data.map((raw) => normalizeTrip(raw));
+        }
+      } catch {
+        // Return empty array on error
+      }
     }
     return [];
   },
 
   async getTripAvailability(tripId: string, departureDate?: string): Promise<BookingGroup[]> {
     try {
-      const res = await apiClient.get<{ tripId: string; departureDate: string; groups: BookingGroup[] }>(
+      const res = await apiClient.get<{ tripId: string; departureDate: string; groups: Record<string, unknown>[] }>(
         `/trips/${tripId}/availability`,
         { params: { departureDate } }
       );
       if (res.success && res.data?.groups && Array.isArray(res.data.groups)) {
-        return res.data.groups;
+        return res.data.groups.map((g) => normalizeBookingGroup(g, tripId));
       }
     } catch {
       // Return empty groups on error
