@@ -24,6 +24,7 @@ import {
   Mail,
   Phone,
   ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -43,8 +44,9 @@ import {
   getDestinationTitle,
   getPaymentBadge,
   getTripStatusBadge,
+  parsePickupLocation,
 } from "@/src/lib/utils";
-import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload, TripStatus } from "@/src/types";
+import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload, TripStatus, Participant, BookingGroup } from "@/src/types";
 
 export default function AdminTripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -91,15 +93,129 @@ export default function AdminTripsPage() {
   // Notification / Feedback State
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // Helper to link trips, groups, drivers, and participants bidirectionally
+  const linkTripsAndParticipants = (
+    tripsData: Trip[],
+    participantsData: Participant[],
+    groupsData: BookingGroup[] = [],
+    driversData: Driver[] = []
+  ): Trip[] => {
+    const partsByTrip = new Map<string, Participant[]>();
+    const partsByGroup = new Map<string, Participant[]>();
+    const groupsByTrip = new Map<string, BookingGroup[]>();
+    const driverById = new Map<string, Driver>();
+
+    for (const d of driversData) {
+      if (d.id) driverById.set(d.id, d);
+    }
+
+    for (const g of groupsData) {
+      const tId = g.tripId || g.trip?.id;
+      if (tId) {
+        if (!groupsByTrip.has(tId)) groupsByTrip.set(tId, []);
+        groupsByTrip.get(tId)!.push(g);
+      }
+      if (g.driverId && !g.driver) {
+        g.driver = driverById.get(g.driverId) || null;
+      }
+      if (Array.isArray(g.participants)) {
+        for (const gp of g.participants) {
+          const normGp = gp as Participant;
+          const gId = g.id;
+          if (!partsByGroup.has(gId)) partsByGroup.set(gId, []);
+          if (!partsByGroup.get(gId)!.some((p) => p.id === normGp.id || (Boolean(p.bookingCode) && p.bookingCode === normGp.bookingCode))) {
+            partsByGroup.get(gId)!.push(normGp);
+          }
+          if (tId) {
+            if (!partsByTrip.has(tId)) partsByTrip.set(tId, []);
+            if (!partsByTrip.get(tId)!.some((p) => p.id === normGp.id || (Boolean(p.bookingCode) && p.bookingCode === normGp.bookingCode))) {
+              partsByTrip.get(tId)!.push(normGp);
+            }
+          }
+        }
+      }
+    }
+
+    for (const p of participantsData) {
+      const tId = p.tripId || p.trip?.id;
+      if (tId) {
+        if (!partsByTrip.has(tId)) partsByTrip.set(tId, []);
+        if (!partsByTrip.get(tId)!.some((item) => item.id === p.id || (Boolean(item.bookingCode) && item.bookingCode === p.bookingCode))) {
+          partsByTrip.get(tId)!.push(p);
+        }
+      }
+      const gId = p.bookingGroupId || p.group?.id || p.bookingGroup?.id;
+      if (gId) {
+        if (!partsByGroup.has(gId)) partsByGroup.set(gId, []);
+        if (!partsByGroup.get(gId)!.some((item) => item.id === p.id || (Boolean(item.bookingCode) && item.bookingCode === p.bookingCode))) {
+          partsByGroup.get(gId)!.push(p);
+        }
+      }
+    }
+
+    return tripsData.map((t) => {
+      const directParts = partsByTrip.get(t.id) || [];
+      const tripGroups = (t.groups && t.groups.length > 0) ? t.groups : (groupsByTrip.get(t.id) || []);
+      const groupParts: Participant[] = [];
+
+      for (const g of tripGroups) {
+        if (g.driverId && !g.driver) {
+          g.driver = driverById.get(g.driverId) || null;
+        }
+        const gList = partsByGroup.get(g.id) || (Array.isArray(g.participants) ? g.participants : []);
+        g.participants = gList;
+        if (gList.length > 0 && (!g.currentParticipants || g.currentParticipants < gList.length)) {
+          g.currentParticipants = gList.length;
+        }
+        for (const gp of gList) {
+          if (
+            !directParts.some((dp) => dp.id === gp.id || (Boolean(dp.bookingCode) && dp.bookingCode === gp.bookingCode)) &&
+            !groupParts.some((gpExisting) => gpExisting.id === gp.id || (Boolean(gpExisting.bookingCode) && gpExisting.bookingCode === gp.bookingCode))
+          ) {
+            groupParts.push(gp);
+          }
+        }
+      }
+
+      const existingTripParts = Array.isArray(t.participants) ? t.participants : [];
+      const allPartsMap = new Map<string, Participant>();
+
+      for (const p of existingTripParts) {
+        if (p.id) allPartsMap.set(p.id, p);
+        else if (p.bookingCode) allPartsMap.set(p.bookingCode, p);
+      }
+      for (const p of directParts) {
+        if (p.id && !allPartsMap.has(p.id)) allPartsMap.set(p.id, p);
+        else if (p.bookingCode && !allPartsMap.has(p.bookingCode)) allPartsMap.set(p.bookingCode, p);
+      }
+      for (const p of groupParts) {
+        if (p.id && !allPartsMap.has(p.id)) allPartsMap.set(p.id, p);
+        else if (p.bookingCode && !allPartsMap.has(p.bookingCode)) allPartsMap.set(p.bookingCode, p);
+      }
+
+      const combined = Array.from(allPartsMap.values());
+
+      return {
+        ...t,
+        groups: tripGroups,
+        booking_groups: tripGroups,
+        participants: combined,
+      };
+    });
+  };
+
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [tripsData, destsData, driversData] = await Promise.all([
+      const [tripsData, destsData, driversData, partsData, groupsData] = await Promise.all([
         adminService.getTrips(),
         adminService.getDestinations(),
         adminService.getDrivers(),
+        adminService.getParticipants(),
+        adminService.getGroups(),
       ]);
-      setTrips(tripsData);
+      const enriched = linkTripsAndParticipants(tripsData, partsData, groupsData, driversData);
+      setTrips(enriched);
       setDestinations(destsData);
       setDrivers(driversData);
     } catch {
@@ -113,13 +229,16 @@ export default function AdminTripsPage() {
     let isMounted = true;
     async function initData() {
       try {
-        const [tripsData, destsData, driversData] = await Promise.all([
+        const [tripsData, destsData, driversData, partsData, groupsData] = await Promise.all([
           adminService.getTrips(),
           adminService.getDestinations(),
           adminService.getDrivers(),
+          adminService.getParticipants(),
+          adminService.getGroups(),
         ]);
         if (isMounted) {
-          setTrips(tripsData);
+          const enriched = linkTripsAndParticipants(tripsData, partsData, groupsData, driversData);
+          setTrips(enriched);
           setDestinations(destsData);
           setDrivers(driversData);
         }
@@ -801,41 +920,86 @@ export default function AdminTripsPage() {
                           <table className="w-full text-left text-xs border-collapse">
                             <thead>
                               <tr className="border-b border-slate-200 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                                <th className="py-2 px-3">Kode Booking</th>
-                                <th className="py-2 px-3">Nama Peserta</th>
-                                <th className="py-2 px-3">Kontak</th>
-                                <th className="py-2 px-3">Alokasi Grup</th>
-                                <th className="py-2 px-3">Kamar & Asuransi</th>
-                                <th className="py-2 px-3">Status Bayar</th>
-                                <th className="py-2 px-3 text-right">Aksi</th>
+                                <th className="py-2.5 px-3">Kode Booking</th>
+                                <th className="py-2.5 px-3">Nama Peserta</th>
+                                <th className="py-2.5 px-3">Kontak</th>
+                                <th className="py-2.5 px-3">Alokasi Grup</th>
+                                <th className="py-2.5 px-3">Lokasi Penjemputan</th>
+                                <th className="py-2.5 px-3">Kamar & Asuransi</th>
+                                <th className="py-2.5 px-3">Status Bayar</th>
+                                <th className="py-2.5 px-3 text-right">Aksi</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200/60 bg-white">
                               {trip.participants.map((p) => {
                                 const payBadge = getPaymentBadge(p.paymentStatus);
+                                const parsedLoc = parsePickupLocation(p.pickupLocation);
+                                const gmapsQuery = p.pickupLatitude && p.pickupLongitude
+                                  ? `${p.pickupLatitude},${p.pickupLongitude}`
+                                  : p.pickupLocation || "";
+                                const gmapsUrl = gmapsQuery
+                                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(gmapsQuery)}`
+                                  : null;
+
                                 return (
                                   <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="py-2.5 px-3 font-mono font-bold text-[#00677d]">
-                                      {p.bookingCode}
+                                      {p.bookingCode || "—"}
                                     </td>
-                                    <td className="py-2.5 px-3 font-bold text-slate-800">
-                                      {p.fullName}
+                                    <td className="py-2.5 px-3">
+                                      <div className="font-bold text-slate-800">{p.fullName}</div>
+                                      {p.identityNumber && (
+                                        <div className="text-[10px] text-slate-400 font-mono">
+                                          NIK: {p.identityNumber}
+                                        </div>
+                                      )}
                                     </td>
                                     <td className="py-2.5 px-3 text-slate-600 space-y-0.5 text-[11px]">
                                       <div className="flex items-center gap-1">
-                                        <Mail className="h-3 w-3 text-slate-400" />
-                                        <span>{p.email}</span>
+                                        <Mail className="h-3 w-3 text-slate-400 shrink-0" />
+                                        <span className="truncate max-w-[140px]">{p.email || "—"}</span>
                                       </div>
                                       <div className="flex items-center gap-1">
-                                        <Phone className="h-3 w-3 text-slate-400" />
-                                        <span>{p.phoneNumber}</span>
+                                        <Phone className="h-3 w-3 text-slate-400 shrink-0" />
+                                        <span>{p.phoneNumber || "—"}</span>
                                       </div>
                                     </td>
                                     <td className="py-2.5 px-3">
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-50 text-[#00677d] font-bold text-[11px]">
                                         <Car className="h-3 w-3" />
-                                        Grup #{p.group?.groupNumber || 1}
+                                        Grup #{p.group?.groupNumber || p.bookingGroup?.groupNumber || 1}
                                       </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 max-w-xs">
+                                      <div className="space-y-0.5">
+                                        <div className="font-bold text-slate-800 flex items-center gap-1 text-[11px]">
+                                          <MapPin className="h-3 w-3 text-[#ff7f50] shrink-0" />
+                                          <span className="truncate">{parsedLoc.placeName}</span>
+                                        </div>
+                                        {parsedLoc.address && (
+                                          <div className="text-[10px] text-slate-500 line-clamp-1">
+                                            {parsedLoc.address}
+                                          </div>
+                                        )}
+                                        {p.pickupNotes && (
+                                          <div className="text-[10px] text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 inline-block">
+                                            Catatan: {p.pickupNotes}
+                                          </div>
+                                        )}
+                                        {gmapsUrl && (
+                                          <div>
+                                            <a
+                                              href={gmapsUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#00677d] hover:underline mt-0.5"
+                                            >
+                                              <span>Buka Maps</span>
+                                              <ExternalLink className="h-2.5 w-2.5" />
+                                            </a>
+                                          </div>
+                                        )}
+                                      </div>
                                     </td>
                                     <td className="py-2.5 px-3 text-[11px] text-slate-600">
                                       <div>{p.roomPreference === "single" ? "Kamar Single (+Rp350rb)" : "Twin Sharing"}</div>
@@ -859,7 +1023,7 @@ export default function AdminTripsPage() {
                                         variant="outline"
                                         className="h-7 text-[11px] px-2.5 text-[#00677d]"
                                       >
-                                        <Link href={`/admin/participants?search=${p.bookingCode}`}>
+                                        <Link href={`/admin/participants?search=${p.bookingCode || p.fullName}`}>
                                           Kelola
                                         </Link>
                                       </Button>

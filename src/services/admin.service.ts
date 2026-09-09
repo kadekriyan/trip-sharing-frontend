@@ -254,6 +254,18 @@ export const adminService = {
             for (const part of g.participants) {
               if (part.id) groupByParticipant.set(part.id, g);
               if (part.bookingCode) groupByParticipant.set(part.bookingCode, g);
+
+              // If this participant is not yet in merged array, add it
+              if (part.id && !apiIds.has(part.id)) {
+                merged.push(
+                  normalizeParticipant({
+                    ...(part as unknown as Record<string, unknown>),
+                    bookingGroupId: g.id,
+                    tripId: g.tripId || (g.trip as Trip | undefined)?.id || "",
+                  })
+                );
+                apiIds.add(part.id);
+              }
             }
           }
         }
@@ -516,6 +528,50 @@ export const adminService = {
       } catch {
         // Continue silently
       }
+
+      // Enrich trips with participants from /admin/participants
+      try {
+        const parts = await this.getParticipants();
+        if (parts && parts.length > 0) {
+          const partsByTrip = new Map<string, Participant[]>();
+          const partsByGroup = new Map<string, Participant[]>();
+
+          for (const p of parts) {
+            const tId = p.tripId || p.trip?.id;
+            if (tId) {
+              if (!partsByTrip.has(tId)) partsByTrip.set(tId, []);
+              partsByTrip.get(tId)!.push(p);
+            }
+            const gId = p.bookingGroupId || p.group?.id || p.bookingGroup?.id;
+            if (gId) {
+              if (!partsByGroup.has(gId)) partsByGroup.set(gId, []);
+              partsByGroup.get(gId)!.push(p);
+            }
+          }
+
+          for (const trip of apiTrips) {
+            const tripParts = [...(partsByTrip.get(trip.id) || [])];
+            if (Array.isArray(trip.groups)) {
+              for (const g of trip.groups) {
+                const gParts = partsByGroup.get(g.id);
+                if (gParts) {
+                  g.participants = gParts;
+                  for (const gp of gParts) {
+                    if (!tripParts.some((existing) => existing.id === gp.id)) {
+                      tripParts.push(gp);
+                    }
+                  }
+                }
+              }
+            }
+            if (!trip.participants || trip.participants.length === 0) {
+              trip.participants = tripParts;
+            }
+          }
+        }
+      } catch {
+        // Continue silently
+      }
     }
 
     return apiTrips;
@@ -545,6 +601,17 @@ export const adminService = {
         if (groups && groups.length > 0) {
           trip.groups = groups;
           trip.booking_groups = groups;
+        }
+      } catch {
+        // Ignore
+      }
+    }
+
+    if (trip && (!trip.participants || trip.participants.length === 0)) {
+      try {
+        const parts = await this.getParticipants({ tripId });
+        if (parts && parts.length > 0) {
+          trip.participants = parts;
         }
       } catch {
         // Ignore
