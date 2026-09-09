@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { MapPin, Loader2, X, CheckCircle2, AlertCircle, Search, Navigation } from "lucide-react";
+import {
+  MapPin,
+  Loader2,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Search,
+  Navigation,
+  Building2,
+  Pencil,
+} from "lucide-react";
 import { Input } from "@/src/components/ui/input";
 
 export interface PlaceSelection {
@@ -13,6 +23,7 @@ export interface PlaceSelection {
 
 interface GooglePlacesAutocompleteProps {
   value: string;
+  placeName?: string;
   onChange: (selection: PlaceSelection) => void;
   placeholder?: string;
   disabled?: boolean;
@@ -72,6 +83,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
 
 export function GooglePlacesAutocomplete({
   value,
+  placeName = "",
   onChange,
   placeholder = "Cari nama hotel, stasiun, bandara, atau alamat penjemputan...",
   disabled = false,
@@ -91,7 +103,12 @@ export function GooglePlacesAutocomplete({
   const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [authError, setAuthError] = useState(false);
+
   const [inputValue, setInputValue] = useState(value || "");
+  const [selectedPlaceName, setSelectedPlaceName] = useState(placeName || "");
+  const [selectedAddress, setSelectedAddress] = useState(value || "");
+  const [isEditMode, setIsEditMode] = useState(!value);
+
   const [predictions, setPredictions] = useState<PredictionItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -99,7 +116,14 @@ export function GooglePlacesAutocomplete({
 
   useEffect(() => {
     setInputValue(value || "");
-  }, [value]);
+    setSelectedAddress(value || "");
+    if (placeName) {
+      setSelectedPlaceName(placeName);
+    }
+    if (value && !isEditMode) {
+      setIsEditMode(false);
+    }
+  }, [value, placeName]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -216,8 +240,12 @@ export function GooglePlacesAutocomplete({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
+    setSelectedAddress(val);
+    setSelectedPlaceName("");
+
     onChange({
       address: val,
+      placeName: val,
       latitude: undefined,
       longitude: undefined,
     });
@@ -252,41 +280,56 @@ export function GooglePlacesAutocomplete({
         const lat = typeof latVal === "function" ? latVal() : latVal;
         const lng = typeof lngVal === "function" ? lngVal() : lngVal;
 
-        const resolvedAddress =
-          place.formattedAddress ||
-          (item.subtitle ? `${place.displayName || item.title}, ${item.subtitle}` : place.displayName || item.title);
+        const pName = place.displayName || item.title || "";
+        const pAddress = place.formattedAddress || item.subtitle || pName;
 
-        setInputValue(resolvedAddress);
+        setSelectedPlaceName(pName);
+        setSelectedAddress(pAddress);
+        setInputValue(pName);
+        setIsEditMode(false);
+
         onChange({
-          address: resolvedAddress,
+          address: pAddress,
+          placeName: pName,
           latitude: typeof lat === "number" ? lat : undefined,
           longitude: typeof lng === "number" ? lng : undefined,
-          placeName: place.displayName || item.title,
         });
       } else {
-        const full = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
-        setInputValue(full);
+        const pName = item.title;
+        const pAddress = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
+
+        setSelectedPlaceName(pName);
+        setSelectedAddress(pAddress);
+        setInputValue(pName);
+        setIsEditMode(false);
+
         onChange({
-          address: full,
+          address: pAddress,
+          placeName: pName,
           latitude: undefined,
           longitude: undefined,
-          placeName: item.title,
         });
       }
 
-      // Reset session token for subsequent searches (cost optimization)
+      // Reset session token for subsequent searches
       if (placesLibRef.current?.AutocompleteSessionToken) {
         sessionTokenRef.current = new placesLibRef.current.AutocompleteSessionToken();
       }
     } catch (err) {
       console.warn("Place details fetch failed (falling back to text):", err);
-      const full = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
-      setInputValue(full);
+      const pName = item.title;
+      const pAddress = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
+
+      setSelectedPlaceName(pName);
+      setSelectedAddress(pAddress);
+      setInputValue(pName);
+      setIsEditMode(false);
+
       onChange({
-        address: full,
+        address: pAddress,
+        placeName: pName,
         latitude: undefined,
         longitude: undefined,
-        placeName: item.title,
       });
     } finally {
       setIsFetchingDetails(false);
@@ -295,102 +338,159 @@ export function GooglePlacesAutocomplete({
 
   const handleClear = () => {
     setInputValue("");
+    setSelectedPlaceName("");
+    setSelectedAddress("");
     setPredictions([]);
     setShowDropdown(false);
+    setIsEditMode(true);
+
     onChange({
       address: "",
+      placeName: "",
       latitude: undefined,
       longitude: undefined,
     });
+
     if (inputRef.current) {
       inputRef.current.focus();
     }
   };
 
+  const handleStartEdit = () => {
+    setIsEditMode(true);
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 50);
+  };
+
   const hasCoordinates = typeof latitude === "number" && typeof longitude === "number";
+  const hasConfirmedSelection = !isEditMode && (selectedPlaceName || selectedAddress);
 
   return (
-    <div ref={containerRef} className={`relative space-y-1.5 ${className}`}>
-      <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center">
-          {isLoadingScript || isSearching || isFetchingDetails ? (
-            <Loader2 className="h-4 w-4 animate-spin text-[#00677d]" />
-          ) : (
-            <MapPin className="h-4 w-4 text-[#00677d]" />
-          )}
-        </div>
-
-        <Input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onFocus={() => {
-            if (predictions.length > 0 && inputValue.trim().length >= 2) {
-              setShowDropdown(true);
-            }
-          }}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={required}
-          className="pl-9 pr-9 text-xs bg-slate-50 border-slate-200 h-10 font-medium focus:bg-white transition-colors"
-        />
-
-        {inputValue && !disabled && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
-            title="Hapus lokasi"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Autocomplete Predictions Dropdown (Places API New) */}
-      {showDropdown && predictions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
-          <div className="p-2 bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span className="flex items-center gap-1">
-              <Search className="h-3 w-3 text-[#00677d]" /> Rekomendasi Lokasi (Places API)
-            </span>
-            <span>Indonesia</span>
-          </div>
-
-          {predictions.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => handleSelectSuggestion(item)}
-              className="w-full text-left p-3 hover:bg-teal-50/60 transition-colors flex items-start gap-2.5 group"
-            >
-              <div className="h-7 w-7 rounded-xl bg-slate-100 text-slate-500 group-hover:bg-[#00677d] group-hover:text-white flex items-center justify-center shrink-0 transition-colors mt-0.5 shadow-sm">
-                <Navigation className="h-3.5 w-3.5" />
+    <div ref={containerRef} className={`relative space-y-2 ${className}`}>
+      {/* 1. VIEW MODE: SELECTED PLACE CARD WITH HIERARCHY */}
+      {hasConfirmedSelection ? (
+        <div className="p-3.5 rounded-2xl bg-white border-2 border-teal-600/30 hover:border-[#00677d] shadow-sm space-y-2.5 transition-all animate-in fade-in duration-200">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <div className="h-9 w-9 rounded-xl bg-teal-50 text-[#00677d] flex items-center justify-center shrink-0 shadow-inner mt-0.5">
+                <Building2 className="h-5 w-5" />
               </div>
-              <div className="min-w-0 flex-1">
-                <span className="font-bold text-xs text-slate-800 group-hover:text-[#00677d] block truncate transition-colors">
-                  {item.title}
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#00677d] block">
+                  Lokasi Penjemputan Dipilih
                 </span>
-                {item.subtitle && (
-                  <span className="text-[11px] text-slate-500 block truncate mt-0.5">
-                    {item.subtitle}
-                  </span>
+                <h4 className="font-heading font-extrabold text-sm text-[#191c1e] truncate block">
+                  {selectedPlaceName || selectedAddress}
+                </h4>
+                {selectedAddress && selectedAddress !== selectedPlaceName && (
+                  <p className="text-xs text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">
+                    {selectedAddress}
+                  </p>
                 )}
               </div>
-            </button>
-          ))}
-        </div>
-      )}
+            </div>
 
-      {/* Coordinate & Status Badges */}
-      {hasCoordinates && (
-        <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/80 animate-in fade-in">
-          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-          <span className="font-semibold">Titik GPS Terkunci:</span>
-          <span className="font-mono text-[10px] text-emerald-800">
-            {latitude?.toFixed(6)}, {longitude?.toFixed(6)}
-          </span>
+            <button
+              type="button"
+              onClick={handleStartEdit}
+              disabled={disabled}
+              className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:border-[#00677d] bg-slate-50 hover:bg-teal-50/60 text-slate-700 hover:text-[#00677d] text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 active:scale-95 shadow-2xs"
+              title="Ganti titik penjemputan"
+            >
+              <Pencil className="h-3 w-3" />
+              <span>Ganti</span>
+            </button>
+          </div>
+
+          {/* GPS Coordinates Badge */}
+          {hasCoordinates && (
+            <div className="flex items-center gap-1.5 text-[11px] text-emerald-800 bg-emerald-50/80 px-2.5 py-1 rounded-xl border border-emerald-200/80 w-fit">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              <span className="font-semibold">Titik GPS Terkunci:</span>
+              <span className="font-mono text-[10px] text-emerald-900 font-bold">
+                {latitude?.toFixed(6)}, {longitude?.toFixed(6)}
+              </span>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* 2. EDIT / SEARCH MODE: AUTOCOMPLETE INPUT */
+        <div className="space-y-1.5">
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none flex items-center">
+              {isLoadingScript || isSearching || isFetchingDetails ? (
+                <Loader2 className="h-4 w-4 animate-spin text-[#00677d]" />
+              ) : (
+                <MapPin className="h-4 w-4 text-[#00677d]" />
+              )}
+            </div>
+
+            <Input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onFocus={() => {
+                if (predictions.length > 0 && inputValue.trim().length >= 2) {
+                  setShowDropdown(true);
+                }
+              }}
+              placeholder={placeholder}
+              disabled={disabled}
+              required={required}
+              className="pl-9 pr-9 text-xs bg-slate-50 border-slate-200 h-10 font-medium focus:bg-white transition-colors"
+            />
+
+            {inputValue && !disabled && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition"
+                title="Hapus lokasi"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Autocomplete Predictions Dropdown (Places API New) */}
+          {showDropdown && predictions.length > 0 && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="p-2 bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <Search className="h-3 w-3 text-[#00677d]" /> Rekomendasi Lokasi (Places API)
+                </span>
+                <span>Indonesia</span>
+              </div>
+
+              {predictions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleSelectSuggestion(item)}
+                  className="w-full text-left p-3 hover:bg-teal-50/60 transition-colors flex items-start gap-2.5 group"
+                >
+                  <div className="h-7 w-7 rounded-xl bg-slate-100 text-slate-500 group-hover:bg-[#00677d] group-hover:text-white flex items-center justify-center shrink-0 transition-colors mt-0.5 shadow-sm">
+                    <Navigation className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-bold text-xs text-slate-800 group-hover:text-[#00677d] block truncate transition-colors">
+                      {item.title}
+                    </span>
+                    {item.subtitle && (
+                      <span className="text-[11px] text-slate-500 block truncate mt-0.5">
+                        {item.subtitle}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

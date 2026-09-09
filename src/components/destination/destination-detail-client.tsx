@@ -82,6 +82,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [identityNumber, setIdentityNumber] = useState("");
   const [nationality, setNationality] = useState("Indonesia");
   const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupPlaceName, setPickupPlaceName] = useState("");
   const [pickupLatitude, setPickupLatitude] = useState<number | undefined>(undefined);
   const [pickupLongitude, setPickupLongitude] = useState<number | undefined>(undefined);
   const [pickupNotes, setPickupNotes] = useState("");
@@ -307,7 +308,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         hasInsurance,
         healthNotes: healthNotes || undefined,
         departureDate: selectedDate || customDateInput,
-        pickupLocation: pickupLocation || undefined,
+        pickupLocation:
+          pickupPlaceName && pickupLocation && !pickupLocation.toLowerCase().includes(pickupPlaceName.toLowerCase())
+            ? `${pickupPlaceName} (${pickupLocation})`
+            : pickupLocation || pickupPlaceName || undefined,
         pickupLatitude: pickupLatitude,
         pickupLongitude: pickupLongitude,
         pickupNotes: pickupNotes || undefined,
@@ -918,10 +922,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     </label>
                     <GooglePlacesAutocomplete
                       value={pickupLocation}
+                      placeName={pickupPlaceName}
                       latitude={pickupLatitude}
                       longitude={pickupLongitude}
                       onChange={(sel) => {
                         setPickupLocation(sel.address);
+                        setPickupPlaceName(sel.placeName || "");
                         setPickupLatitude(sel.latitude);
                         setPickupLongitude(sel.longitude);
                       }}
