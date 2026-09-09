@@ -1,5 +1,7 @@
 "use client";
 
+import { parsePickupLocation } from "@/src/lib/utils";
+
 export interface TicketPrintPayload {
   bookingCode: string;
   destinationTitle: string;
@@ -214,12 +216,18 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
         }
         ${
           data.pickupLocation
-            ? `
-        <div class="detail-row">
-          <span class="detail-label">Lokasi Jemput</span>
-          <span class="detail-val" style="max-width: 210px; word-break: break-word;">${data.pickupLocation}</span>
+            ? (() => {
+                const parsed = parsePickupLocation(data.pickupLocation);
+                return `
+        <div class="detail-row" style="flex-direction: column; align-items: flex-start; gap: 2px;">
+          <div style="display: flex; justify-content: space-between; width: 100%;">
+            <span class="detail-label">Lokasi Jemput</span>
+            <span class="detail-val" style="color: #00677d; font-weight: 800;">${parsed.placeName}</span>
+          </div>
+          ${parsed.address ? `<div style="font-size: 10px; color: #64748b; text-align: right; width: 100%;">${parsed.address}</div>` : ""}
         </div>
-        `
+        `;
+              })()
             : ""
         }
         ${

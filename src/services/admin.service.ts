@@ -15,6 +15,7 @@ import type {
   UpdateBookingGroupPayload,
 } from "@/src/types";
 import { MOCK_DESTINATIONS, MOCK_DRIVERS, MOCK_PARTICIPANTS } from "@/src/services/mockData";
+import { normalizeParticipant } from "@/src/lib/utils";
 
 
 export interface ManualParticipantPayload {
@@ -202,13 +203,13 @@ export const adminService = {
         params,
       });
       if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-        apiParticipants = res.data;
+        apiParticipants = res.data.map(normalizeParticipant);
       }
     } catch {
       // Empty participants
     }
 
-    let localFiltered = [...MOCK_PARTICIPANTS];
+    let localFiltered = [...MOCK_PARTICIPANTS].map(normalizeParticipant);
     if (params?.tripId) {
       localFiltered = localFiltered.filter((p) => p.tripId === params.tripId);
     }
@@ -229,7 +230,7 @@ export const adminService = {
     }
 
     if (apiParticipants.length === 0) {
-      return localFiltered;
+      return localFiltered.map(normalizeParticipant);
     }
 
     const apiIds = new Set(apiParticipants.map((p) => p.id));

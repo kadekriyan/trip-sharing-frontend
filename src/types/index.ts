@@ -1,7 +1,7 @@
 export type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded";
 export type GroupStatus = "open" | "waiting" | "full" | "confirmed" | "in_progress" | "completed" | "cancelled";
 export type DriverStatus = "available" | "on_trip" | "maintenance" | "off_duty";
-export type CheckInStatus = "pending" | "checked_in" | "no_show";
+export type CheckInStatus = "pending" | "checked_in" | "no_show" | "cancelled";
 
 export interface ItineraryDay {
   day: number;
@@ -123,34 +123,54 @@ export interface Participant {
   bookingGroup?: BookingGroup;
   group?: BookingGroup;
   fullName: string;
+  full_name?: string;
   email: string;
   phoneNumber: string;
+  phone_number?: string;
   nationality: string;
   identityNumber: string; // KTP / Paspor
+  identity_number?: string;
   dateOfBirth?: string;
   gender?: "male" | "female" | "other";
   roomPreference?: "single" | "shared" | "none";
+  room_preference?: "single" | "shared" | "none";
   healthNotes?: string;
+  health_notes?: string;
   pickupLocation?: string;
+  pickup_location?: string;
   pickupLatitude?: number;
+  pickup_latitude?: number;
   pickupLongitude?: number;
+  pickup_longitude?: number;
   pickupNotes?: string;
+  pickup_notes?: string;
+  departureDate?: string;
+  departure_date?: string;
   emergencyContact?: {
     name: string;
     relationship: string;
     phone: string;
   };
   hasInsurance: boolean;
+  has_insurance?: boolean;
   insuranceFee: number;
+  insurance_fee?: number;
   totalAmount: number;
+  total_amount?: number;
   paymentStatus: PaymentStatus;
+  payment_status?: PaymentStatus;
   checkInStatus: CheckInStatus;
+  check_in_status?: CheckInStatus;
   paymentId?: string;
   payment?: Payment;
   bookingCode: string;
+  booking_code?: string;
   voucherQrCode?: string;
+  voucher_qr_code?: string;
   createdAt: string;
+  created_at?: string;
   updatedAt: string;
+  updated_at?: string;
 }
 
 export interface Driver {

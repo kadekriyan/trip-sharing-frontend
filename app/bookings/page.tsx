@@ -25,7 +25,13 @@ import {
 } from "@/src/components/ui/dialog";
 import { bookingService } from "@/src/services/booking.service";
 import { useAuth } from "@/src/context/auth-context";
-import { formatCurrency, formatDate, getPaymentBadge, getDestinationTitle } from "@/src/lib/utils";
+import {
+  formatCurrency,
+  formatDate,
+  getPaymentBadge,
+  getDestinationTitle,
+  parsePickupLocation,
+} from "@/src/lib/utils";
 import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import type { Participant } from "@/src/types";
 
@@ -289,7 +295,9 @@ function MyBookingsContent() {
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 text-xs text-slate-600">
                               <div className="flex items-center gap-1.5">
                                 <Calendar className="h-3.5 w-3.5 text-[#00677d]" />
-                                <span>{formatDate(booking.createdAt)}</span>
+                                <span className="font-semibold text-slate-800">
+                                  {formatDate(booking.departureDate || booking.trip?.departureDate || booking.createdAt)}
+                                </span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <Users className="h-3.5 w-3.5 text-[#00677d]" />
@@ -306,18 +314,32 @@ function MyBookingsContent() {
                           </div>
 
                           {/* Pickup Location Info (if specified) */}
-                          {booking.pickupLocation && (
-                            <div className="rounded-xl bg-teal-50/50 p-2.5 text-xs text-slate-700 flex items-start gap-2 border border-teal-100">
-                              <MapPin className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
-                              <div className="min-w-0">
-                                <span className="font-bold text-[#00677d] block text-[11px]">Lokasi Penjemputan:</span>
-                                <span className="text-slate-600 truncate block text-xs">{booking.pickupLocation}</span>
-                                {booking.pickupNotes && (
-                                  <span className="text-slate-400 italic block text-[10px] mt-0.5">Catatan: {booking.pickupNotes}</span>
-                                )}
+                          {booking.pickupLocation && (() => {
+                            const parsed = parsePickupLocation(booking.pickupLocation);
+                            return (
+                              <div className="rounded-xl bg-teal-50/60 p-3 text-xs text-slate-700 flex items-start gap-2.5 border border-teal-100/80">
+                                <MapPin className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold text-[#00677d] block text-[11px] uppercase tracking-wider">
+                                    Lokasi Penjemputan:
+                                  </span>
+                                  <span className="font-heading font-extrabold text-slate-800 text-xs block">
+                                    {parsed.placeName}
+                                  </span>
+                                  {parsed.address && (
+                                    <span className="text-slate-600 text-[11px] block mt-0.5">
+                                      {parsed.address}
+                                    </span>
+                                  )}
+                                  {booking.pickupNotes && (
+                                    <span className="text-slate-500 italic block text-[10px] mt-1 bg-white/70 p-1.5 rounded-lg border border-teal-100">
+                                      Catatan: {booking.pickupNotes}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           {/* Driver & Armada Info Bar (if assigned) */}
                           {driver ? (
@@ -355,7 +377,7 @@ function MyBookingsContent() {
                           {/* Card Footer Actions */}
                           <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
                             <div className="text-xs text-slate-500">
-                              <span>Traveler: <strong>{booking.fullName}</strong></span>
+                              <span>Traveler: <strong className="text-slate-800">{booking.fullName || "Guest Traveler"}</strong></span>
                               {booking.hasInsurance && (
                                 <span className="text-emerald-600 font-semibold ml-2">
                                   • Termasuk Asuransi
@@ -494,12 +516,20 @@ function MyBookingsContent() {
                 <div className="space-y-2 text-xs text-left bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Nama Penumpang:</span>
-                    <span className="font-bold text-slate-800">{selectedVoucher.fullName}</span>
+                    <span className="font-bold text-slate-800">{selectedVoucher.fullName || "Traveler"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Nomor Identitas:</span>
                     <span className="font-mono font-medium text-slate-800">
-                      {selectedVoucher.identityNumber}
+                      {selectedVoucher.identityNumber && selectedVoucher.identityNumber !== "-"
+                        ? selectedVoucher.identityNumber
+                        : "-"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Tanggal Trip:</span>
+                    <span className="font-bold text-[#00677d]">
+                      {formatDate(selectedVoucher.departureDate || selectedVoucher.trip?.departureDate || selectedVoucher.createdAt)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -509,17 +539,32 @@ function MyBookingsContent() {
                   <div className="flex justify-between">
                     <span className="text-slate-500">Grup Mobil:</span>
                     <span className="font-bold text-[#00677d]">
-                      Grup #{selectedVoucher.group?.groupNumber || 1}
+                      Grup #{selectedVoucher.group?.groupNumber || 1} (Maks 6 Pax)
                     </span>
                   </div>
-                  {selectedVoucher.pickupLocation && (
-                    <div className="flex justify-between border-t border-slate-200 pt-1.5">
-                      <span className="text-slate-500">Lokasi Jemput:</span>
-                      <span className="font-semibold text-slate-800 text-right max-w-[180px] truncate" title={selectedVoucher.pickupLocation}>
-                        {selectedVoucher.pickupLocation}
-                      </span>
-                    </div>
-                  )}
+                  {selectedVoucher.pickupLocation && (() => {
+                    const parsed = parsePickupLocation(selectedVoucher.pickupLocation);
+                    return (
+                      <div className="border-t border-slate-200 pt-2 text-left space-y-1">
+                        <div className="flex justify-between items-start">
+                          <span className="text-slate-500 text-xs">Lokasi Jemput:</span>
+                          <span className="font-heading font-extrabold text-[#00677d] text-xs text-right ml-2 max-w-[210px]">
+                            {parsed.placeName}
+                          </span>
+                        </div>
+                        {parsed.address && (
+                          <div className="text-[11px] text-slate-500 text-right">
+                            {parsed.address}
+                          </div>
+                        )}
+                        {selectedVoucher.pickupNotes && (
+                          <div className="text-[10px] text-slate-400 italic text-right">
+                            Catatan: {selectedVoucher.pickupNotes}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {selectedVoucher.group?.driver && (
                     <div className="flex justify-between border-t border-slate-200 pt-1.5">
                       <span className="text-slate-500">Armada & Driver:</span>
@@ -540,13 +585,13 @@ function MyBookingsContent() {
                       printTicketVoucher({
                         bookingCode: selectedVoucher.bookingCode,
                         destinationTitle: destTitle,
-                        fullName: selectedVoucher.fullName,
-                        identityNumber: selectedVoucher.identityNumber,
+                        fullName: selectedVoucher.fullName || "Traveler",
+                        identityNumber: selectedVoucher.identityNumber || "-",
                         groupNumber: selectedVoucher.group?.groupNumber || 1,
                         driverName: selectedVoucher.group?.driver?.fullName,
                         vehicleModel: selectedVoucher.group?.driver?.vehicleModel,
                         plateNumber: selectedVoucher.group?.driver?.plateNumber,
-                        departureDate: formatDate(selectedVoucher.createdAt),
+                        departureDate: formatDate(selectedVoucher.departureDate || selectedVoucher.trip?.departureDate || selectedVoucher.createdAt),
                         pickupLocation: selectedVoucher.pickupLocation,
                         pickupNotes: selectedVoucher.pickupNotes,
                       });

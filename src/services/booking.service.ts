@@ -12,6 +12,7 @@ import {
   MOCK_TRIPS,
   MOCK_DRIVERS,
 } from "@/src/services/mockData";
+import { normalizeParticipant } from "@/src/lib/utils";
 
 export interface BookingResponse {
   participant: Participant;
@@ -53,11 +54,16 @@ export const bookingService = {
     try {
       const res = await apiClient.post<BookingResponse>("/bookings", payload);
       if (res.success && res.data) {
-        // Also sync to local pool if present
         if (res.data.participant) {
-          const exists = MOCK_PARTICIPANTS.some((p) => p.id === res.data.participant.id);
-          if (!exists) {
-            MOCK_PARTICIPANTS.unshift(res.data.participant);
+          const normalized = normalizeParticipant(res.data.participant);
+          res.data.participant = normalized;
+          const existsIdx = MOCK_PARTICIPANTS.findIndex(
+            (p) => p.id === normalized.id || p.bookingCode === normalized.bookingCode
+          );
+          if (existsIdx >= 0) {
+            MOCK_PARTICIPANTS[existsIdx] = normalized;
+          } else {
+            MOCK_PARTICIPANTS.unshift(normalized);
           }
         }
         return res.data;
@@ -257,14 +263,28 @@ export const bookingService = {
           status: params?.status,
         },
       });
-      if (res.success && Array.isArray(res.data)) {
-        return res.data;
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        return res.data.map(normalizeParticipant);
       }
     } catch {
-      // Return empty array when unauthenticated, offline, or not found
+      // Fallback to local participants when unauthenticated, offline, or search by code
     }
 
-    return [];
+    const code = params?.bookingCode?.trim().toUpperCase();
+    const em = params?.email?.trim().toLowerCase();
+
+    if (code || em) {
+      const matched = MOCK_PARTICIPANTS.filter((p) => {
+        const matchCode = code ? p.bookingCode?.toUpperCase() === code : true;
+        const matchEmail = em ? p.email?.toLowerCase() === em : true;
+        return matchCode && matchEmail;
+      });
+      if (matched.length > 0) {
+        return matched.map(normalizeParticipant);
+      }
+    }
+
+    return MOCK_PARTICIPANTS.map(normalizeParticipant);
   },
 
   async simulatePayment(

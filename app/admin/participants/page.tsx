@@ -13,6 +13,8 @@ import {
   Loader2,
   PackageOpen,
   CreditCard,
+  MapPin,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Card } from "@/src/components/ui/card";
@@ -25,7 +27,13 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
-import { getPaymentBadge, formatCurrency, formatDate, getDestinationTitle } from "@/src/lib/utils";
+import {
+  getPaymentBadge,
+  formatCurrency,
+  formatDate,
+  getDestinationTitle,
+  parsePickupLocation,
+} from "@/src/lib/utils";
 import type { Participant, Trip, BookingGroup } from "@/src/types";
 
 export default function ParticipantsManagementPage() {
@@ -438,6 +446,7 @@ export default function ParticipantsManagementPage() {
                   <th className="px-5 py-3.5">Kode Booking</th>
                   <th className="px-5 py-3.5">Nama Peserta</th>
                   <th className="px-5 py-3.5">Kontak</th>
+                  <th className="px-5 py-3.5">Lokasi Penjemputan</th>
                   <th className="px-5 py-3.5">Armada Mobil</th>
                   <th className="px-5 py-3.5">Status Pembayaran</th>
                   <th className="px-5 py-3.5 text-right">Aksi</th>
@@ -466,6 +475,53 @@ export default function ParticipantsManagementPage() {
                           <Phone className="h-3 w-3 text-slate-400" />
                           <span>{p.phoneNumber}</span>
                         </div>
+                      </td>
+                      <td className="px-5 py-4 max-w-[240px]">
+                        {p.pickupLocation ? (() => {
+                          const parsed = parsePickupLocation(p.pickupLocation);
+                          const hasCoords = typeof p.pickupLatitude === "number" && typeof p.pickupLongitude === "number";
+                          const mapsUrl = hasCoords
+                            ? `https://maps.google.com/?q=${p.pickupLatitude},${p.pickupLongitude}`
+                            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.pickupLocation)}`;
+
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex items-start gap-1.5">
+                                <MapPin className="h-3.5 w-3.5 text-[#00677d] shrink-0 mt-0.5" />
+                                <div className="min-w-0">
+                                  <div className="font-bold text-slate-800 text-xs truncate" title={parsed.placeName}>
+                                    {parsed.placeName}
+                                  </div>
+                                  {parsed.address && (
+                                    <div className="text-[11px] text-slate-500 line-clamp-2 leading-tight mt-0.5" title={parsed.address}>
+                                      {parsed.address}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {p.pickupNotes && (
+                                <div className="text-[10px] text-amber-800 bg-amber-50/80 border border-amber-200/60 rounded px-1.5 py-0.5 mt-0.5 inline-block" title={p.pickupNotes}>
+                                  <span className="font-semibold">Catatan:</span> {p.pickupNotes}
+                                </div>
+                              )}
+
+                              <div className="pt-0.5">
+                                <a
+                                  href={mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#00677d] hover:text-[#005264] hover:underline"
+                                >
+                                  <span>{hasCoords ? `Buka GPS (${p.pickupLatitude?.toFixed(3)}, ${p.pickupLongitude?.toFixed(3)})` : "Buka Google Maps"}</span>
+                                  <ExternalLink className="h-2.5 w-2.5" />
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-[11px] text-slate-400 italic">Meeting Point Standar</span>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-sky-50 text-[#00677d] font-bold text-xs">

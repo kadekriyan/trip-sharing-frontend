@@ -47,6 +47,7 @@ import {
   getDestinationPrice,
   formatDate,
   getImageUrl,
+  parsePickupLocation,
 } from "@/src/lib/utils";
 import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import { TripCalendarPicker } from "@/src/components/destination/trip-calendar-picker";
@@ -1233,14 +1234,30 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <span className="text-slate-500">Nama Pemesan:</span>
                 <span className="font-bold text-slate-800">{fullName}</span>
               </div>
-              {(createdBooking?.pickupLocation || pickupLocation) && (
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">Lokasi Penjemputan:</span>
-                  <span className="font-semibold text-[#00677d] text-right max-w-[200px] truncate" title={createdBooking?.pickupLocation || pickupLocation}>
-                    {createdBooking?.pickupLocation || pickupLocation}
-                  </span>
-                </div>
-              )}
+              {(createdBooking?.pickupLocation || pickupLocation) && (() => {
+                const rawLoc = createdBooking?.pickupLocation || pickupLocation;
+                const parsed = parsePickupLocation(rawLoc);
+                return (
+                  <div className="py-2 border-b border-slate-100 space-y-1">
+                    <div className="flex justify-between items-start text-xs">
+                      <span className="text-slate-500 shrink-0">Lokasi Penjemputan:</span>
+                      <span className="font-extrabold text-[#00677d] text-right ml-2 max-w-[220px]">
+                        {parsed.placeName}
+                      </span>
+                    </div>
+                    {parsed.address && (
+                      <div className="text-[11px] text-slate-500 text-right">
+                        {parsed.address}
+                      </div>
+                    )}
+                    {(createdBooking?.pickupNotes || pickupNotes) && (
+                      <div className="text-[10px] text-slate-400 italic text-right">
+                        Catatan: {createdBooking?.pickupNotes || pickupNotes}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="flex justify-between py-1.5">
                 <span className="text-slate-500">Status Transaksi:</span>
                 <Badge variant="success" className="text-[10px] font-bold">LUNAS / PAID</Badge>

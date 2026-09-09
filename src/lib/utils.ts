@@ -1,6 +1,15 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { PaymentStatus, GroupStatus, Destination, TripStatus } from "@/src/types";
+import type {
+  PaymentStatus,
+  GroupStatus,
+  Destination,
+  TripStatus,
+  Participant,
+  BookingGroup,
+  Trip,
+  CheckInStatus,
+} from "@/src/types";
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
@@ -239,6 +248,219 @@ export function getImageUrl(path?: string | null, fallback?: string): string {
   const baseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api").replace(/\/api\/?$/, "");
   const normalizedPath = clean.startsWith("/") ? clean : `/${clean}`;
   return `${baseUrl}${normalizedPath}`;
+}
+
+/**
+ * Robustly normalizes raw participant payloads from backend (snake_case / camelCase)
+ */
+export function normalizeParticipant(rawRecord: unknown): Participant {
+  if (!rawRecord || typeof rawRecord !== "object") {
+    return {
+      id: `part-${Date.now()}`,
+      bookingCode: "TRV-UNKNOWN",
+      tripId: "",
+      bookingGroupId: "",
+      fullName: "Traveler",
+      email: "",
+      phoneNumber: "",
+      nationality: "Indonesia",
+      identityNumber: "-",
+      roomPreference: "shared",
+      hasInsurance: false,
+      insuranceFee: 0,
+      totalAmount: 0,
+      paymentStatus: "pending",
+      checkInStatus: "pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  const raw = rawRecord as Record<string, unknown>;
+  const user = (raw.user && typeof raw.user === "object") ? (raw.user as Record<string, unknown>) : undefined;
+  const rawGroup = (raw.group || raw.bookingGroup || raw.booking_group) as BookingGroup | undefined;
+  const rawTrip = (raw.trip || rawGroup?.trip) as Trip | undefined;
+  const rawDest = (raw.destination || rawTrip?.destination) as Destination | undefined;
+
+  const id = String(raw.id || raw.participant_id || raw.participantId || `part-${Date.now()}`);
+  const bookingCode = String(raw.bookingCode || raw.booking_code || raw.code || "TRV-XXXX");
+  const fullName = String(
+    raw.fullName ||
+      raw.full_name ||
+      raw.name ||
+      user?.fullName ||
+      user?.full_name ||
+      user?.name ||
+      "Traveler"
+  );
+  const email = String(raw.email || user?.email || "");
+  const phoneNumber = String(
+    raw.phoneNumber ||
+      raw.phone_number ||
+      raw.phone ||
+      user?.phoneNumber ||
+      user?.phone_number ||
+      ""
+  );
+  const identityNumber = String(
+    raw.identityNumber ||
+      raw.identity_number ||
+      raw.nik ||
+      raw.passport ||
+      user?.identityNumber ||
+      "-"
+  );
+  const nationality = String(raw.nationality || user?.nationality || "Indonesia");
+  const roomPreference = (raw.roomPreference || raw.room_preference || "shared") as "shared" | "single" | "none";
+  const hasInsurance = Boolean(raw.hasInsurance ?? raw.has_insurance ?? false);
+  const insuranceFee = Number(raw.insuranceFee ?? raw.insurance_fee ?? (hasInsurance ? 50000 : 0));
+  const totalAmount = Number(raw.totalAmount ?? raw.total_amount ?? raw.amount ?? raw.price ?? 850000);
+  const paymentStatus = (raw.paymentStatus || raw.payment_status || "pending") as PaymentStatus;
+  const checkInStatus = (raw.checkInStatus || raw.check_in_status || "pending") as CheckInStatus;
+  const healthNotes =
+    typeof raw.healthNotes === "string"
+      ? raw.healthNotes
+      : typeof raw.health_notes === "string"
+      ? raw.health_notes
+      : typeof raw.notes === "string"
+      ? raw.notes
+      : undefined;
+
+  const pickupLocation =
+    typeof raw.pickupLocation === "string"
+      ? raw.pickupLocation
+      : typeof raw.pickup_location === "string"
+      ? raw.pickup_location
+      : typeof raw.pickup_address === "string"
+      ? raw.pickup_address
+      : undefined;
+
+  const pickupLatitude =
+    typeof raw.pickupLatitude === "number"
+      ? raw.pickupLatitude
+      : typeof raw.pickup_latitude === "number"
+      ? raw.pickup_latitude
+      : undefined;
+
+  const pickupLongitude =
+    typeof raw.pickupLongitude === "number"
+      ? raw.pickupLongitude
+      : typeof raw.pickup_longitude === "number"
+      ? raw.pickup_longitude
+      : undefined;
+
+  const pickupNotes =
+    typeof raw.pickupNotes === "string"
+      ? raw.pickupNotes
+      : typeof raw.pickup_notes === "string"
+      ? raw.pickup_notes
+      : undefined;
+
+  const tripId = String(raw.tripId || raw.trip_id || rawTrip?.id || "");
+  const bookingGroupId = String(
+    raw.bookingGroupId ||
+      raw.booking_group_id ||
+      raw.groupId ||
+      raw.group_id ||
+      rawGroup?.id ||
+      ""
+  );
+
+  const departureDate =
+    typeof raw.departureDate === "string"
+      ? raw.departureDate
+      : typeof raw.departure_date === "string"
+      ? raw.departure_date
+      : typeof rawTrip?.departureDate === "string"
+      ? rawTrip.departureDate
+      : typeof rawTrip?.departure_date === "string"
+      ? rawTrip.departure_date
+      : typeof raw.createdAt === "string"
+      ? raw.createdAt
+      : typeof raw.created_at === "string"
+      ? raw.created_at
+      : new Date().toISOString();
+
+  const createdAt = String(raw.createdAt || raw.created_at || departureDate);
+  const updatedAt = String(raw.updatedAt || raw.updated_at || createdAt);
+
+  const voucherQrCode = String(
+    raw.voucherQrCode ||
+      raw.voucher_qr_code ||
+      `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(bookingCode)}`
+  );
+
+  return {
+    id,
+    bookingCode,
+    tripId,
+    trip: rawTrip,
+    bookingGroupId,
+    group: rawGroup,
+    bookingGroup: rawGroup,
+    destination: rawDest,
+    fullName,
+    full_name: fullName,
+    email,
+    phoneNumber,
+    phone_number: phoneNumber,
+    identityNumber,
+    identity_number: identityNumber,
+    nationality,
+    roomPreference,
+    room_preference: roomPreference,
+    hasInsurance,
+    has_insurance: hasInsurance,
+    insuranceFee,
+    totalAmount,
+    total_amount: totalAmount,
+    paymentStatus,
+    payment_status: paymentStatus,
+    checkInStatus,
+    check_in_status: checkInStatus,
+    healthNotes,
+    health_notes: healthNotes,
+    pickupLocation,
+    pickup_location: pickupLocation,
+    pickupLatitude,
+    pickup_latitude: pickupLatitude,
+    pickupLongitude,
+    pickup_longitude: pickupLongitude,
+    pickupNotes,
+    pickup_notes: pickupNotes,
+    voucherQrCode,
+    departureDate,
+    departure_date: departureDate,
+    createdAt,
+    created_at: createdAt,
+    updatedAt,
+    updated_at: updatedAt,
+  };
+}
+
+/**
+ * Formats and separates pickup place name and secondary address
+ */
+export function parsePickupLocation(locationStr?: string | null): { placeName: string; address?: string } {
+  if (!locationStr || typeof locationStr !== "string" || locationStr.trim() === "") {
+    return { placeName: "Meeting Point Resmi Destinasi" };
+  }
+  const clean = locationStr.trim();
+  const parenMatch = clean.match(/^(.*?)\s*\((.*?)\)$/);
+  if (parenMatch) {
+    return {
+      placeName: parenMatch[1].trim(),
+      address: parenMatch[2].trim(),
+    };
+  }
+  const commaIdx = clean.indexOf(",");
+  if (commaIdx > 0 && commaIdx < clean.length - 1) {
+    return {
+      placeName: clean.substring(0, commaIdx).trim(),
+      address: clean.substring(commaIdx + 1).trim(),
+    };
+  }
+  return { placeName: clean };
 }
 
 
