@@ -221,13 +221,8 @@ export function TripCalendarPicker({
   const renderMonthSection = (year: number, month: number, grid: ReturnType<typeof generateMonthGrid>) => {
     return (
       <div className="w-full select-none">
-        {/* Month Header Title */}
-        <div className="text-center font-heading font-extrabold text-sm sm:text-base text-slate-800 pb-3">
-          {MONTH_NAMES_ID[month]} {year}
-        </div>
-
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-1 text-center mb-1.5">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center mb-2">
           {DAYS_HEADER.map((day, idx) => (
             <div
               key={day}
@@ -244,7 +239,7 @@ export function TripCalendarPicker({
         <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center">
           {grid.map((cell, idx) => {
             if (cell.day === null) {
-              return <div key={`empty-${idx}`} className="h-10 sm:h-11 w-full" />;
+              return <div key={`empty-${idx}`} className="h-11 sm:h-12 w-full" />;
             }
 
             const { day, dateISO, isPast, isSelected, isToday, trip, remainingSeats } = cell;
@@ -256,18 +251,18 @@ export function TripCalendarPicker({
                 disabled={isPast}
                 onClick={() => handleDateClick(dateISO, trip)}
                 aria-label={`Pilih tanggal ${day} ${MONTH_NAMES_ID[month]} ${year}`}
-                className={`group relative h-10 sm:h-11 w-full rounded-xl sm:rounded-2xl transition-all duration-150 flex flex-col items-center justify-center font-sans ${
+                className={`group relative h-11 sm:h-12 w-full rounded-2xl transition-all duration-150 flex flex-col items-center justify-center font-sans ${
                   isPast
                     ? "text-slate-300 cursor-not-allowed pointer-events-none"
                     : isSelected
                     ? "bg-[#191c1e] text-white font-extrabold shadow-md scale-105 z-10"
                     : trip
-                    ? "bg-teal-50/70 hover:bg-[#00677d] hover:text-white text-[#00677d] font-bold border border-teal-200/80 hover:shadow-sm"
+                    ? "bg-teal-50/80 hover:bg-[#00677d] hover:text-white text-[#00677d] font-bold border border-teal-200/80 hover:shadow-sm"
                     : "text-slate-700 hover:bg-slate-100 font-semibold"
                 }`}
               >
                 {/* Day Number */}
-                <span className="text-xs sm:text-sm leading-none flex items-center justify-center gap-0.5">
+                <span className="text-xs sm:text-sm leading-none flex items-center justify-center gap-1">
                   {day}
                   {trip && !isSelected && (
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse group-hover:bg-white" />
@@ -276,17 +271,17 @@ export function TripCalendarPicker({
 
                 {/* Subtitle / Supertext indicator */}
                 {isSelected ? (
-                  <span className="text-[9px] text-teal-300 font-bold leading-none mt-0.5">
+                  <span className="text-[9px] text-teal-300 font-bold leading-none mt-1">
                     {trip ? "Terjadwal" : "Pilihan"}
                   </span>
                 ) : trip ? (
-                  <span className="text-[8px] sm:text-[9px] leading-none mt-0.5 opacity-90 group-hover:text-teal-100 font-medium truncate max-w-full px-0.5">
+                  <span className="text-[9px] leading-none mt-1 opacity-90 group-hover:text-teal-100 font-bold truncate max-w-full px-0.5">
                     {remainingSeats !== undefined && remainingSeats > 0
                       ? `${remainingSeats} slot`
                       : "Grup Ada"}
                   </span>
                 ) : isToday ? (
-                  <span className="text-[8px] text-[#00677d] font-semibold leading-none mt-0.5">
+                  <span className="text-[9px] text-[#00677d] font-bold leading-none mt-1">
                     Hari ini
                   </span>
                 ) : null}
@@ -300,10 +295,10 @@ export function TripCalendarPicker({
 
   return (
     <div
-      className={`bg-white rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden p-4 sm:p-6 transition-all ${className}`}
+      className={`bg-white rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden p-4 sm:p-5 transition-all ${className}`}
     >
-      {/* Top Header with Navigation Arrows */}
-      <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+      {/* Top Header with Navigation Arrows & Month Year Display */}
+      <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-3.5">
         <button
           type="button"
           onClick={handlePrevMonth}
@@ -314,9 +309,9 @@ export function TripCalendarPicker({
           <ChevronLeft className="h-5 w-5" />
         </button>
 
-        <div className="text-center font-heading font-extrabold text-sm sm:text-base text-[#191c1e] flex items-center gap-2">
+        <div className="text-center font-heading font-extrabold text-sm sm:text-base text-[#191c1e] flex items-center gap-1.5">
           <CalendarIcon className="h-4 w-4 text-[#00677d]" />
-          <span>Pilih Tanggal Trip</span>
+          <span>{MONTH_NAMES_ID[viewMonth]} {viewYear}</span>
         </div>
 
         <button
@@ -329,22 +324,14 @@ export function TripCalendarPicker({
         </button>
       </div>
 
-      {/* Responsive Calendar Body: 1 Column on Mobile, 2 Columns on Desktop */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 md:divide-x md:divide-slate-100">
-        {/* Month 1 */}
-        <div className="w-full">
-          {renderMonthSection(viewYear, viewMonth, month1Grid)}
-        </div>
-
-        {/* Month 2 (Visible on Tablet/Desktop for GetYourGuide look) */}
-        <div className="w-full hidden md:block md:pl-8">
-          {renderMonthSection(secondMonthInfo.year, secondMonthInfo.month, month2Grid)}
-        </div>
+      {/* Calendar Grid: Spacious, Non-Overlapping Layout */}
+      <div className="w-full">
+        {renderMonthSection(viewYear, viewMonth, month1Grid)}
       </div>
 
       {/* Legend / Status Indicators */}
-      <div className="mt-5 pt-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-600">
-        <div className="flex flex-wrap items-center gap-3.5">
+      <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2.5 text-[11px] text-slate-600">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-md bg-[#191c1e] text-white flex items-center justify-center text-[9px]">
               ✓
@@ -361,7 +348,7 @@ export function TripCalendarPicker({
 
           <div className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-md border border-slate-200 bg-white" />
-            <span className="font-medium">Inisiator Baru (On-Demand)</span>
+            <span className="font-medium">Inisiator (On-Demand)</span>
           </div>
         </div>
 
@@ -378,11 +365,11 @@ export function TripCalendarPicker({
         )}
       </div>
 
-      {/* Bottom Special Offer Banner (Inspired by GetYourGuide footer) */}
-      <div className="mt-3.5 p-2.5 rounded-2xl bg-gradient-to-r from-teal-50/80 to-emerald-50/80 border border-teal-200/60 flex items-center gap-2 text-[11px] text-teal-900">
+      {/* Bottom Special Offer Banner */}
+      <div className="mt-3 p-2.5 rounded-2xl bg-gradient-to-r from-teal-50/80 to-emerald-50/80 border border-teal-200/60 flex items-center gap-2 text-[11px] text-teal-900">
         <Sparkles className="h-4 w-4 text-[#00677d] shrink-0" />
         <span className="leading-tight font-medium">
-          <strong>Garansi Pasti Berangkat:</strong> Gabung grup yang sudah ada atau pilih tanggal sendiri untuk memulai grup armada 6 pax baru.
+          <strong>Garansi Pasti Berangkat:</strong> Gabung grup yang sudah ada atau buka grup armada 6 pax baru.
         </span>
       </div>
     </div>
