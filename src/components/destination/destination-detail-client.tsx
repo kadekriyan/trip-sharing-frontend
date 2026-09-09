@@ -50,6 +50,7 @@ import {
 } from "@/src/lib/utils";
 import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import { TripCalendarPicker } from "@/src/components/destination/trip-calendar-picker";
+import { GooglePlacesAutocomplete } from "@/src/components/ui/google-places-autocomplete";
 import type { Destination, BookingGroup, Trip, Participant } from "@/src/types";
 
 interface DestinationDetailClientProps {
@@ -80,6 +81,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [phoneNumber, setPhoneNumber] = useState("");
   const [identityNumber, setIdentityNumber] = useState("");
   const [nationality, setNationality] = useState("Indonesia");
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [pickupLatitude, setPickupLatitude] = useState<number | undefined>(undefined);
+  const [pickupLongitude, setPickupLongitude] = useState<number | undefined>(undefined);
+  const [pickupNotes, setPickupNotes] = useState("");
   const [roomPref, setRoomPref] = useState<"shared" | "single" | "none">("shared");
   const [healthNotes, setHealthNotes] = useState("");
   const [hasInsurance, setHasInsurance] = useState(true);
@@ -302,6 +307,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         hasInsurance,
         healthNotes: healthNotes || undefined,
         departureDate: selectedDate || customDateInput,
+        pickupLocation: pickupLocation || undefined,
+        pickupLatitude: pickupLatitude,
+        pickupLongitude: pickupLongitude,
+        pickupNotes: pickupNotes || undefined,
         captchaToken: "10000000-aaaa-bbbb-cccc-000000000001",
       };
 
@@ -896,6 +905,47 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   </select>
                 </div>
 
+                {/* INFORMASI PENJEMPUTAN (GOOGLE PLACES AUTOCOMPLETE) */}
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4" />
+                    Informasi Penjemputan (Pickup Location)
+                  </label>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Titik / Alamat Penjemputan
+                    </label>
+                    <GooglePlacesAutocomplete
+                      value={pickupLocation}
+                      latitude={pickupLatitude}
+                      longitude={pickupLongitude}
+                      onChange={(sel) => {
+                        setPickupLocation(sel.address);
+                        setPickupLatitude(sel.latitude);
+                        setPickupLongitude(sel.longitude);
+                      }}
+                      placeholder="Cari nama hotel, stasiun, bandara, atau alamat penjemputan..."
+                    />
+                    <span className="text-[10px] text-slate-400 block">
+                      Armada kami akan menjemput Anda langsung di lobi hotel / alamat yang ditentukan.
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Catatan Khusus Penjemputan (Opsional)
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Contoh: Tunggu di lobi timur dekat pos satpam, kami membawa 2 koper besar."
+                      value={pickupNotes}
+                      onChange={(e) => setPickupNotes(e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#00677d] focus:bg-white focus:outline-none transition-colors resize-none"
+                    />
+                  </div>
+                </div>
+
                 {/* Preference Options */}
                 <div className="space-y-2 pt-2 border-t border-slate-100">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
@@ -1177,6 +1227,14 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <span className="text-slate-500">Nama Pemesan:</span>
                 <span className="font-bold text-slate-800">{fullName}</span>
               </div>
+              {(createdBooking?.pickupLocation || pickupLocation) && (
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">Lokasi Penjemputan:</span>
+                  <span className="font-semibold text-[#00677d] text-right max-w-[200px] truncate" title={createdBooking?.pickupLocation || pickupLocation}>
+                    {createdBooking?.pickupLocation || pickupLocation}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between py-1.5">
                 <span className="text-slate-500">Status Transaksi:</span>
                 <Badge variant="success" className="text-[10px] font-bold">LUNAS / PAID</Badge>
@@ -1214,6 +1272,8 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       vehicleModel: createdBooking?.group?.driver?.vehicleModel,
                       plateNumber: createdBooking?.group?.driver?.plateNumber,
                       departureDate: formatDate(selectedDate || customDateInput),
+                      pickupLocation: createdBooking?.pickupLocation || pickupLocation || undefined,
+                      pickupNotes: createdBooking?.pickupNotes || pickupNotes || undefined,
                     });
                   }}
                   className="flex-1 text-xs font-semibold gap-1.5 text-slate-600"

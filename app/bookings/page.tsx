@@ -305,6 +305,20 @@ function MyBookingsContent() {
                             </div>
                           </div>
 
+                          {/* Pickup Location Info (if specified) */}
+                          {booking.pickupLocation && (
+                            <div className="rounded-xl bg-teal-50/50 p-2.5 text-xs text-slate-700 flex items-start gap-2 border border-teal-100">
+                              <MapPin className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <span className="font-bold text-[#00677d] block text-[11px]">Lokasi Penjemputan:</span>
+                                <span className="text-slate-600 truncate block text-xs">{booking.pickupLocation}</span>
+                                {booking.pickupNotes && (
+                                  <span className="text-slate-400 italic block text-[10px] mt-0.5">Catatan: {booking.pickupNotes}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Driver & Armada Info Bar (if assigned) */}
                           {driver ? (
                             <div className="rounded-xl bg-slate-50 p-3 flex flex-wrap items-center justify-between gap-3 text-xs border border-slate-100">
@@ -498,6 +512,14 @@ function MyBookingsContent() {
                       Grup #{selectedVoucher.group?.groupNumber || 1}
                     </span>
                   </div>
+                  {selectedVoucher.pickupLocation && (
+                    <div className="flex justify-between border-t border-slate-200 pt-1.5">
+                      <span className="text-slate-500">Lokasi Jemput:</span>
+                      <span className="font-semibold text-slate-800 text-right max-w-[180px] truncate" title={selectedVoucher.pickupLocation}>
+                        {selectedVoucher.pickupLocation}
+                      </span>
+                    </div>
+                  )}
                   {selectedVoucher.group?.driver && (
                     <div className="flex justify-between border-t border-slate-200 pt-1.5">
                       <span className="text-slate-500">Armada & Driver:</span>
@@ -525,6 +547,8 @@ function MyBookingsContent() {
                         vehicleModel: selectedVoucher.group?.driver?.vehicleModel,
                         plateNumber: selectedVoucher.group?.driver?.plateNumber,
                         departureDate: formatDate(selectedVoucher.createdAt),
+                        pickupLocation: selectedVoucher.pickupLocation,
+                        pickupNotes: selectedVoucher.pickupNotes,
                       });
                     }}
                     className="w-full justify-center text-xs font-bold"

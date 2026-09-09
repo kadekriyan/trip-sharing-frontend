@@ -131,6 +131,10 @@ export interface Participant {
   gender?: "male" | "female" | "other";
   roomPreference?: "single" | "shared" | "none";
   healthNotes?: string;
+  pickupLocation?: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  pickupNotes?: string;
   emergencyContact?: {
     name: string;
     relationship: string;
@@ -277,6 +281,10 @@ export interface CreateBookingPayload {
   gender?: "male" | "female" | "other";
   roomPreference?: "single" | "shared" | "none";
   healthNotes?: string;
+  pickupLocation?: string;
+  pickupLatitude?: number;
+  pickupLongitude?: number;
+  pickupNotes?: string;
   hasInsurance: boolean;
   captchaToken: string;
   departureDate?: string;

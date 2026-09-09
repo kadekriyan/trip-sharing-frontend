@@ -11,6 +11,8 @@ export interface TicketPrintPayload {
   plateNumber?: string;
   departureDate?: string;
   totalAmount?: number | string;
+  pickupLocation?: string;
+  pickupNotes?: string;
 }
 
 /**
@@ -206,6 +208,26 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
           <span class="detail-val">${data.driverName} ${
                 data.vehicleModel ? `(${data.vehicleModel})` : ""
               }</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          data.pickupLocation
+            ? `
+        <div class="detail-row">
+          <span class="detail-label">Lokasi Jemput</span>
+          <span class="detail-val" style="max-width: 210px; word-break: break-word;">${data.pickupLocation}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          data.pickupNotes
+            ? `
+        <div class="detail-row">
+          <span class="detail-label">Catatan Jemput</span>
+          <span class="detail-val" style="max-width: 210px; word-break: break-word; font-style: italic; color: #475569;">${data.pickupNotes}</span>
         </div>
         `
             : ""
