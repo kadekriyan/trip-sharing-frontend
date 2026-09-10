@@ -167,7 +167,7 @@ export function Footer() {
           <div className="flex items-center gap-4">
             <span>Midtrans Verified Merchant</span>
             <span>•</span>
-            <span>hCaptcha Protected</span>
+            <span>Google reCAPTCHA Protected</span>
             <span>•</span>
             <span>Maksimal 6 Pax per Mobil</span>
           </div>

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import ReCAPTCHA from "react-google-recaptcha";
 import {
   MapPin,
   Calendar,
@@ -90,6 +91,8 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [roomPref, setRoomPref] = useState<"shared" | "single" | "none">("shared");
   const [healthNotes, setHealthNotes] = useState("");
   const [hasInsurance, setHasInsurance] = useState(true);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Midtrans Payment Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -293,6 +296,16 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       return;
     }
 
+    const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    const activeToken =
+      captchaToken ||
+      (process.env.NODE_ENV === "development" ? "dev-dummy-captcha-token" : null);
+
+    if (!activeToken && process.env.NODE_ENV === "production" && recaptchaSiteKey) {
+      setErrorMessage("Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const targetTripId = selectedTripId || `trip-ondemand-${Date.now()}`;
@@ -316,7 +329,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         pickupLatitude: pickupLatitude,
         pickupLongitude: pickupLongitude,
         pickupNotes: pickupNotes || undefined,
-        captchaToken: "10000000-aaaa-bbbb-cccc-000000000001",
+        captchaToken: activeToken || "dev-dummy-captcha-token",
       };
 
       const result = await bookingService.createBooking(payload);
@@ -327,6 +340,8 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Gagal memproses pemesanan tiket.";
       setErrorMessage(errorMsg);
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -1042,6 +1057,18 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     </span>
                   </div>
                 </div>
+
+                {/* Google reCAPTCHA v2 Checkbox Widget */}
+                {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && (
+                  <div className="my-3 flex flex-col items-center justify-center">
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+                      onChange={(token) => setCaptchaToken(token)}
+                      onExpired={() => setCaptchaToken(null)}
+                    />
+                  </div>
+                )}
 
                 <Button
                   type="submit"
