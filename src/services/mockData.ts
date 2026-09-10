@@ -343,7 +343,7 @@ export const MOCK_ADMIN_METRICS: AdminMetrics = {
 export const MOCK_AUDIT_LOGS: AuditLog[] = [
   {
     id: "log-01",
-    adminEmail: "admin@tripsharing.id",
+    adminEmail: "admin@sharingtouryogyakarta.com",
     action: "MOVE_PARTICIPANT",
     targetResource: "BookingGroup",
     targetId: "grp-02",
@@ -353,7 +353,7 @@ export const MOCK_AUDIT_LOGS: AuditLog[] = [
   },
   {
     id: "log-02",
-    adminEmail: "admin@tripsharing.id",
+    adminEmail: "admin@sharingtouryogyakarta.com",
     action: "CREATE_DESTINATION",
     targetResource: "Destination",
     targetId: "dest-01",

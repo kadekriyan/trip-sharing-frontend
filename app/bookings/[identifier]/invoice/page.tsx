@@ -200,14 +200,14 @@ export default function BookingInvoicePage() {
             <div className="space-y-1.5 print:space-y-0.5">
               <div className="flex items-center gap-2.5 print:gap-2">
                 <div className="h-10 w-10 print:h-8 print:w-8 rounded-xl bg-gradient-to-br from-[#00677d] to-[#00a3c4] flex items-center justify-center text-white font-heading font-black text-lg print:text-sm shadow-sm">
-                  TS
+                  ST
                 </div>
                 <div>
                   <h1 className="font-heading font-extrabold text-xl print:text-base text-[#191c1e] tracking-tight">
-                    {issuer.companyName || "TripSharing Platform"}
+                    {issuer.companyName || "Share Tour Jogja"}
                   </h1>
                   <span className="text-[11px] print:text-[10px] font-semibold text-[#00677d] block">
-                    {issuer.legalName || "PT Trip Sharing Nusantara"}
+                    {issuer.tagline || "Open Trip & Sharing Tour Yogyakarta"}
                   </span>
                 </div>
               </div>
@@ -470,10 +470,10 @@ export default function BookingInvoicePage() {
           {/* LEGAL DISCLAIMER / FOOTER */}
           <div className="pt-3 sm:pt-4 print:pt-1.5 border-t border-slate-200 text-center space-y-0.5 text-[11px] print:text-[8.5px] text-slate-400 leading-tight">
             <p>
-              Dokumen ini diterbitkan secara otomatis dan sah oleh sistem komputerisasi <strong>PT Trip Sharing Nusantara</strong>.
+              Dokumen ini diterbitkan secara otomatis dan sah oleh sistem komputerisasi <strong>Share Tour Jogja</strong>.
             </p>
             <p>
-              Untuk pertanyaan atau klaim faktur pajak, silakan hubungi finance kami di <strong className="text-slate-600">{issuer.supportEmail}</strong>.
+              Untuk pertanyaan atau klaim faktur, silakan hubungi customer service kami di <strong className="text-slate-600">{issuer.supportEmail}</strong>.
             </p>
           </div>
         </div>

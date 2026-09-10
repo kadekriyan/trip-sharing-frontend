@@ -3,7 +3,7 @@ import { destinationService } from "@/src/services/destination.service";
 import { articleService } from "@/src/services/article.service";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
   // Static core routes
   const staticRoutes: MetadataRoute.Sitemap = [

@@ -68,18 +68,18 @@ export function Footer() {
               <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-gradient-to-br from-[#00677d] to-[#00a3c4] p-1.5 shadow-sm">
                 <Image
                   src="/images/logo.png"
-                  alt="Trip Sharing Logo"
+                  alt="Share Tour Jogja Logo"
                   width={40}
                   height={40}
                   className="h-full w-full object-contain brightness-110"
                 />
               </div>
               <span className="font-heading text-lg font-bold text-[#00677d]">
-                TripSharing
+                Share Tour Jogja
               </span>
             </Link>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Platform petualangan wisata cost-sharing pertama di Indonesia yang menghubungkan solo traveler dalam grup eksklusif 6 pax.
+              Platform petualangan wisata sharing tour Yogyakarta & Indonesia yang menghubungkan solo traveler dalam grup eksklusif 6 pax.
             </p>
           </div>
 
@@ -147,15 +147,15 @@ export function Footer() {
             <ul className="space-y-3 text-sm text-slate-600">
               <li className="flex items-start gap-2.5">
                 <MapPin className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
-                <span>Jl. Pariwisata Nusantara No. 88, Kuta, Bali / Malang, Indonesia</span>
+                <span>Tegallayang 9, RT 02, Caturharjo, Pandak Bantul, Yogyakarta, 55761</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-[#00677d] shrink-0" />
-                <span>+62 812-3456-7890 (24/7 Support)</span>
+                <span>081216916003 (24/7 Support)</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="h-4 w-4 text-[#00677d] shrink-0" />
-                <span>support@tripsharing.id</span>
+                <span>dejaayajax@gmail.com</span>
               </li>
             </ul>
           </div>
@@ -163,7 +163,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 Trip Sharing Platform. Hak Cipta Dilindungi Undang-Undang.</p>
+          <p>© 2026 Share Tour Jogja. Hak Cipta Dilindungi Undang-Undang.</p>
           <div className="flex items-center gap-4">
             <span>Midtrans Verified Merchant</span>
             <span>•</span>

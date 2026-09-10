@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </div>
               <div>
                 <span className="font-heading text-sm font-extrabold text-[#00677d] tracking-tight block">
-                  TripSharing
+                  Share Tour Jogja
                 </span>
                 <span className="text-[10px] font-bold text-[#ff7f50] uppercase tracking-wider">
                   Admin Panel HQ
@@ -115,7 +115,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   {user?.fullName || "Admin Operator"}
                 </span>
                 <span className="text-[10px] text-emerald-600 font-semibold block">
-                  {user?.email || "admin@tripsharing.id"}
+                  {user?.email || "admin@sharingtouryogyakarta.com"}
                 </span>
               </div>
             </div>

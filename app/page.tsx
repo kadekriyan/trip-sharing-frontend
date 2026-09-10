@@ -26,7 +26,7 @@ export default async function HomePage() {
   ]);
 
   const featuredDest = destinations[0];
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
   // Structured Data JSON-LD for rich snippets
   const jsonLdTrips = {

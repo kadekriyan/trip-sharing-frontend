@@ -13,12 +13,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!destination) {
     return {
-      title: "Paket Wisata Tidak Ditemukan | TripSharing Indonesia",
+      title: "Paket Wisata Tidak Ditemukan | Share Tour Jogja",
       description: "Destinasi wisata yang Anda cari tidak ditemukan atau telah kedaluwarsa.",
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
   const ogImageUrl = destination.coverImage || `${siteUrl}/images/hero-bromo.png`;
   const pageTitle = `${destination.title} — Open Trip Cost-Sharing (Maks 6 Pax)`;
   const pageDescription =
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: pageTitle,
       description: pageDescription,
       url: `${siteUrl}/destinations/${destination.slug}`,
-      siteName: "TripSharing Indonesia",
+      siteName: "Share Tour Jogja",
       images: [
         {
           url: ogImageUrl,
@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function DestinationDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const destination = await destinationService.getDestinationBySlug(slug).catch(() => null);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
   const jsonLdTrip = destination
     ? {
@@ -77,7 +77,7 @@ export default async function DestinationDetailPage({ params }: PageProps) {
         touristType: "Open Trip / Solo Traveler",
         provider: {
           "@type": "Organization",
-          name: "TripSharing Indonesia",
+          name: "Share Tour Jogja",
           url: siteUrl,
         },
         offers: {

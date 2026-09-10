@@ -18,23 +18,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!article) {
     return {
-      title: "Artikel Tidak Ditemukan | Blog TripSharing",
+      title: "Artikel Tidak Ditemukan | Blog Share Tour Jogja",
       description: "Artikel yang Anda cari tidak ditemukan.",
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
   const ogImageUrl = article.coverImage || `${siteUrl}/images/hero-bromo.png`;
 
   return {
-    title: `${article.title} | Blog Wisata & Tips Trip Sharing`,
+    title: `${article.title} | Blog Wisata & Tips Tour Jogja`,
     description: article.excerpt || article.title,
-    authors: [{ name: article.author?.name || "Redaksi TripSharing" }],
+    authors: [{ name: article.author?.name || "Redaksi Share Tour Jogja" }],
     openGraph: {
       title: article.title,
       description: article.excerpt || article.title,
       url: `${siteUrl}/blog/${article.slug}`,
-      siteName: "TripSharing Indonesia",
+      siteName: "Share Tour Jogja",
       images: [
         {
           url: ogImageUrl,
@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function BlogDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const article = await articleService.getArticleBySlug(slug).catch(() => null);
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
   if (!article) {
     return (
@@ -91,11 +91,11 @@ export default async function BlogDetailPage({ params }: PageProps) {
     dateModified: article.updatedAt || article.publishedAt,
     author: {
       "@type": "Person",
-      name: article.author?.name || "Redaksi TripSharing",
+      name: article.author?.name || "Redaksi Share Tour Jogja",
     },
     publisher: {
       "@type": "Organization",
-      name: "TripSharing Indonesia",
+      name: "Share Tour Jogja",
       logo: `${siteUrl}/images/logo.png`,
     },
     mainEntityOfPage: {

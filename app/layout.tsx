@@ -19,7 +19,7 @@ const inter = Inter({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://tripsharing.id";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -31,41 +31,43 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Trip Sharing Platform — Shared Journey, Shared Cost (Maks 6 Pax)",
-    template: "%s | TripSharing Indonesia",
+    default: "Share Tour Jogja — Open Trip & Sharing Tour Yogyakarta (Maks 6 Pax)",
+    template: "%s | Share Tour Jogja",
   },
   description:
-    "Platform open trip cost-sharing wisata Indonesia. Gabung grup perjalanan eksklusif maksimal 6 orang per mobil, hemat biaya hingga 60%, dan temukan teman baru.",
+    "Platform open trip dan sharing tour Yogyakarta & Indonesia. Gabung grup perjalanan eksklusif maksimal 6 orang per mobil, hemat biaya hingga 60%, dan temukan teman baru.",
   keywords: [
-    "Trip Sharing",
-    "Open Trip Indonesia",
-    "Cost Sharing Wisata",
+    "Share Tour Jogja",
+    "Open Trip Jogja",
+    "Sharing Tour Yogyakarta",
+    "Trip Sharing Jogja",
+    "Cost Sharing Wisata Jogja",
     "Bromo Sunrise Safari",
     "Komodo Phinisi",
     "Bali Nusa Penida",
     "Trip Mobil 6 Orang",
-    "Wisata Hemat Indonesia",
+    "Wisata Hemat Yogyakarta",
   ],
-  authors: [{ name: "TripSharing Team" }],
-  creator: "TripSharing Indonesia",
-  publisher: "TripSharing Indonesia",
+  authors: [{ name: "Share Tour Jogja Team" }],
+  creator: "Share Tour Jogja",
+  publisher: "Share Tour Jogja",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
   openGraph: {
-    title: "Trip Sharing Platform — Shared Journey, Shared Cost (Maks 6 Pax)",
+    title: "Share Tour Jogja — Open Trip & Sharing Tour Yogyakarta (Maks 6 Pax)",
     description:
       "Gabung grup perjalanan wisata eksklusif maksimal 6 orang per mobil. Hemat biaya hingga 60% dengan sistem pembagian otomatis dan driver terverifikasi.",
     url: siteUrl,
-    siteName: "TripSharing Indonesia",
+    siteName: "Share Tour Jogja",
     images: [
       {
         url: "/images/hero-bromo.png",
         width: 1200,
         height: 630,
-        alt: "Trip Sharing Indonesia — Eksplorasi Wisata Bersama Teman Baru",
+        alt: "Share Tour Jogja — Eksplorasi Wisata Bersama Teman Baru",
       },
     ],
     locale: "id_ID",
@@ -73,7 +75,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Trip Sharing Platform — Shared Journey, Shared Cost (Maks 6 Pax)",
+    title: "Share Tour Jogja — Open Trip & Sharing Tour Yogyakarta (Maks 6 Pax)",
     description:
       "Gabung grup perjalanan wisata eksklusif maksimal 6 orang per mobil. Hemat biaya hingga 60% dengan garansi berangkat 100%.",
     images: ["/images/hero-bromo.png"],
@@ -103,13 +105,13 @@ export default function RootLayout({
   const jsonLdOrg = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "TripSharing Indonesia",
+    name: "Share Tour Jogja",
     url: siteUrl,
     logo: `${siteUrl}/images/logo.png`,
-    description: "Platform open trip pariwisata berbasis cost-sharing maksimal 6 peserta per mobil di Indonesia.",
+    description: "Platform open trip dan sharing tour Yogyakarta berbasis cost-sharing maksimal 6 peserta per mobil.",
     contactPoint: {
       "@type": "ContactPoint",
-      telephone: "+6281234567890",
+      telephone: "+6281216916003",
       contactType: "customer service",
       areaServed: "ID",
       availableLanguage: ["Indonesian", "English"],

@@ -128,7 +128,7 @@ function LoginFormContent() {
                 <Input
                   required
                   type="email"
-                  placeholder={activeTab === "admin" ? "admin@tripsharing.id" : "nama@email.com"}
+                  placeholder={activeTab === "admin" ? "admin@sharingtouryogyakarta.com" : "nama@email.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9 bg-slate-50 border-slate-200"
