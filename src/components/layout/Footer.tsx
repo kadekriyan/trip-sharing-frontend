@@ -91,22 +91,22 @@ export function Footer() {
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/destinations" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Bromo Sunrise Safari
+                  Candi Prambanan & Ratu Boko
                 </Link>
               </li>
               <li>
                 <Link href="/destinations" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Komodo & Padar Expedition
+                  Merapi Lava Tour VIP
                 </Link>
               </li>
               <li>
                 <Link href="/destinations" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Bali Nusa Penida Explorer
+                  Sunset Pantai Parangtritis & Obelix
                 </Link>
               </li>
               <li>
                 <Link href="/destinations" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Ijen Crater Blue Fire
+                  Gua Pindul & Pantai Timang
                 </Link>
               </li>
             </ul>

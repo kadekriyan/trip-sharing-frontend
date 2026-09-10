@@ -130,7 +130,7 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                   {/* Image Container with strict Aspect Ratio (Anti-CLS) */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                     <Image
-                      src={dest.coverImage || dest.image || dest.imageUrl || "/images/dest-bromo.jpg"}
+                      src={dest.coverImage || dest.image || dest.imageUrl || "https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?w=800&auto=format&fit=crop&q=80"}
                       alt={`Paket Wisata ${getDestinationTitle(dest)} - ${dest.location || "Indonesia"}`}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

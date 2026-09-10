@@ -147,58 +147,117 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Right Column: Hero Visual Card (High Priority LCP Image) */}
+          {/* Right Column: Hero Visual Card (High Priority LCP Image or Brand Promo Card) */}
           <div className="lg:col-span-5 relative">
-            <div className="relative mx-auto max-w-md lg:max-w-none rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 aspect-[4/5]">
-              <Image
-                src={featuredDest?.coverImage || "/images/hero-bromo.png"}
-                alt="Open Trip Cost Sharing Bromo Safari Indonesia"
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 500px"
-                className="object-cover transition-transform duration-700 hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            {featuredDest ? (
+              <div className="relative mx-auto max-w-md lg:max-w-none rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-900 aspect-[4/5]">
+                {featuredDest.coverImage ? (
+                  <Image
+                    src={featuredDest.coverImage}
+                    alt={featuredDest.title}
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 500px"
+                    className="object-cover transition-transform duration-700 hover:scale-105"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#00677d] to-[#003b47] flex items-center justify-center">
+                    <Compass className="h-16 w-16 text-white/30" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
-              {/* Floating Badge on Image */}
-              <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-                <Badge variant="coral" className="text-xs font-bold px-3 py-1 shadow-lg backdrop-blur-sm">
-                  🔥 Paket Paling Diminati
-                </Badge>
-                <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-slate-800 shadow-md">
-                  Maks 6 Orang / Mobil
-                </div>
-              </div>
-
-              {/* Card Bottom Meta */}
-              <div className="absolute bottom-6 left-6 right-6 text-white space-y-3">
-                <div>
-                  <span className="text-xs font-semibold text-amber-300 flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {featuredDest?.location || "Taman Nasional Bromo Tengger Semeru"}
-                  </span>
-                  <h2 className="font-heading font-extrabold text-2xl text-white mt-1">
-                    {featuredDest?.title || "Bromo Sunrise Safari & Savana"}
-                  </h2>
+                {/* Floating Badge on Image */}
+                <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+                  <Badge variant="coral" className="text-xs font-bold px-3 py-1 shadow-lg backdrop-blur-sm">
+                    🔥 Paket Paling Diminati
+                  </Badge>
+                  <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-slate-800 shadow-md">
+                    Maks 6 Orang / Mobil
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-white/20">
+                {/* Card Bottom Meta */}
+                <div className="absolute bottom-6 left-6 right-6 text-white space-y-3">
                   <div>
-                    <span className="text-[11px] text-slate-300 block">Biaya per Orang:</span>
-                    <span className="font-heading font-extrabold text-xl text-white">
-                      {featuredDest ? formatCurrency(featuredDest.pricePerPax) : "Rp 350.000"}
-                    </span>
+                    {featuredDest.location && (
+                      <span className="text-xs font-semibold text-amber-300 flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {featuredDest.location}
+                      </span>
+                    )}
+                    <h2 className="font-heading font-extrabold text-2xl text-white mt-1 line-clamp-2">
+                      {featuredDest.title}
+                    </h2>
                   </div>
 
-                  <Button asChild size="sm" className="rounded-xl font-bold bg-[#ff7f50] hover:bg-[#ff7f50]/90 text-white shadow-lg">
-                    <Link href={featuredDest ? `/destinations/${featuredDest.slug}` : "/destinations"}>
-                      Gabung Trip
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                  <div className="flex items-center justify-between pt-3 border-t border-white/20">
+                    <div>
+                      <span className="text-[11px] text-slate-300 block">Biaya per Orang:</span>
+                      <span className="font-heading font-extrabold text-xl text-white">
+                        {formatCurrency(featuredDest.pricePerPax)}
+                      </span>
+                    </div>
+
+                    <Button asChild size="sm" className="rounded-xl font-bold bg-[#ff7f50] hover:bg-[#ff7f50]/90 text-white shadow-lg">
+                      <Link href={`/destinations/${featuredDest.slug}`}>
+                        Gabung Trip
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative mx-auto max-w-md lg:max-w-none rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-gradient-to-br from-[#00677d] via-[#004f60] to-[#08222a] aspect-[4/5] p-8 flex flex-col justify-between text-white">
+                {/* Background decorative glow */}
+                <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#00a3c4]/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-[#ff7f50]/20 rounded-full blur-2xl pointer-events-none" />
+
+                <div className="relative z-10 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <Badge variant="coral" className="text-xs font-bold px-3 py-1 shadow-md">
+                      Share Tour Jogja
+                    </Badge>
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm">
+                      Max 6 Pax VIP
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <span className="text-xs font-bold tracking-wider uppercase text-[#ff7f50] block">
+                      Platform Sharing Tour Yogyakarta
+                    </span>
+                    <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-white mt-1 leading-tight">
+                      Jalan-Jalan Seru, Patungan Hemat.
+                    </h2>
+                    <p className="text-xs sm:text-sm text-slate-200 mt-2 leading-relaxed">
+                      Eksplorasi destinasi terbaik Yogyakarta & sekitarnya dengan sistem cost-sharing maksimal 6 orang per mobil. Lebih hemat, nyaman, dan bergaransi berangkat.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative z-10 space-y-4 pt-4 border-t border-white/15">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
+                      <span className="text-[10px] text-slate-300 block">Kapasitas Armada</span>
+                      <span className="font-bold text-white">Maks 6 Orang</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
+                      <span className="text-[10px] text-slate-300 block">Jaminan Layanan</span>
+                      <span className="font-bold text-emerald-300">Driver & AC Nyaman</span>
+                    </div>
+                  </div>
+
+                  <Button asChild size="default" className="w-full rounded-xl font-bold bg-[#ff7f50] hover:bg-[#ff7f50]/90 text-white shadow-lg gap-2">
+                    <Link href="/destinations">
+                      <Compass className="h-4 w-4" />
+                      Jelajah Katalog Destinasi
                     </Link>
                   </Button>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
