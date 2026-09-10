@@ -10,7 +10,6 @@ import {
   User,
   Phone,
   Globe,
-  Sparkles,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
@@ -177,7 +176,6 @@ export default function RegisterPage() {
               disabled={isSubmitting}
               className="w-full justify-center font-bold text-sm shadow-md mt-2"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
               {isSubmitting ? "Mendaftarkan..." : "Daftar Akun Baru"}
             </Button>
           </form>
