@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Menu,
   X,
-  Sparkles,
   BookOpen,
   LogIn,
   LogOut,
@@ -139,7 +138,6 @@ export function Navbar() {
               </Button>
               <Button asChild size="sm" className="gap-1.5 text-xs font-bold shadow-sm">
                 <Link href="/register">
-                  <Sparkles className="h-3.5 w-3.5" />
                   Daftar
                 </Link>
               </Button>

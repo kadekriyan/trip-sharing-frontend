@@ -12,7 +12,6 @@ import {
   Italic,
   List,
   Link2,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -254,7 +253,7 @@ export default function NewBlogArticlePage() {
 
             <Card className="p-5 border border-slate-100 shadow-stitch-card space-y-3 bg-teal-50/50 border-teal-100">
               <div className="flex items-center gap-2 text-[#00677d]">
-                <Sparkles className="h-4 w-4" />
+                <CheckCircle2 className="h-4 w-4" />
                 <span className="font-bold text-xs uppercase tracking-wider">SEO Health Score</span>
               </div>
               <span className="font-heading font-extrabold text-2xl text-[#00677d] block">

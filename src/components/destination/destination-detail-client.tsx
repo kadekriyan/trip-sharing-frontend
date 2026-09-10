@@ -16,7 +16,6 @@ import {
   QrCode,
   CreditCard,
   Building2,
-  Sparkles,
   AlertCircle,
   Loader2,
   PackageOpen,
@@ -461,7 +460,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   <span className="text-[10px] text-slate-500">Mobil tidak berdesakan</span>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-[#ff7f50]/5 border border-[#ff7f50]/10 text-center">
-                  <Sparkles className="h-5 w-5 text-[#ff7f50] mx-auto mb-1.5" />
+                  <CreditCard className="h-5 w-5 text-[#ff7f50] mx-auto mb-1.5" />
                   <span className="font-heading font-bold text-xs text-[#ff7f50] block">Biaya Patungan</span>
                   <span className="text-[10px] text-slate-500">Hemat hingga 60%</span>
                 </div>
@@ -760,7 +759,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 {isCustomDateMode && (selectedDate || customDateInput) && (
                   <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5 animate-in fade-in duration-200">
                     <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                      <Sparkles className="h-4 w-4 text-[#ff7f50]" />
+                      <CalendarPlus className="h-4 w-4 text-[#ff7f50]" />
                       <span>Jadilah Inisiator Trip!</span>
                     </div>
                     <p className="text-[11px] text-amber-800 leading-relaxed font-normal">

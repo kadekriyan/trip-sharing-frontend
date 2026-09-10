@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar as CalendarIcon,
-  Sparkles,
   Users,
   Check,
   Clock,
@@ -367,7 +366,7 @@ export function TripCalendarPicker({
 
       {/* Bottom Special Offer Banner */}
       <div className="mt-3 p-2.5 rounded-2xl bg-gradient-to-r from-teal-50/80 to-emerald-50/80 border border-teal-200/60 flex items-center gap-2 text-[11px] text-teal-900">
-        <Sparkles className="h-4 w-4 text-[#00677d] shrink-0" />
+        <Info className="h-4 w-4 text-[#00677d] shrink-0" />
         <span className="leading-tight font-medium">
           <strong>Garansi Pasti Berangkat:</strong> Gabung grup yang sudah ada atau buka grup armada 6 pax baru.
         </span>

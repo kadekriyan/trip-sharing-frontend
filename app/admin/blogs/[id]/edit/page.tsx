@@ -12,7 +12,6 @@ import {
   Italic,
   List,
   Link2,
-  Sparkles,
   Save,
   Loader2,
 } from "lucide-react";
@@ -398,7 +397,7 @@ export default function EditBlogArticlePage() {
         {/* Section 4: SEO Metadata */}
         <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-4 bg-white">
           <h2 className="font-heading font-bold text-sm text-[#191c1e] border-b border-slate-100 pb-2 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#00677d]" />
+            <FileText className="h-4 w-4 text-[#00677d]" />
             SEO & OpenGraph Metadata
           </h2>
 
