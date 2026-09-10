@@ -14,7 +14,6 @@ import type {
   CreateBookingGroupPayload,
   UpdateBookingGroupPayload,
 } from "@/src/types";
-import { MOCK_DESTINATIONS, MOCK_DRIVERS, MOCK_PARTICIPANTS } from "@/src/services/mockData";
 import { normalizeParticipant } from "@/src/lib/utils";
 
 
@@ -209,37 +208,8 @@ export const adminService = {
       // Empty participants
     }
 
-    let localFiltered = [...MOCK_PARTICIPANTS].map(normalizeParticipant);
-    if (params?.tripId) {
-      localFiltered = localFiltered.filter((p) => p.tripId === params.tripId);
-    }
-    if (params?.groupId) {
-      localFiltered = localFiltered.filter((p) => p.bookingGroupId === params.groupId);
-    }
-    if (params?.status && params.status !== "all") {
-      localFiltered = localFiltered.filter((p) => p.paymentStatus === params.status);
-    }
-    if (params?.search) {
-      const q = params.search.toLowerCase();
-      localFiltered = localFiltered.filter(
-        (p) =>
-          (p.fullName || "").toLowerCase().includes(q) ||
-          (p.email || "").toLowerCase().includes(q) ||
-          (p.bookingCode || "").toLowerCase().includes(q)
-      );
-    }
-
-    if (apiParticipants.length === 0) {
-      return localFiltered.map(normalizeParticipant);
-    }
-
     const apiIds = new Set(apiParticipants.map((p) => p.id));
     const merged = [...apiParticipants];
-    for (const lp of localFiltered) {
-      if (!apiIds.has(lp.id)) {
-        merged.unshift(lp);
-      }
-    }
 
     // Enrich participants with bookingGroup, trip, and driver from /admin/groups
     try {
@@ -438,26 +408,16 @@ export const adminService = {
         return { success: true, message: res.message || "Status pembayaran berhasil diperbarui" };
       }
     } catch {
-      try {
-        const altRes = await apiClient.patch<{ participant?: Participant; message?: string }>(
-          `/admin/participants/${participantId}`,
-          { paymentStatus }
-        );
-        if (altRes.success) {
-          return { success: true, message: altRes.message || "Status pembayaran berhasil diperbarui" };
-        }
-      } catch {
-        // Fallback to MOCK_PARTICIPANTS
+      const altRes = await apiClient.patch<{ participant?: Participant; message?: string }>(
+        `/admin/participants/${participantId}`,
+        { paymentStatus }
+      );
+      if (altRes.success) {
+        return { success: true, message: altRes.message || "Status pembayaran berhasil diperbarui" };
       }
     }
 
-    const found = MOCK_PARTICIPANTS.find((p) => p.id === participantId);
-    if (found) {
-      found.paymentStatus = paymentStatus;
-      return { success: true, message: `Status pembayaran diubah menjadi ${paymentStatus}` };
-    }
-
-    return { success: true, message: "Status pembayaran berhasil diperbarui" };
+    throw new Error("Gagal memperbarui status pembayaran peserta.");
   },
 
   async getTrips(params?: {
