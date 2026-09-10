@@ -17,6 +17,7 @@ import {
   Mail,
   ShieldCheck,
   CreditCard,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -446,15 +447,28 @@ function MyBookingsContent() {
                                   </Button>
                                 </>
                               ) : (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => setSelectedVoucher(booking)}
-                                  className="gap-1.5"
-                                >
-                                  <Ticket className="h-3.5 w-3.5 text-[#00677d]" />
-                                  Lihat E-Voucher
-                                </Button>
+                                <>
+                                  <Button
+                                    asChild
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 text-slate-700 hover:text-[#00677d]"
+                                  >
+                                    <Link href={`/bookings/${encodeURIComponent(booking.bookingCode || booking.id)}/invoice`}>
+                                      <FileText className="h-3.5 w-3.5 text-[#00677d]" />
+                                      Faktur Resmi
+                                    </Link>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setSelectedVoucher(booking)}
+                                    className="gap-1.5"
+                                  >
+                                    <Ticket className="h-3.5 w-3.5 text-[#00677d]" />
+                                    Lihat E-Voucher
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -628,7 +642,7 @@ function MyBookingsContent() {
                   )}
                 </div>
 
-                <div className="pt-2 no-print">
+                <div className="pt-2 no-print space-y-2">
                   <Button
                     onClick={() => {
                       const destTitle =
@@ -654,6 +668,16 @@ function MyBookingsContent() {
                     className="w-full justify-center text-xs font-bold"
                   >
                     Cetak / Simpan E-Voucher (PDF)
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full justify-center text-xs font-semibold gap-1.5 text-[#00677d] border-teal-200 hover:bg-teal-50"
+                  >
+                    <Link href={`/bookings/${encodeURIComponent(selectedVoucher.bookingCode || selectedVoucher.id)}/invoice`}>
+                      <FileText className="h-3.5 w-3.5" />
+                      Lihat Faktur Resmi (Invoice)
+                    </Link>
                   </Button>
                 </div>
               </div>

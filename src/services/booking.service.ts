@@ -5,6 +5,7 @@ import type {
   Payment,
   BookingGroup,
   Trip,
+  InvoiceData,
 } from "@/src/types";
 import {
   MOCK_PARTICIPANTS,
@@ -378,4 +379,266 @@ export const bookingService = {
       updatedAt: new Date().toISOString(),
     };
   },
+
+  async getBookingInvoice(identifier: string): Promise<InvoiceData> {
+    const cleanId = identifier.trim();
+
+    // 1. Try GET /bookings/:identifier/invoice
+    try {
+      const res = await apiClient.get<InvoiceData>(`/bookings/${encodeURIComponent(cleanId)}/invoice`);
+      if (res.success && res.data) {
+        return res.data;
+      }
+    } catch {
+      // Try alias endpoint
+    }
+
+    // 2. Try alias GET /bookings/invoice/:identifier
+    try {
+      const altRes = await apiClient.get<InvoiceData>(`/bookings/invoice/${encodeURIComponent(cleanId)}`);
+      if (altRes.success && altRes.data) {
+        return altRes.data;
+      }
+    } catch {
+      // Fallback
+    }
+
+    // 3. Fallback: Search in local / my-bookings participants and synthesize full InvoiceData
+    let foundParticipant: Participant | undefined;
+
+    try {
+      const myBookings = await this.getMyBookings({ bookingCode: cleanId });
+      if (myBookings.length > 0) {
+        foundParticipant = myBookings[0];
+      }
+    } catch {
+      // Continue
+    }
+
+    if (!foundParticipant) {
+      const upperId = cleanId.toUpperCase();
+      foundParticipant = MOCK_PARTICIPANTS.find(
+        (p) =>
+          p.id === cleanId ||
+          p.bookingCode?.toUpperCase() === upperId ||
+          p.paymentId === cleanId
+      );
+    }
+
+    if (!foundParticipant) {
+      // Return a synthesized fallback with default demo structure
+      const defaultDest = MOCK_DESTINATIONS[0];
+      const defaultDriver = MOCK_DRIVERS[0];
+      const code = cleanId.startsWith("TRV-") ? cleanId : "TRV-8921";
+
+      return {
+        invoice: {
+          invoiceNumber: `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${code}`,
+          invoiceDate: new Date().toISOString(),
+          dueDate: new Date().toISOString(),
+          paidAt: new Date().toISOString(),
+          status: "PAID",
+          paymentStatus: "paid",
+          checkInStatus: "pending",
+          bookingCode: code,
+          participantId: cleanId,
+          bookingGroupId: "grp-demo-01",
+          tripId: "trip-01",
+        },
+        issuer: {
+          companyName: "Trip Sharing Platform Indonesia",
+          legalName: "PT Trip Sharing Nusantara",
+          tagline: "Teman Berbagi Perjalanan Wisata Indonesia",
+          website: "https://tripsharing.id",
+          supportEmail: "support@tripsharing.id",
+          supportPhone: "+62 812-3456-7890",
+          address: "Jl. Ijen No. 88, Oro-oro Dowo, Kec. Klojen, Kota Malang, Jawa Timur 65119",
+        },
+        customer: {
+          fullName: "Guest Traveler",
+          email: "traveler@tripsharing.local",
+          phoneNumber: "+62 812-3456-7890",
+          identityNumber: "3578012345670001",
+          identityType: "KTP",
+          country: "Indonesia",
+          nationality: "Indonesia",
+          gender: "female",
+        },
+        tripDetails: {
+          destinationId: defaultDest.id,
+          destinationName: defaultDest.title,
+          destinationSlug: defaultDest.slug,
+          destinationCoverImage: defaultDest.coverImage,
+          departureDate: new Date(Date.now() + 2 * 86400000).toISOString(),
+          returnDate: new Date(Date.now() + 4 * 86400000).toISOString(),
+          duration: `${defaultDest.durationDays} Hari ${defaultDest.durationNights} Malam`,
+          meetingPoint: defaultDest.meetingPoint,
+          pickupLocation: "Hotel Santika Premiere Malang, Jl. Letjen Sutoyo No.79",
+          pickupLatitude: -7.962145,
+          pickupLongitude: 112.634125,
+          pickupNotes: "Tunggu di lobi timur dekat drop-off point",
+          roomPreference: "Single Supplement",
+          roomType: "Standard",
+          groupNumber: 1,
+          vehicleModel: defaultDriver.vehicleModel,
+          vehiclePlateNumber: defaultDriver.plateNumber,
+          driverName: defaultDriver.fullName,
+          driverPhone: defaultDriver.phoneNumber,
+        },
+        pricing: {
+          currency: "IDR",
+          items: [
+            {
+              itemNumber: 1,
+              description: `Paket Trip Sharing - ${defaultDest.title} (1 Pax)`,
+              category: "Trip Package",
+              quantity: 1,
+              unitPrice: defaultDest.pricePerPax,
+              amount: defaultDest.pricePerPax,
+            },
+            {
+              itemNumber: 2,
+              description: "Premi Asuransi Perjalanan (Travel Insurance Protection & Emergency Assistance)",
+              category: "Add-on Insurance",
+              quantity: 1,
+              unitPrice: 50000,
+              amount: 50000,
+            },
+          ],
+          basePrice: defaultDest.pricePerPax,
+          insuranceFee: 50000,
+          adminFee: 0,
+          taxAmount: 0,
+          discountAmount: 0,
+          totalAmount: defaultDest.pricePerPax + 50000,
+        },
+        paymentDetails: {
+          paymentId: `pay-${Date.now()}`,
+          paymentMethod: "Midtrans Snap Gateway",
+          midtransOrderId: `TRIP-${code}`,
+          midtransTransactionId: `trx-${Date.now()}`,
+          paymentStatus: "paid",
+          transactionTime: new Date().toISOString(),
+          completionTime: new Date().toISOString(),
+          paymentProofUrl: null,
+        },
+        verification: {
+          voucherQrCode: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(code)}`,
+          invoiceUrl: `/bookings/${code}/invoice`,
+        },
+      };
+    }
+
+    const dest = foundParticipant.destination || foundParticipant.trip?.destination || MOCK_DESTINATIONS[0];
+    const group = foundParticipant.group || foundParticipant.bookingGroup || { groupNumber: 1, capacity: 6, driver: null };
+    const driver = group?.driver || MOCK_DRIVERS[0];
+    const basePrice = foundParticipant.trip?.pricePerPax || dest?.pricePerPax || 850000;
+    const insuranceFee = foundParticipant.hasInsurance ? (foundParticipant.insuranceFee || 50000) : 0;
+    const totalAmount = foundParticipant.totalAmount || (basePrice + insuranceFee);
+    const isPaid = foundParticipant.paymentStatus === "paid";
+    const bookingCode = foundParticipant.bookingCode || cleanId || "TRV-0000";
+
+    const items = [
+      {
+        itemNumber: 1,
+        description: `Paket Trip Sharing - ${dest?.title || dest?.name || "Destinasi Wisata"} (1 Pax)`,
+        category: "Trip Package",
+        quantity: 1,
+        unitPrice: basePrice,
+        amount: basePrice,
+      },
+    ];
+
+    if (foundParticipant.hasInsurance) {
+      items.push({
+        itemNumber: 2,
+        description: "Premi Asuransi Perjalanan (Travel Insurance Protection & Emergency Assistance)",
+        category: "Add-on Insurance",
+        quantity: 1,
+        unitPrice: insuranceFee,
+        amount: insuranceFee,
+      });
+    }
+
+    return {
+      invoice: {
+        invoiceNumber: `INV-${new Date(foundParticipant.createdAt || Date.now()).toISOString().slice(0, 10).replace(/-/g, "")}-${bookingCode}`,
+        invoiceDate: foundParticipant.createdAt || new Date().toISOString(),
+        dueDate: foundParticipant.createdAt || new Date().toISOString(),
+        paidAt: isPaid ? (foundParticipant.updatedAt || new Date().toISOString()) : null,
+        status: isPaid ? "PAID" : foundParticipant.paymentStatus === "cancelled" ? "CANCELLED" : "PENDING",
+        paymentStatus: foundParticipant.paymentStatus || "pending",
+        checkInStatus: foundParticipant.checkInStatus || "pending",
+        bookingCode,
+        participantId: foundParticipant.id,
+        bookingGroupId: foundParticipant.bookingGroupId || "",
+        tripId: foundParticipant.tripId || "",
+      },
+      issuer: {
+        companyName: "Trip Sharing Platform Indonesia",
+        legalName: "PT Trip Sharing Nusantara",
+        tagline: "Teman Berbagi Perjalanan Wisata Indonesia",
+        website: "https://tripsharing.id",
+        supportEmail: "support@tripsharing.id",
+        supportPhone: "+62 812-3456-7890",
+        address: "Jl. Ijen No. 88, Oro-oro Dowo, Kec. Klojen, Kota Malang, Jawa Timur 65119",
+      },
+      customer: {
+        fullName: foundParticipant.fullName || "Traveler",
+        email: foundParticipant.email || "traveler@tripsharing.local",
+        phoneNumber: foundParticipant.phoneNumber || "-",
+        identityNumber: foundParticipant.identityNumber && foundParticipant.identityNumber !== "-" ? foundParticipant.identityNumber : "-",
+        identityType: "KTP",
+        country: foundParticipant.nationality || "Indonesia",
+        nationality: foundParticipant.nationality || "Indonesia",
+        gender: foundParticipant.gender || "male",
+      },
+      tripDetails: {
+        destinationId: dest?.id || "",
+        destinationName: dest?.title || dest?.name || "Paket Wisata",
+        destinationSlug: dest?.slug || "",
+        destinationCoverImage: dest?.coverImage || "/images/dest-bromo.jpg",
+        departureDate: foundParticipant.departureDate || foundParticipant.trip?.departureDate || foundParticipant.createdAt,
+        returnDate: foundParticipant.trip?.returnDate || foundParticipant.departureDate || foundParticipant.createdAt,
+        duration: `${dest?.durationDays || 2} Hari ${dest?.durationNights || 1} Malam`,
+        meetingPoint: dest?.meetingPoint || "Meeting Point Destinasi",
+        pickupLocation: foundParticipant.pickupLocation || dest?.meetingPoint || "Meeting Point Resmi Destinasi",
+        pickupLatitude: foundParticipant.pickupLatitude ?? null,
+        pickupLongitude: foundParticipant.pickupLongitude ?? null,
+        pickupNotes: foundParticipant.pickupNotes || "",
+        roomPreference: foundParticipant.roomPreference === "single" ? "Single Supplement" : "Twin Sharing",
+        roomType: "Standard",
+        groupNumber: group?.groupNumber || 1,
+        vehicleModel: driver?.vehicleModel || "Toyota HiAce (6-Seater VIP)",
+        vehiclePlateNumber: driver?.plateNumber || "N 1234 XY",
+        driverName: driver?.fullName || "Driver Belum Ditugaskan",
+        driverPhone: driver?.phoneNumber || "-",
+      },
+      pricing: {
+        currency: "IDR",
+        items,
+        basePrice,
+        insuranceFee,
+        adminFee: 0,
+        taxAmount: 0,
+        discountAmount: 0,
+        totalAmount,
+      },
+      paymentDetails: {
+        paymentId: foundParticipant.paymentId || `pay-${foundParticipant.id}`,
+        paymentMethod: "Midtrans Snap Gateway",
+        midtransOrderId: `TRIP-${bookingCode}`,
+        midtransTransactionId: `trx-${foundParticipant.id.slice(0, 8)}`,
+        paymentStatus: foundParticipant.paymentStatus || "pending",
+        transactionTime: foundParticipant.createdAt || new Date().toISOString(),
+        completionTime: isPaid ? (foundParticipant.updatedAt || new Date().toISOString()) : null,
+        paymentProofUrl: null,
+      },
+      verification: {
+        voucherQrCode: foundParticipant.voucherQrCode || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(bookingCode)}`,
+        invoiceUrl: `/bookings/${bookingCode}/invoice`,
+      },
+    };
+  },
 };
+

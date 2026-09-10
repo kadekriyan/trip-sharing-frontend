@@ -397,4 +397,94 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface InvoiceItem {
+  itemNumber: number;
+  description: string;
+  category: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+
+export interface InvoiceData {
+  invoice: {
+    invoiceNumber: string;
+    invoiceDate: string;
+    dueDate: string;
+    paidAt: string | null;
+    status: "PAID" | "PENDING" | "CANCELLED" | "REFUNDED" | string;
+    paymentStatus: string;
+    checkInStatus: string;
+    bookingCode: string;
+    participantId: string;
+    bookingGroupId: string;
+    tripId: string;
+  };
+  issuer: {
+    companyName: string;
+    legalName: string;
+    tagline: string;
+    website: string;
+    supportEmail: string;
+    supportPhone: string;
+    address: string;
+  };
+  customer: {
+    userId?: string;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    identityNumber: string;
+    identityType: string;
+    country: string;
+    nationality: string;
+    gender?: string;
+  };
+  tripDetails: {
+    destinationId: string;
+    destinationName: string;
+    destinationSlug: string;
+    destinationCoverImage?: string;
+    departureDate: string;
+    returnDate: string;
+    duration?: string;
+    meetingPoint: string;
+    pickupLocation?: string;
+    pickupLatitude?: number | null;
+    pickupLongitude?: number | null;
+    pickupNotes?: string;
+    roomPreference?: string;
+    roomType?: string;
+    groupNumber: number;
+    vehicleModel?: string;
+    vehiclePlateNumber?: string;
+    driverName?: string;
+    driverPhone?: string;
+  };
+  pricing: {
+    currency: string;
+    items: InvoiceItem[];
+    basePrice: number;
+    insuranceFee: number;
+    adminFee: number;
+    taxAmount: number;
+    discountAmount: number;
+    totalAmount: number;
+  };
+  paymentDetails: {
+    paymentId: string | null;
+    paymentMethod: string;
+    midtransOrderId: string;
+    midtransTransactionId: string | null;
+    paymentStatus: string;
+    transactionTime: string;
+    completionTime: string | null;
+    paymentProofUrl: string | null;
+  };
+  verification: {
+    voucherQrCode: string;
+    invoiceUrl: string;
+  };
+}
+
 
