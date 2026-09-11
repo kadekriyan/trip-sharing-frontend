@@ -62,11 +62,8 @@ export function Navbar() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="font-heading text-lg font-bold tracking-tight text-[#00677d] leading-tight flex items-center gap-1.5">
+            <span className="font-heading text-lg font-bold tracking-tight text-[#00677d] leading-tight">
               Share Tour Jogja
-              <span className="text-[#ff7f50] text-xs px-1.5 py-0.5 rounded-full bg-orange-100 font-semibold font-sans">
-                Max 6 Pax
-              </span>
             </span>
             <span className="text-[11px] font-medium text-slate-500">
               Sharing Tour & Open Trip Yogyakarta

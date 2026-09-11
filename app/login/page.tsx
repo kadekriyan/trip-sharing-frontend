@@ -9,8 +9,6 @@ import {
   Mail,
   Eye,
   EyeOff,
-  ShieldCheck,
-  User,
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
@@ -24,7 +22,6 @@ function LoginFormContent() {
   const redirectPath = searchParams.get("redirect") || "/";
 
   const { login } = useAuth();
-  const [activeTab, setActiveTab] = useState<"traveler" | "admin">("traveler");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -70,45 +67,11 @@ function LoginFormContent() {
             Selamat Datang Kembali
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Masuk ke akun Anda untuk mengelola perjalanan atau portal operasional.
+            Masuk ke akun Anda untuk mengelola pemesanan dan jadwal perjalanan.
           </p>
         </div>
 
         <Card className="p-6 sm:p-8 border border-slate-100 shadow-stitch-card bg-white space-y-6">
-          {/* Role Toggle Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-slate-100/80 rounded-xl">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("traveler");
-                setErrorMsg(null);
-              }}
-              className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === "traveler"
-                  ? "bg-white text-[#00677d] shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <User className="h-3.5 w-3.5" />
-              Traveler Member
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("admin");
-                setErrorMsg(null);
-              }}
-              className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                activeTab === "admin"
-                  ? "bg-[#00677d] text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Staff Admin
-            </button>
-          </div>
-
           {/* Error Alert */}
           {errorMsg && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
@@ -128,7 +91,7 @@ function LoginFormContent() {
                 <Input
                   required
                   type="email"
-                  placeholder={activeTab === "admin" ? "admin@sharingtouryogyakarta.com" : "nama@email.com"}
+                  placeholder="nama@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9 bg-slate-50 border-slate-200"
@@ -171,7 +134,7 @@ function LoginFormContent() {
               disabled={isSubmitting}
               className="w-full justify-center font-bold text-sm shadow-md mt-2"
             >
-              {isSubmitting ? "Memverifikasi..." : `Masuk sebagai ${activeTab === "admin" ? "Staff Admin" : "Traveler"}`}
+              {isSubmitting ? "Memverifikasi..." : "Masuk ke Akun"}
             </Button>
           </form>
         </Card>
