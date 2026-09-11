@@ -79,7 +79,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Platform petualangan wisata sharing tour Yogyakarta & Indonesia yang menghubungkan solo traveler dalam grup eksklusif 6 pax.
+              Platform petualangan wisata sharing tour Yogyakarta yang menghubungkan traveler dalam grup perjalanan yang nyaman, hemat, dan bersahabat.
             </p>
           </div>
 
@@ -169,7 +169,7 @@ export function Footer() {
             <span>•</span>
             <span>Google reCAPTCHA Protected</span>
             <span>•</span>
-            <span>Maksimal 6 Pax per Mobil</span>
+            <span>Armada Nyaman & Terawat</span>
           </div>
         </div>
       </div>

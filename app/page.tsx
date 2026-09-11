@@ -32,7 +32,7 @@ export default async function HomePage() {
   const jsonLdTrips = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Paket Wisata Open Trip Cost-Sharing Indonesia (Maks 6 Pax)",
+    name: "Paket Wisata Open Trip & Sharing Tour Yogyakarta",
     itemListElement: destinations.slice(0, 6).map((dest, index) => ({
       "@type": "ListItem",
       position: index + 1,
@@ -72,11 +72,8 @@ export default async function HomePage() {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs font-bold text-[#00677d]">
-                Open Trip Cost-Sharing Wisata Indonesia
+                Open Trip & Sharing Tour Yogyakarta
               </span>
-              <Badge variant="coral" className="text-[10px] px-1.5 py-0">
-                Maks 6 Pax
-              </Badge>
             </div>
 
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#191c1e] leading-[1.12]">
@@ -88,14 +85,14 @@ export default async function HomePage() {
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              Platform trip sharing terpercaya di Indonesia. Gabung grup perjalanan berkapasitas maksimal 6 orang per mobil, nikmati kenyamanan privat dengan biaya patungan yang hemat hingga 60%.
+              Platform sharing tour terpercaya di Yogyakarta. Nikmati perjalanan wisata dengan armada nyaman ber-AC dan biaya patungan yang hemat hingga 60%.
             </p>
 
             {/* Micro Highlights */}
             <div className="grid grid-cols-3 gap-3 pt-2 max-w-lg mx-auto lg:mx-0">
               <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center lg:items-start text-center lg:text-left">
-                <span className="font-heading font-extrabold text-[#00677d] text-lg sm:text-xl">6 Pax</span>
-                <span className="text-[11px] text-slate-600 font-medium">Maksimal per Mobil</span>
+                <span className="font-heading font-extrabold text-[#00677d] text-lg sm:text-xl">Full AC</span>
+                <span className="text-[11px] text-slate-600 font-medium">Armada Nyaman</span>
               </div>
               <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center lg:items-start text-center lg:text-left">
                 <span className="font-heading font-extrabold text-[#ff7f50] text-lg sm:text-xl">60%</span>
@@ -172,9 +169,6 @@ export default async function HomePage() {
                   <Badge variant="coral" className="text-xs font-bold px-3 py-1 shadow-lg backdrop-blur-sm">
                     🔥 Paket Paling Diminati
                   </Badge>
-                  <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-slate-800 shadow-md">
-                    Maks 6 Orang / Mobil
-                  </div>
                 </div>
 
                 {/* Card Bottom Meta */}
@@ -220,7 +214,7 @@ export default async function HomePage() {
                       Share Tour Jogja
                     </Badge>
                     <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm">
-                      Max 6 Pax VIP
+                      Wisata Jogja
                     </div>
                   </div>
 
@@ -232,7 +226,7 @@ export default async function HomePage() {
                       Jalan-Jalan Seru, Patungan Hemat.
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-200 mt-2 leading-relaxed">
-                      Eksplorasi destinasi terbaik Yogyakarta & sekitarnya dengan sistem cost-sharing maksimal 6 orang per mobil. Lebih hemat, nyaman, dan bergaransi berangkat.
+                      Eksplorasi destinasi terbaik Yogyakarta & sekitarnya dengan sistem cost-sharing armada nyaman. Lebih hemat, nyaman, dan bergaransi berangkat.
                     </p>
                   </div>
                 </div>
@@ -240,8 +234,8 @@ export default async function HomePage() {
                 <div className="relative z-10 space-y-4 pt-4 border-t border-white/15">
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
-                      <span className="text-[10px] text-slate-300 block">Kapasitas Armada</span>
-                      <span className="font-bold text-white">Maks 6 Orang</span>
+                      <span className="text-[10px] text-slate-300 block">Armada Bersih</span>
+                      <span className="font-bold text-white">Driver Profesional</span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
                       <span className="text-[10px] text-slate-300 block">Jaminan Layanan</span>
@@ -270,7 +264,7 @@ export default async function HomePage() {
               Konsep Trip Sharing
             </Badge>
             <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-[#191c1e]">
-              Bagaimana Cara Kerja Trip Sharing 6 Pax?
+              Bagaimana Cara Kerja Trip Sharing?
             </h2>
             <p className="text-sm sm:text-base text-slate-600">
               Solusi cerdas bagi solo traveler atau pasangan yang ingin jalan-jalan hemat tanpa harus menyewa satu mobil penuh sendirian.
@@ -300,7 +294,7 @@ export default async function HomePage() {
                 Sistem Otomatis Menggabungkan
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Sistem kami secara cerdas mengelompokkanmu ke grup mobil 6-seater dengan traveler lain yang memiliki tanggal sama.
+                Sistem kami secara cerdas mengelompokkanmu ke grup mobil bersama traveler lain yang memiliki tanggal sama.
               </p>
             </Card>
 

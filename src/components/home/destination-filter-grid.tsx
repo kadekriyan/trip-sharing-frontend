@@ -140,9 +140,6 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
                     <div className="absolute top-3.5 left-3.5 flex gap-2">
-                      <Badge variant="coral" className="text-[10px] font-bold px-2 py-0.5 shadow-sm">
-                        Maks 6 Pax
-                      </Badge>
                       {dest.category && (
                         <Badge variant="secondary" className="text-[10px] font-bold bg-white/95 text-slate-800 shadow-sm backdrop-blur-sm">
                           {dest.category}
