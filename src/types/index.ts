@@ -128,12 +128,12 @@ export interface Participant {
   phoneNumber: string;
   phone_number?: string;
   nationality: string;
-  identityNumber: string; // KTP / Paspor
+  identityNumber?: string; // Optional (Deprecated)
   identity_number?: string;
   dateOfBirth?: string;
   gender?: "male" | "female" | "other";
-  roomPreference?: "single" | "shared" | "none";
-  room_preference?: "single" | "shared" | "none";
+  roomPreference?: "single" | "shared" | "none" | string;
+  room_preference?: "single" | "shared" | "none" | string;
   healthNotes?: string;
   health_notes?: string;
   pickupLocation?: string;
@@ -151,9 +151,9 @@ export interface Participant {
     relationship: string;
     phone: string;
   };
-  hasInsurance: boolean;
+  hasInsurance?: boolean;
   has_insurance?: boolean;
-  insuranceFee: number;
+  insuranceFee?: number;
   insurance_fee?: number;
   totalAmount: number;
   total_amount?: number;
@@ -296,16 +296,16 @@ export interface CreateBookingPayload {
   email: string;
   phoneNumber: string;
   nationality: string;
-  identityNumber: string;
+  identityNumber?: string;
   dateOfBirth?: string;
   gender?: "male" | "female" | "other";
-  roomPreference?: "single" | "shared" | "none";
+  roomPreference?: "single" | "shared" | "none" | string;
   healthNotes?: string;
   pickupLocation?: string;
   pickupLatitude?: number;
   pickupLongitude?: number;
   pickupNotes?: string;
-  hasInsurance: boolean;
+  hasInsurance?: boolean;
   captchaToken: string;
   departureDate?: string;
 }
@@ -434,8 +434,8 @@ export interface InvoiceData {
     fullName: string;
     email: string;
     phoneNumber: string;
-    identityNumber: string;
-    identityType: string;
+    identityNumber?: string;
+    identityType?: string;
     country: string;
     nationality: string;
     gender?: string;
@@ -465,7 +465,7 @@ export interface InvoiceData {
     currency: string;
     items: InvoiceItem[];
     basePrice: number;
-    insuranceFee: number;
+    insuranceFee?: number;
     adminFee: number;
     taxAmount: number;
     discountAmount: number;

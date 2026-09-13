@@ -383,14 +383,11 @@ function MyBookingsContent() {
                             <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
                               <span className="font-bold text-[#00677d] text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                                 <UserIcon className="h-3.5 w-3.5 text-[#00677d]" />
-                                Data Identitas Penumpang
+                                Data Penumpang
                               </span>
-                              {booking.hasInsurance && (
-                                <span className="text-emerald-700 font-bold text-[10px] flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                                  <ShieldCheck className="h-3 w-3 text-emerald-600" />
-                                  Termasuk Asuransi
-                                </span>
-                              )}
+                              <span className="text-slate-500 text-[10px]">
+                                {booking.nationality || "Indonesia"}
+                              </span>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
@@ -399,19 +396,13 @@ function MyBookingsContent() {
                                 <strong className="text-slate-800">{booking.fullName || "Guest Traveler"}</strong>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-slate-400 text-[11px] min-w-[70px]">NIK:</span>
-                                <span className="font-mono font-bold text-slate-700">
-                                  {booking.identityNumber && booking.identityNumber !== "-" ? booking.identityNumber : "—"}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
                                 <span className="text-slate-400 text-[11px] min-w-[70px]">No. Telepon:</span>
                                 <span className="text-slate-700 flex items-center gap-1">
                                   <Phone className="h-3 w-3 text-slate-400 shrink-0" />
                                   {booking.phoneNumber || "—"}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <div className="flex items-center gap-1.5 sm:col-span-2">
                                 <span className="text-slate-400 text-[11px] min-w-[70px]">Email:</span>
                                 <span className="text-slate-700 flex items-center gap-1 truncate">
                                   <Mail className="h-3 w-3 text-slate-400 shrink-0" />
@@ -573,14 +564,12 @@ function MyBookingsContent() {
                     <span className="text-slate-500">Nama Penumpang:</span>
                     <span className="font-bold text-slate-800">{selectedVoucher.fullName || "Traveler"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Nomor Identitas (NIK):</span>
-                    <span className="font-mono font-medium text-slate-800">
-                      {selectedVoucher.identityNumber && selectedVoucher.identityNumber !== "-"
-                        ? selectedVoucher.identityNumber
-                        : "-"}
-                    </span>
-                  </div>
+                  {selectedVoucher.nationality && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Kewarganegaraan:</span>
+                      <span className="font-medium text-slate-800">{selectedVoucher.nationality}</span>
+                    </div>
+                  )}
                   {selectedVoucher.phoneNumber && (
                     <div className="flex justify-between">
                       <span className="text-slate-500">No. Telepon / WA:</span>
@@ -655,7 +644,7 @@ function MyBookingsContent() {
                         fullName: selectedVoucher.fullName || "Traveler",
                         email: selectedVoucher.email,
                         phoneNumber: selectedVoucher.phoneNumber,
-                        identityNumber: selectedVoucher.identityNumber || "-",
+                        identityNumber: selectedVoucher.identityNumber,
                         groupNumber: selectedVoucher.group?.groupNumber || 1,
                         driverName: selectedVoucher.group?.driver?.fullName,
                         vehicleModel: selectedVoucher.group?.driver?.vehicleModel,

@@ -80,16 +80,13 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [identityNumber, setIdentityNumber] = useState("");
   const [nationality, setNationality] = useState("Indonesia");
   const [pickupLocation, setPickupLocation] = useState("");
   const [pickupPlaceName, setPickupPlaceName] = useState("");
   const [pickupLatitude, setPickupLatitude] = useState<number | undefined>(undefined);
   const [pickupLongitude, setPickupLongitude] = useState<number | undefined>(undefined);
   const [pickupNotes, setPickupNotes] = useState("");
-  const [roomPref, setRoomPref] = useState<"shared" | "single" | "none">("shared");
   const [healthNotes, setHealthNotes] = useState("");
-  const [hasInsurance, setHasInsurance] = useState(true);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
@@ -277,15 +274,13 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   // Selected trip or base price
   const activeTrip = trips.find((t) => t.id === selectedTripId);
   const basePrice = activeTrip?.pricePerPax || getDestinationPrice(destination);
-  const insuranceFee = hasInsurance ? 50000 : 0;
-  const roomSurcharge = roomPref === "single" ? 350000 : 0;
-  const totalAmount = basePrice + insuranceFee + roomSurcharge;
+  const totalAmount = basePrice;
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!fullName || !email || !phoneNumber || !identityNumber) {
+    if (!fullName || !email || !phoneNumber) {
       setErrorMessage("Mohon lengkapi semua data diri wajib (*) sebelum melanjutkan.");
       return;
     }
@@ -315,10 +310,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         fullName,
         email,
         phoneNumber,
-        identityNumber,
         nationality,
-        roomPreference: roomPref,
-        hasInsurance,
         healthNotes: healthNotes || undefined,
         departureDate: selectedDate || customDateInput,
         pickupLocation:
@@ -893,19 +885,6 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Nomor Identitas (NIK / Paspor) *
-                  </label>
-                  <Input
-                    required
-                    placeholder="Untuk manifes perjalanan resmi"
-                    value={identityNumber}
-                    onChange={(e) => setIdentityNumber(e.target.value)}
-                    className="text-xs bg-slate-50 border-slate-200"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
                   <label htmlFor="nationality-select" className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                     Kewarganegaraan
                   </label>
@@ -967,53 +946,8 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   </div>
                 </div>
 
-                {/* Preference Options */}
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Preferensi Kamar
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRoomPref("shared")}
-                      className={`p-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
-                        roomPref === "shared"
-                          ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d] font-bold"
-                          : "border-slate-200 text-slate-600"
-                      }`}
-                    >
-                      Sharing Room (Gratis)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRoomPref("single")}
-                      className={`p-2.5 rounded-xl border text-xs font-semibold text-left transition-all ${
-                        roomPref === "single"
-                          ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d] font-bold"
-                          : "border-slate-200 text-slate-600"
-                      }`}
-                    >
-                      Private Room (+350rb)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Insurance Checkbox */}
-                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/80 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={hasInsurance}
-                    onChange={(e) => setHasInsurance(e.target.checked)}
-                    className="accent-[#00677d] h-4 w-4 mt-0.5 rounded"
-                  />
-                  <div className="text-xs">
-                    <span className="font-bold text-slate-800 block">Asuransi Perjalanan (+Rp 50.000)</span>
-                    <span className="text-[11px] text-slate-500">Perlindungan medis dan evakuasi darurat selama trip.</span>
-                  </div>
-                </label>
-
                 {/* Health & Special Notes */}
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 pt-2 border-t border-slate-100">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                     Catatan Khusus / Riwayat Kesehatan (Opsional)
                   </label>
@@ -1037,18 +971,6 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     <span>Tiket Trip Sharing:</span>
                     <span>{formatCurrency(basePrice)}</span>
                   </div>
-                  {hasInsurance && (
-                    <div className="flex justify-between text-xs text-slate-600">
-                      <span>Asuransi Medis:</span>
-                      <span>+Rp 50.000</span>
-                    </div>
-                  )}
-                  {roomPref === "single" && (
-                    <div className="flex justify-between text-xs text-slate-600">
-                      <span>Surcharge Private Room:</span>
-                      <span>+Rp 350.000</span>
-                    </div>
-                  )}
                   <div className="flex justify-between text-sm font-bold text-[#191c1e] pt-2 border-t border-slate-200">
                     <span>Total Tagihan:</span>
                     <span className="font-heading font-extrabold text-[#a43c12]">
@@ -1315,7 +1237,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       bookingCode: createdBooking?.bookingCode || "TRV-SUCCESS",
                       destinationTitle: destTitle,
                       fullName: createdBooking?.fullName || fullName || "Traveler",
-                      identityNumber: createdBooking?.identityNumber || identityNumber || "-",
+                      identityNumber: createdBooking?.identityNumber,
                       groupNumber: createdBooking?.group?.groupNumber || 1,
                       driverName: createdBooking?.group?.driver?.fullName,
                       vehicleModel: createdBooking?.group?.driver?.vehicleModel,

@@ -925,7 +925,7 @@ export default function AdminTripsPage() {
                                 <th className="py-2.5 px-3">Kontak</th>
                                 <th className="py-2.5 px-3">Alokasi Grup</th>
                                 <th className="py-2.5 px-3">Lokasi Penjemputan</th>
-                                <th className="py-2.5 px-3">Kamar & Asuransi</th>
+                                <th className="py-2.5 px-3">Kewarganegaraan & Catatan</th>
                                 <th className="py-2.5 px-3">Status Bayar</th>
                                 <th className="py-2.5 px-3 text-right">Aksi</th>
                               </tr>
@@ -948,11 +948,6 @@ export default function AdminTripsPage() {
                                     </td>
                                     <td className="py-2.5 px-3">
                                       <div className="font-bold text-slate-800">{p.fullName}</div>
-                                      {p.identityNumber && (
-                                        <div className="text-[10px] text-slate-400 font-mono">
-                                          NIK: {p.identityNumber}
-                                        </div>
-                                      )}
                                     </td>
                                     <td className="py-2.5 px-3 text-slate-600 space-y-0.5 text-[11px]">
                                       <div className="flex items-center gap-1">
@@ -1002,10 +997,10 @@ export default function AdminTripsPage() {
                                       </div>
                                     </td>
                                     <td className="py-2.5 px-3 text-[11px] text-slate-600">
-                                      <div>{p.roomPreference === "single" ? "Kamar Single (+Rp350rb)" : "Twin Sharing"}</div>
-                                      {p.hasInsurance && (
-                                        <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                                          <ShieldCheck className="h-3 w-3" /> Asuransi
+                                      <div className="font-medium text-slate-700">{p.nationality || "Indonesia"}</div>
+                                      {p.healthNotes && (
+                                        <span className="text-slate-500 text-[10px] block truncate max-w-[150px]">
+                                          {p.healthNotes}
                                         </span>
                                       )}
                                     </td>

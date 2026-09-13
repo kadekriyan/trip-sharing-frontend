@@ -804,10 +804,10 @@ export default function AdminGroupsPage() {
                                     </div>
                                     <div className="text-[11px] text-slate-500 flex items-center gap-2">
                                       <span>{p.phoneNumber || p.email}</span>
-                                      {p.roomPreference && p.roomPreference !== "none" && (
+                                      {p.nationality && (
                                         <>
                                           <span>•</span>
-                                          <span className="capitalize">{p.roomPreference} Room</span>
+                                          <span>{p.nationality}</span>
                                         </>
                                       )}
                                     </div>
