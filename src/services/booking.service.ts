@@ -5,6 +5,7 @@ import type {
   Payment,
   BookingGroup,
   InvoiceData,
+  InvoiceItem,
 } from "@/src/types";
 import { normalizeParticipant } from "@/src/lib/utils";
 
@@ -190,12 +191,11 @@ export const bookingService = {
     const group = foundParticipant.group || foundParticipant.bookingGroup;
     const driver = group?.driver;
     const basePrice = foundParticipant.trip?.pricePerPax || dest?.pricePerPax || 0;
-    const insuranceFee = foundParticipant.hasInsurance ? (foundParticipant.insuranceFee || 50000) : 0;
-    const totalAmount = foundParticipant.totalAmount || (basePrice + insuranceFee);
+    const totalAmount = foundParticipant.totalAmount || basePrice;
     const isPaid = foundParticipant.paymentStatus === "paid";
     const bookingCode = foundParticipant.bookingCode || cleanId;
 
-    const items = [
+    const items: InvoiceItem[] = [
       {
         itemNumber: 1,
         description: `Paket Trip Sharing - ${dest?.title || dest?.name || "Destinasi Wisata"} (1 Pax)`,
@@ -205,17 +205,6 @@ export const bookingService = {
         amount: basePrice,
       },
     ];
-
-    if (foundParticipant.hasInsurance) {
-      items.push({
-        itemNumber: 2,
-        description: "Premi Asuransi Perjalanan (Travel Insurance Protection & Emergency Assistance)",
-        category: "Add-on Insurance",
-        quantity: 1,
-        unitPrice: insuranceFee,
-        amount: insuranceFee,
-      });
-    }
 
     return {
       invoice: {
@@ -244,8 +233,6 @@ export const bookingService = {
         fullName: foundParticipant.fullName || "Traveler",
         email: foundParticipant.email || "-",
         phoneNumber: foundParticipant.phoneNumber || "-",
-        identityNumber: foundParticipant.identityNumber && foundParticipant.identityNumber !== "-" ? foundParticipant.identityNumber : "-",
-        identityType: "KTP",
         country: foundParticipant.nationality || "Indonesia",
         nationality: foundParticipant.nationality || "Indonesia",
         gender: foundParticipant.gender || "male",
@@ -263,8 +250,6 @@ export const bookingService = {
         pickupLatitude: foundParticipant.pickupLatitude ?? null,
         pickupLongitude: foundParticipant.pickupLongitude ?? null,
         pickupNotes: foundParticipant.pickupNotes || "",
-        roomPreference: foundParticipant.roomPreference === "single" ? "Single Supplement" : "Twin Sharing",
-        roomType: "Standard",
         groupNumber: group?.groupNumber || 1,
         vehicleModel: driver?.vehicleModel || "Toyota HiAce (6-Seater VIP)",
         vehiclePlateNumber: driver?.plateNumber || "-",
@@ -275,7 +260,6 @@ export const bookingService = {
         currency: "IDR",
         items,
         basePrice,
-        insuranceFee,
         adminFee: 0,
         taxAmount: 0,
         discountAmount: 0,

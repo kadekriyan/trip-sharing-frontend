@@ -173,7 +173,6 @@ Mengambil data profil lengkap traveler atau admin aktif.
     "email": "budi@example.com",
     "phoneNumber": "+6281234567890",
     "nationality": "Indonesia",
-    "identityNumber": "3578012345670001",
     "role": "traveler",
     "createdAt": "2026-09-03T04:00:00.000Z"
   },
@@ -423,15 +422,12 @@ Dapat dipanggil oleh traveler yang login maupun guest traveler (tanpa login).
   "email": "siti.rahma@example.com",
   "phoneNumber": "+6281987654321",
   "nationality": "Indonesia",
-  "identityNumber": "3201123456780002",
   "gender": "female",
-  "roomPreference": "Single Supplement",
   "healthNotes": "Alergi seafood ringan",
   "pickupLocation": "Hotel Santika Premiere Malang, Jl. Letjen Sutoyo No.79",
   "pickupLatitude": -7.962145,
   "pickupLongitude": 112.634125,
   "pickupNotes": "Tunggu di lobi timur dekat drop-off point",
-  "hasInsurance": true,
   "captchaToken": "03AFcWeA7..."
 }
 ```
@@ -585,8 +581,6 @@ Authorization: Bearer <jwt_access_token>
       "fullName": "Siti Rahmawati",
       "email": "siti.rahma@example.com",
       "phoneNumber": "+6281987654321",
-      "identityNumber": "3201123456780002",
-      "identityType": "KTP",
       "country": "Indonesia",
       "nationality": "Indonesia",
       "gender": "female"
@@ -604,8 +598,6 @@ Authorization: Bearer <jwt_access_token>
       "pickupLatitude": -7.962145,
       "pickupLongitude": 112.634125,
       "pickupNotes": "Tunggu di lobi timur dekat drop-off point",
-      "roomPreference": "Single Supplement",
-      "roomType": "Standard",
       "groupNumber": 1,
       "vehicleModel": "Toyota HiAce (6-Seater VIP)",
       "vehiclePlateNumber": "N 1234 XY",
@@ -622,22 +614,13 @@ Authorization: Bearer <jwt_access_token>
           "quantity": 1,
           "unitPrice": 850000,
           "amount": 850000
-        },
-        {
-          "itemNumber": 2,
-          "description": "Premi Asuransi Perjalanan (Travel Insurance Protection & Emergency Assistance)",
-          "category": "Add-on Insurance",
-          "quantity": 1,
-          "unitPrice": 50000,
-          "amount": 50000
         }
       ],
       "basePrice": 850000,
-      "insuranceFee": 50000,
       "adminFee": 0,
       "taxAmount": 0,
       "discountAmount": 0,
-      "totalAmount": 900000
+      "totalAmount": 850000
     },
     "paymentDetails": {
       "paymentId": "91a02b11-7782-4ef1-8901-bca123456789",
@@ -993,7 +976,6 @@ Mengambil daftar identitas traveler yang terdaftar di akun pengguna yang login.
       "fullName": "Budi Traveler",
       "phoneNumber": "+6281234567890",
       "nationality": "Indonesia",
-      "identityNumber": "3578012345670001",
       "paymentStatus": "paid",
       "checkInStatus": "pending"
     }
@@ -1083,9 +1065,7 @@ Mengambil daftar identitas traveler yang terdaftar di akun pengguna yang login.
   "nationality": "Indonesia",
   "gender": "male",
   "paymentStatus": "paid",
-  "hasInsurance": true,
-  "insuranceFee": 50000,
-  "totalAmount": 900000
+  "totalAmount": 850000
 }
 ```
 

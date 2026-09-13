@@ -30,13 +30,10 @@ export default function AddParticipantPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [identityNumber, setIdentityNumber] = useState("");
   const [nationality, setNationality] = useState("Indonesia");
   const [gender, setGender] = useState<"male" | "female">("male");
   const [selectedDestination, setSelectedDestination] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
-  const [roomPref, setRoomPref] = useState<"shared" | "single" | "none">("shared");
-  const [hasInsurance, setHasInsurance] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "pending">("paid");
   const [healthNotes, setHealthNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,13 +125,11 @@ export default function AddParticipantPage() {
 
   const destination = destinations.find((d) => d.id === selectedDestination) || destinations[0];
   const price = destination ? getDestinationPrice(destination) : 850000;
-  const insuranceFee = hasInsurance ? 50000 : 0;
-  const privateRoomFee = roomPref === "single" ? 350000 : 0;
-  const totalAmount = price + insuranceFee + privateRoomFee;
+  const totalAmount = price;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !email || !phoneNumber || !identityNumber) {
+    if (!fullName || !email || !phoneNumber) {
       setFeedback({ type: "error", message: "Harap lengkapi semua kolom wajib (*)." });
       return;
     }
@@ -154,16 +149,12 @@ export default function AddParticipantPage() {
         fullName,
         email,
         phoneNumber,
-        identityNumber,
         nationality,
         gender,
         tripId: activeTripId || selectedDestination,
         destinationId: selectedDestination,
         bookingGroupId: selectedGroup,
         groupId: selectedGroup,
-        roomPreference: roomPref,
-        hasInsurance,
-        insuranceFee,
         amountPaid: totalAmount,
         totalAmount,
         paymentStatus,
@@ -276,19 +267,6 @@ export default function AddParticipantPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Nomor KTP / Paspor *
-              </label>
-              <Input
-                required
-                placeholder="3507xxxxxxxxxxxx"
-                value={identityNumber}
-                onChange={(e) => setIdentityNumber(e.target.value)}
-                className="text-xs"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Kewarganegaraan *
               </label>
               <select
@@ -377,7 +355,7 @@ export default function AddParticipantPage() {
               )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Status Pembayaran Awal
               </label>
@@ -389,33 +367,6 @@ export default function AddParticipantPage() {
                 <option value="paid">Lunas (Paid / Cash)</option>
                 <option value="pending">Menunggu Pembayaran (Pending)</option>
               </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Preferensi Kamar
-              </label>
-              <select
-                value={roomPref}
-                onChange={(e) => setRoomPref(e.target.value as "shared" | "single" | "none")}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
-              >
-                <option value="shared">Sharing Room (Standar)</option>
-                <option value="single">Private Room (+350rb)</option>
-              </select>
-            </div>
-
-            <div className="flex items-center space-x-2 pt-6">
-              <input
-                type="checkbox"
-                id="insurance"
-                checked={hasInsurance}
-                onChange={(e) => setHasInsurance(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[#00677d] focus:ring-[#00677d]"
-              />
-              <label htmlFor="insurance" className="text-xs font-semibold text-slate-700 cursor-pointer">
-                Termasuk Asuransi Perjalanan (+Rp 50.000)
-              </label>
             </div>
           </div>
 
@@ -443,18 +394,6 @@ export default function AddParticipantPage() {
               <span>Paket Trip:</span>
               <span className="font-semibold">{formatCurrency(price)}</span>
             </div>
-            {hasInsurance && (
-              <div className="flex justify-between text-slate-600">
-                <span>Asuransi:</span>
-                <span className="font-semibold">{formatCurrency(insuranceFee)}</span>
-              </div>
-            )}
-            {roomPref === "single" && (
-              <div className="flex justify-between text-slate-600">
-                <span>Upgrade Private Room:</span>
-                <span className="font-semibold">{formatCurrency(privateRoomFee)}</span>
-              </div>
-            )}
             <div className="flex justify-between text-sm font-bold text-[#191c1e] pt-2 border-t border-slate-200">
               <span>Total Tagihan:</span>
               <span className="text-[#a43c12]">{formatCurrency(totalAmount)}</span>

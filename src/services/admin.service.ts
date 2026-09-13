@@ -33,7 +33,7 @@ export interface ManualParticipantPayload {
   nationality?: string;
   gender?: "male" | "female" | string;
   identityNumber?: string;
-  roomPreference?: "single" | "shared" | "none";
+  roomPreference?: "single" | "shared" | "none" | string;
   amountPaid?: number;
   totalAmount?: number;
   paymentMethod?: "manual_transfer" | "cash_onsite" | "qris" | "bank_transfer" | string;
@@ -286,14 +286,10 @@ export const adminService = {
       email: payload.email,
       phoneNumber: payload.phoneNumber || payload.phone,
       phone: payload.phoneNumber || payload.phone,
-      identityNumber: payload.identityNumber,
       nationality: payload.nationality || "Indonesia",
       gender: payload.gender || "male",
       paymentStatus: payload.paymentStatus || "paid",
       paymentMethod: payload.paymentMethod || "cash_onsite",
-      roomPreference: payload.roomPreference || "shared",
-      hasInsurance: payload.hasInsurance !== undefined ? payload.hasInsurance : true,
-      insuranceFee: payload.insuranceFee || (payload.hasInsurance ? 50000 : 0),
       totalAmount: payload.totalAmount || payload.amountPaid,
       amountPaid: payload.totalAmount || payload.amountPaid,
       notes: payload.notes,

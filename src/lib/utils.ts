@@ -264,10 +264,6 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
       email: "",
       phoneNumber: "",
       nationality: "Indonesia",
-      identityNumber: "-",
-      roomPreference: "shared",
-      hasInsurance: false,
-      insuranceFee: 0,
       totalAmount: 0,
       paymentStatus: "pending",
       checkInStatus: "pending",
@@ -302,18 +298,7 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
       user?.phone_number ||
       ""
   );
-  const identityNumber = String(
-    raw.identityNumber ||
-      raw.identity_number ||
-      raw.nik ||
-      raw.passport ||
-      user?.identityNumber ||
-      "-"
-  );
   const nationality = String(raw.nationality || user?.nationality || "Indonesia");
-  const roomPreference = (raw.roomPreference || raw.room_preference || "shared") as "shared" | "single" | "none";
-  const hasInsurance = Boolean(raw.hasInsurance ?? raw.has_insurance ?? false);
-  const insuranceFee = Number(raw.insuranceFee ?? raw.insurance_fee ?? (hasInsurance ? 50000 : 0));
   const totalAmount = Number(raw.totalAmount ?? raw.total_amount ?? raw.amount ?? raw.price ?? 850000);
   const paymentStatus = (raw.paymentStatus || raw.payment_status || "pending") as PaymentStatus;
   const checkInStatus = (raw.checkInStatus || raw.check_in_status || "pending") as CheckInStatus;
@@ -404,14 +389,7 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
     email,
     phoneNumber,
     phone_number: phoneNumber,
-    identityNumber,
-    identity_number: identityNumber,
     nationality,
-    roomPreference,
-    room_preference: roomPreference,
-    hasInsurance,
-    has_insurance: hasInsurance,
-    insuranceFee,
     totalAmount,
     total_amount: totalAmount,
     paymentStatus,

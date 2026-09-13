@@ -264,10 +264,6 @@ export default function BookingInvoicePage() {
               </span>
               <div className="space-y-1 print:space-y-0.5 text-slate-600">
                 <div className="text-sm print:text-xs font-bold text-slate-800">{customer.fullName}</div>
-                <div className="flex items-center gap-1.5 font-mono">
-                  <span className="text-slate-400">NIK / Paspor:</span>
-                  <strong className="text-slate-700">{customer.identityNumber || "—"}</strong>
-                </div>
                 <div className="flex items-center gap-1.5">
                   <Phone className="h-3 w-3 print:h-2.5 print:w-2.5 text-slate-400 shrink-0" />
                   <span>{customer.phoneNumber || "—"}</span>
@@ -385,7 +381,7 @@ export default function BookingInvoicePage() {
                   <span>Subtotal Paket:</span>
                   <span className="font-mono font-semibold">{formatCurrency(pricing.basePrice)}</span>
                 </div>
-                {pricing.insuranceFee > 0 && (
+                {Boolean(pricing.insuranceFee && pricing.insuranceFee > 0) && (
                   <div className="flex justify-between text-slate-600">
                     <span>Premi Asuransi:</span>
                     <span className="font-mono font-semibold text-emerald-700">

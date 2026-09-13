@@ -462,8 +462,8 @@ export default function ParticipantsManagementPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="font-bold text-slate-800">{p.fullName}</div>
-                        <span className="text-[11px] text-slate-400 font-mono">
-                          NIK: {p.identityNumber}
+                        <span className="text-[11px] text-slate-400">
+                          {p.nationality || "Indonesia"}
                         </span>
                       </td>
                       <td className="px-5 py-4 space-y-0.5">
