@@ -109,6 +109,19 @@ export default function AdminTripsPage() {
       if (d.id) driverById.set(d.id, d);
     }
 
+    // Helper to ensure participant uniqueness in any array
+    const pushParticipantUnique = (arr: Participant[], p: Participant) => {
+      if (!p) return;
+      const exists = arr.some((item) => {
+        if (p.id && item.id && p.id === item.id) return true;
+        if (p.bookingCode && item.bookingCode && p.bookingCode === item.bookingCode) return true;
+        return false;
+      });
+      if (!exists) {
+        arr.push(p);
+      }
+    };
+
     for (const g of groupsData) {
       const tId = g.tripId || g.trip?.id;
       if (tId) {
@@ -123,14 +136,10 @@ export default function AdminTripsPage() {
           const normGp = gp as Participant;
           const gId = g.id;
           if (!partsByGroup.has(gId)) partsByGroup.set(gId, []);
-          if (!partsByGroup.get(gId)!.some((p) => p.id === normGp.id || (Boolean(p.bookingCode) && p.bookingCode === normGp.bookingCode))) {
-            partsByGroup.get(gId)!.push(normGp);
-          }
+          pushParticipantUnique(partsByGroup.get(gId)!, normGp);
           if (tId) {
             if (!partsByTrip.has(tId)) partsByTrip.set(tId, []);
-            if (!partsByTrip.get(tId)!.some((p) => p.id === normGp.id || (Boolean(p.bookingCode) && p.bookingCode === normGp.bookingCode))) {
-              partsByTrip.get(tId)!.push(normGp);
-            }
+            pushParticipantUnique(partsByTrip.get(tId)!, normGp);
           }
         }
       }
@@ -140,16 +149,12 @@ export default function AdminTripsPage() {
       const tId = p.tripId || p.trip?.id;
       if (tId) {
         if (!partsByTrip.has(tId)) partsByTrip.set(tId, []);
-        if (!partsByTrip.get(tId)!.some((item) => item.id === p.id || (Boolean(item.bookingCode) && item.bookingCode === p.bookingCode))) {
-          partsByTrip.get(tId)!.push(p);
-        }
+        pushParticipantUnique(partsByTrip.get(tId)!, p);
       }
       const gId = p.bookingGroupId || p.group?.id || p.bookingGroup?.id;
       if (gId) {
         if (!partsByGroup.has(gId)) partsByGroup.set(gId, []);
-        if (!partsByGroup.get(gId)!.some((item) => item.id === p.id || (Boolean(item.bookingCode) && item.bookingCode === p.bookingCode))) {
-          partsByGroup.get(gId)!.push(p);
-        }
+        pushParticipantUnique(partsByGroup.get(gId)!, p);
       }
     }
 
@@ -168,38 +173,28 @@ export default function AdminTripsPage() {
           g.currentParticipants = gList.length;
         }
         for (const gp of gList) {
-          if (
-            !directParts.some((dp) => dp.id === gp.id || (Boolean(dp.bookingCode) && dp.bookingCode === gp.bookingCode)) &&
-            !groupParts.some((gpExisting) => gpExisting.id === gp.id || (Boolean(gpExisting.bookingCode) && gpExisting.bookingCode === gp.bookingCode))
-          ) {
-            groupParts.push(gp);
-          }
+          pushParticipantUnique(groupParts, gp);
         }
       }
 
       const existingTripParts = Array.isArray(t.participants) ? t.participants : [];
-      const allPartsMap = new Map<string, Participant>();
+      const combinedParts: Participant[] = [];
 
       for (const p of existingTripParts) {
-        if (p.id) allPartsMap.set(p.id, p);
-        else if (p.bookingCode) allPartsMap.set(p.bookingCode, p);
+        pushParticipantUnique(combinedParts, p);
       }
       for (const p of directParts) {
-        if (p.id && !allPartsMap.has(p.id)) allPartsMap.set(p.id, p);
-        else if (p.bookingCode && !allPartsMap.has(p.bookingCode)) allPartsMap.set(p.bookingCode, p);
+        pushParticipantUnique(combinedParts, p);
       }
       for (const p of groupParts) {
-        if (p.id && !allPartsMap.has(p.id)) allPartsMap.set(p.id, p);
-        else if (p.bookingCode && !allPartsMap.has(p.bookingCode)) allPartsMap.set(p.bookingCode, p);
+        pushParticipantUnique(combinedParts, p);
       }
-
-      const combined = Array.from(allPartsMap.values());
 
       return {
         ...t,
         groups: tripGroups,
         booking_groups: tripGroups,
-        participants: combined,
+        participants: combinedParts,
       };
     });
   };
@@ -931,7 +926,7 @@ export default function AdminTripsPage() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200/60 bg-white">
-                              {trip.participants.map((p) => {
+                              {trip.participants.map((p, pIdx) => {
                                 const payBadge = getPaymentBadge(p.paymentStatus);
                                 const parsedLoc = parsePickupLocation(p.pickupLocation);
                                 const gmapsQuery = p.pickupLatitude && p.pickupLongitude
@@ -942,7 +937,7 @@ export default function AdminTripsPage() {
                                   : null;
 
                                 return (
-                                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                                  <tr key={p.id ? `${trip.id}-${p.id}` : `${trip.id}-part-${pIdx}`} className="hover:bg-slate-50 transition-colors">
                                     <td className="py-2.5 px-3 font-mono font-bold text-[#00677d]">
                                       {p.bookingCode || "—"}
                                     </td>
