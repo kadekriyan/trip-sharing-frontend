@@ -24,6 +24,7 @@ export default function NewDestinationPage() {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [tagline, setTagline] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -62,6 +63,17 @@ export default function NewDestinationPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Auto-generate slug from title
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    setSlug(
+      val
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+    );
+  };
 
   const addItineraryDay = () => {
     const newDayNum = itinerary.length + 1;
@@ -123,6 +135,7 @@ export default function NewDestinationPage() {
 
       await adminService.addDestination({
         title,
+        slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
         tagline,
         description,
         location,
@@ -188,7 +201,18 @@ export default function NewDestinationPage() {
                 required
                 placeholder="Contoh: Bromo Sunrise & Midnight Crater Shared Odyssey"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => handleTitleChange(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                URL Slug
+              </label>
+              <Input
+                placeholder="contoh: bromo-sunrise-midnight-crater"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, ""))}
               />
             </div>
 

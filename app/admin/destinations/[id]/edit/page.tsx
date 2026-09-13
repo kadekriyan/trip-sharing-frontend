@@ -33,6 +33,7 @@ export default function EditDestinationPage() {
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
   const [tagline, setTagline] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -61,6 +62,7 @@ export default function EditDestinationPage() {
         const dest = await adminService.getDestinationById(destinationId);
         if (dest && isMounted) {
           setTitle(getDestinationTitle(dest));
+          setSlug(dest.slug || "");
           setTagline(dest.tagline || "");
           setDescription(dest.description || "");
           setLocation(dest.location || "");
@@ -129,6 +131,18 @@ export default function EditDestinationPage() {
     };
   }, [destinationId]);
 
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!slug || slug === title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) {
+      setSlug(
+        val
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+      );
+    }
+  };
+
   const addItineraryDay = () => {
     const newDayNum = itinerary.length + 1;
     setItinerary([
@@ -190,6 +204,7 @@ export default function EditDestinationPage() {
 
       await adminService.updateDestination(destinationId, {
         title,
+        slug: slug || title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
         tagline,
         description,
         location,
@@ -283,17 +298,31 @@ export default function EditDestinationPage() {
             1. Informasi Master Destinasi
           </h2>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-              Nama / Judul Paket Wisata *
-            </label>
-            <Input
-              required
-              placeholder="Contoh: Bromo Midnight & Sunrise Safari"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="text-xs"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Nama / Judul Paket Wisata *
+              </label>
+              <Input
+                required
+                placeholder="Contoh: Bromo Midnight & Sunrise Safari"
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                URL Slug
+              </label>
+              <Input
+                placeholder="contoh: bromo-midnight-sunrise-safari"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, ""))}
+                className="text-xs"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
