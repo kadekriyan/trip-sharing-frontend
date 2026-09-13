@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   AlertCircle,
   MapPin,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -84,6 +85,28 @@ export default function NewDestinationPage() {
     setItinerary(updated);
   };
 
+  const addActivity = (dayIndex: number) => {
+    const updated = [...itinerary];
+    const currentActivities = updated[dayIndex].activities || [];
+    updated[dayIndex].activities = [...currentActivities, ""];
+    setItinerary(updated);
+  };
+
+  const removeActivity = (dayIndex: number, activityIndex: number) => {
+    const updated = [...itinerary];
+    const currentActivities = updated[dayIndex].activities || [];
+    updated[dayIndex].activities = currentActivities.filter((_, i) => i !== activityIndex);
+    setItinerary(updated);
+  };
+
+  const updateActivity = (dayIndex: number, activityIndex: number, value: string) => {
+    const updated = [...itinerary];
+    const currentActivities = [...(updated[dayIndex].activities || [])];
+    currentActivities[activityIndex] = value;
+    updated[dayIndex].activities = currentActivities;
+    setItinerary(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !location || !pricePerPax) {
@@ -93,6 +116,11 @@ export default function NewDestinationPage() {
 
     setIsSubmitting(true);
     try {
+      const cleanedItinerary = itinerary.map((item) => ({
+        ...item,
+        activities: (item.activities || []).map((a) => a.trim()).filter(Boolean),
+      }));
+
       await adminService.addDestination({
         title,
         tagline,
@@ -107,7 +135,7 @@ export default function NewDestinationPage() {
         inclusions: inclusionsText.split(",").map((s) => s.trim()),
         exclusions: exclusionsText.split(",").map((s) => s.trim()),
         highlights: ["Eksplorasi Alam Terbaik", "Grup Nyaman Maks 6 Pax"],
-        itinerary,
+        itinerary: cleanedItinerary,
         maxGroupCapacity: 6,
       });
 
@@ -325,42 +353,115 @@ export default function NewDestinationPage() {
             {itinerary.map((day, idx) => (
               <div
                 key={idx}
-                className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 relative"
+                className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 relative"
               >
                 <div className="flex items-center justify-between">
-                  <Badge variant="azure" className="font-bold">
+                  <Badge variant="azure" className="font-bold text-xs px-2.5 py-0.5">
                     Hari ke-{day.day}
                   </Badge>
                   {itinerary.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeItineraryDay(idx)}
-                      className="text-rose-500 hover:text-rose-700 p-1"
+                      className="text-rose-500 hover:text-rose-700 text-xs flex items-center gap-1 font-semibold p-1 rounded hover:bg-rose-50 transition-colors"
+                      title="Hapus hari ini"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Hapus Hari</span>
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Input
-                    placeholder={`Judul Aktivitas Hari ${day.day}`}
-                    value={day.title}
-                    onChange={(e) => {
-                      const updated = [...itinerary];
-                      updated[idx].title = e.target.value;
-                      setItinerary(updated);
-                    }}
-                  />
-                  <Input
-                    placeholder="Deskripsi singkat kegiatan..."
-                    value={day.description}
-                    onChange={(e) => {
-                      const updated = [...itinerary];
-                      updated[idx].description = e.target.value;
-                      setItinerary(updated);
-                    }}
-                  />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">
+                      Judul Hari *
+                    </label>
+                    <Input
+                      placeholder={`Contoh: Hari ${day.day} - Penjemputan & Perjalanan Menuju Transit`}
+                      value={day.title}
+                      onChange={(e) => {
+                        const updated = [...itinerary];
+                        updated[idx].title = e.target.value;
+                        setItinerary(updated);
+                      }}
+                      className="text-xs bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-600 block">
+                      Deskripsi Singkat Hari
+                    </label>
+                    <Input
+                      placeholder="Contoh: Briefing dan kumpul bersama teman se-grup."
+                      value={day.description}
+                      onChange={(e) => {
+                        const updated = [...itinerary];
+                        updated[idx].description = e.target.value;
+                        setItinerary(updated);
+                      }}
+                      className="text-xs bg-white"
+                    />
+                  </div>
+
+                  {/* Dynamic Activities List */}
+                  <div className="pt-2 border-t border-slate-200/60 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-[#00677d]" />
+                        <span>Daftar Rincian Kegiatan (Activities)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => addActivity(idx)}
+                        className="text-[11px] font-bold text-[#00677d] hover:text-[#005566] flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-teal-50 border border-[#00677d]/20 transition-colors"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Tambah Kegiatan</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {(day.activities || []).map((activity, actIdx) => (
+                        <div key={actIdx} className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-[#00677d] shrink-0 ml-1" />
+                          <Input
+                            placeholder={`Kegiatan ${actIdx + 1}, contoh: ${
+                              actIdx === 0
+                                ? "Meeting point & perkenalan grup"
+                                : "Perjalanan menuju lokasi wisata"
+                            }`}
+                            value={activity}
+                            onChange={(e) => updateActivity(idx, actIdx, e.target.value)}
+                            className="text-xs bg-white flex-1"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeActivity(idx, actIdx)}
+                            className="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
+                            title="Hapus kegiatan ini"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                      {(!day.activities || day.activities.length === 0) && (
+                        <div className="p-3 rounded-xl bg-white border border-dashed border-slate-200 text-center">
+                          <p className="text-[11px] text-slate-400">
+                            Belum ada rincian kegiatan untuk hari ini.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => addActivity(idx)}
+                            className="mt-1 text-[11px] font-bold text-[#00677d] hover:underline"
+                          >
+                            + Klik untuk menambah kegiatan
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}

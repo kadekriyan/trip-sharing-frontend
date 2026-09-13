@@ -571,16 +571,28 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                             {day.description}
                           </p>
                         )}
-                        {Array.isArray(day.activities) && day.activities.length > 0 && (
-                          <ul className="space-y-1.5 pt-2">
-                            {day.activities.map((act, actIdx) => (
-                              <li key={actIdx} className="text-xs text-slate-500 flex items-start gap-2">
-                                <Clock className="h-3.5 w-3.5 text-[#00677d] mt-0.5 shrink-0" />
-                                <span>{act}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+                        {(() => {
+                          const acts: string[] = Array.isArray(day.activities)
+                            ? day.activities
+                            : typeof (day as unknown as { activities: unknown })?.activities === "string"
+                            ? ((day as unknown as { activities: string }).activities as string)
+                                .split(",")
+                                .map((s) => s.trim())
+                                .filter(Boolean)
+                            : [];
+                          return (
+                            acts.length > 0 && (
+                              <ul className="space-y-1.5 pt-2">
+                                {acts.map((act, actIdx) => (
+                                  <li key={actIdx} className="text-xs text-slate-500 flex items-start gap-2">
+                                    <Clock className="h-3.5 w-3.5 text-[#00677d] mt-0.5 shrink-0" />
+                                    <span>{act}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
