@@ -25,6 +25,8 @@ import {
   DollarSign,
   RotateCcw,
   Sparkles,
+  Printer,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -38,6 +40,7 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
+import { printGroupManifest } from "@/src/lib/manifest-printer";
 import {
   formatCurrency,
   formatDate,
@@ -705,6 +708,16 @@ export default function AdminGroupsPage() {
                     <div className="flex items-center gap-1.5">
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => printGroupManifest(group)}
+                        className="h-8 px-2.5 text-xs text-[#00677d] border-teal-200 hover:bg-teal-50 hover:text-[#005264] rounded-lg gap-1.5 font-bold shadow-xs transition-all"
+                        title="Cetak Surat Jalan & Manifes Penumpang (PDF A4)"
+                      >
+                        <Printer className="h-3.5 w-3.5 text-[#00677d]" />
+                        <span className="hidden sm:inline">Cetak Surat Jalan</span>
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="ghost"
                         onClick={() => handleOpenEditModal(group)}
                         className="h-8 w-8 p-0 text-slate-500 hover:text-[#00677d] hover:bg-slate-100 rounded-lg"
@@ -871,32 +884,48 @@ export default function AdminGroupsPage() {
                             Belum ada penumpang di armada ini.
                           </p>
                         ) : (
-                          <div className="space-y-1.5">
-                            {participantsList.map((p, idx) => {
-                              const payBadge = getPaymentBadge(p.paymentStatus);
-                              return (
-                                <div
-                                  key={p.id || idx}
-                                  className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200/80 text-xs"
-                                >
-                                  <div className="space-y-0.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-bold text-slate-900">{p.fullName}</span>
-                                      <span className="text-[10px] font-mono text-slate-400">
-                                        ({p.bookingCode})
-                                      </span>
+                          <>
+                            <div className="space-y-1.5">
+                              {participantsList.map((p, idx) => {
+                                const payBadge = getPaymentBadge(p.paymentStatus);
+                                return (
+                                  <div
+                                    key={p.id || idx}
+                                    className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200/80 text-xs"
+                                  >
+                                    <div className="space-y-0.5">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-bold text-slate-900">{p.fullName}</span>
+                                        <span className="text-[10px] font-mono text-slate-400">
+                                          ({p.bookingCode})
+                                        </span>
+                                      </div>
+                                      <p className="text-[10px] text-slate-500">{p.phoneNumber}</p>
                                     </div>
-                                    <p className="text-[10px] text-slate-500">{p.phoneNumber}</p>
+                                    <div>
+                                      <Badge className={`${payBadge.className} text-[10px] px-2 py-0.5`}>
+                                        {payBadge.label}
+                                      </Badge>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <Badge className={`${payBadge.className} text-[10px] px-2 py-0.5`}>
-                                      {payBadge.label}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
+
+                            {/* Action Button: Print / Download Manifest for Driver */}
+                            <div className="pt-2 border-t border-slate-200/80">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => printGroupManifest(group)}
+                                className="w-full justify-center py-2 text-xs font-bold text-[#00677d] bg-white border-teal-200 hover:bg-teal-50 rounded-xl gap-2 shadow-2xs transition-all"
+                              >
+                                <Printer className="h-3.5 w-3.5 text-[#00677d]" />
+                                <span>Download / Cetak Manifes Penumpang (PDF A4)</span>
+                              </Button>
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
