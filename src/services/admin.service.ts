@@ -113,7 +113,20 @@ export function normalizeBookingGroup(raw: Record<string, unknown>, tripIdFallba
   const tripId = String(raw.tripId || raw.trip_id || tripIdFallback || "");
   const groupNumber = Number(raw.groupNumber || raw.group_number || 1);
   const capacity = Number(raw.capacity || raw.maxParticipants || raw.max_participants || 6);
-  const participants = Array.isArray(raw.participants) ? (raw.participants as Participant[]) : [];
+  const rawParticipants = Array.isArray(raw.participants)
+    ? raw.participants
+    : Array.isArray(raw.travelers)
+    ? raw.travelers
+    : Array.isArray(raw.bookings)
+    ? raw.bookings
+    : [];
+  const participants: Participant[] = (rawParticipants as Array<Record<string, unknown>>).map((p) =>
+    normalizeParticipant({
+      ...p,
+      bookingGroupId: id,
+      tripId,
+    })
+  );
   const currentParticipants =
     typeof raw.currentParticipants === "number"
       ? raw.currentParticipants
@@ -769,24 +782,99 @@ export const adminService = {
     status?: string;
     search?: string;
   }): Promise<BookingGroup[]> {
+    let groups: BookingGroup[] = [];
     try {
       const res = await apiClient.get<Record<string, unknown>[]>("/admin/groups", {
         params,
       });
       if (res.success && Array.isArray(res.data)) {
-        return res.data.map((raw) => normalizeBookingGroup(raw));
+        groups = res.data.map((raw) => normalizeBookingGroup(raw));
       }
     } catch {
       // Empty
     }
-    return [];
+
+    // Try enriching participants from /admin/participants to guarantee full traveler data (DOB, pickup, insurance)
+    if (groups.length > 0) {
+      try {
+        const partsRes = await apiClient.get<Record<string, unknown>[]>("/admin/participants");
+        if (partsRes.success && Array.isArray(partsRes.data) && partsRes.data.length > 0) {
+          const partsByGroup = new Map<string, Participant[]>();
+          const partsById = new Map<string, Participant>();
+
+          for (const rawP of partsRes.data) {
+            const p = normalizeParticipant(rawP);
+            if (p.id) partsById.set(p.id, p);
+            if (p.bookingCode) partsById.set(p.bookingCode, p);
+
+            const rawRecord = rawP as Record<string, unknown>;
+            const gId =
+              p.bookingGroupId ||
+              (typeof rawRecord.groupId === "string" ? rawRecord.groupId : undefined) ||
+              (typeof rawRecord.group_id === "string" ? rawRecord.group_id : undefined) ||
+              (typeof rawRecord.booking_group_id === "string" ? rawRecord.booking_group_id : undefined);
+
+            if (gId) {
+              const current = partsByGroup.get(gId) || [];
+              current.push(p);
+              partsByGroup.set(gId, current);
+            }
+          }
+
+          for (const g of groups) {
+            if (Array.isArray(g.participants) && g.participants.length > 0) {
+              g.participants = g.participants.map((p) => {
+                const fullP = partsById.get(p.id) || (p.bookingCode ? partsById.get(p.bookingCode) : undefined);
+                if (fullP) {
+                  return {
+                    ...fullP,
+                    ...p,
+                    dateOfBirth: p.dateOfBirth || fullP.dateOfBirth,
+                    date_of_birth: p.date_of_birth || fullP.date_of_birth,
+                    pickupLocation: p.pickupLocation || fullP.pickupLocation,
+                    pickup_location: p.pickup_location || fullP.pickup_location,
+                    pickupNotes: p.pickupNotes || fullP.pickupNotes,
+                    emergencyContact: p.emergencyContact || fullP.emergencyContact,
+                    identityNumber: p.identityNumber || fullP.identityNumber,
+                    hasInsurance: typeof p.hasInsurance === "boolean" ? p.hasInsurance : fullP.hasInsurance,
+                  };
+                }
+                return p;
+              });
+            } else if (partsByGroup.has(g.id)) {
+              g.participants = partsByGroup.get(g.id) || [];
+            }
+          }
+        }
+      } catch {
+        // Silently continue
+      }
+    }
+
+    return groups;
   },
 
   async getGroupById(id: string): Promise<BookingGroup | null> {
     try {
       const res = await apiClient.get<Record<string, unknown>>(`/admin/groups/${id}`);
       if (res.success && res.data) {
-        return normalizeBookingGroup(res.data);
+        const group = normalizeBookingGroup(res.data);
+        if (!group.participants || group.participants.length === 0 || group.participants.some((p) => !p.dateOfBirth || !p.pickupLocation)) {
+          try {
+            const partsRes = await apiClient.get<Record<string, unknown>[]>("/admin/participants");
+            if (partsRes.success && Array.isArray(partsRes.data)) {
+              const matchedParts = partsRes.data
+                .map((raw) => normalizeParticipant(raw))
+                .filter((p) => p.bookingGroupId === id || (p.group as BookingGroup | undefined)?.id === id);
+              if (matchedParts.length > 0) {
+                group.participants = matchedParts;
+              }
+            }
+          } catch {
+            // Silently continue
+          }
+        }
+        return group;
       }
     } catch {
       // Not found

@@ -67,27 +67,97 @@ export function printGroupManifest(group: BookingGroup): void {
       ? `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b; font-style: italic;">Belum ada data penumpang terdaftar di armada ini.</td></tr>`
       : participants
           .map((p, idx) => {
-            const fullName = escapeHtml(p.fullName || p.full_name || "Traveler");
-            const phone = escapeHtml(p.phoneNumber || p.phone_number || "-");
-            const bookingCode = escapeHtml(p.bookingCode || p.booking_code || "-");
-            const dob = p.dateOfBirth || p.date_of_birth;
-            const formattedDob = dob ? escapeHtml(formatDate(dob)) : `<span style="color: #94a3b8; font-style: italic;">Tidak diisi</span>`;
-            const hasInsurance = Boolean(p.hasInsurance ?? p.has_insurance ?? Boolean(dob));
+            const pRec = p as unknown as Record<string, unknown>;
+            const pUser = (pRec.user && typeof pRec.user === "object") ? (pRec.user as Record<string, unknown>) : undefined;
+            const pCust = (pRec.customer && typeof pRec.customer === "object") ? (pRec.customer as Record<string, unknown>) : undefined;
+
+            const fullName = escapeHtml(p.fullName || p.full_name || pRec.name || pUser?.fullName || pCust?.fullName || "Traveler");
+            const phone = escapeHtml(p.phoneNumber || p.phone_number || pRec.phone || pUser?.phoneNumber || pCust?.phoneNumber || "-");
+            const bookingCode = escapeHtml(p.bookingCode || p.booking_code || pRec.code || "-");
             
-            const rawPickup = p.pickupLocation || p.pickup_location || "";
-            const parsedPickup = parsePickupLocation(rawPickup);
-            const pickupDisplay = parsedPickup.address || rawPickup || "Area Penjemputan Terjadwal";
-            const pickupNotes = p.pickupNotes || p.pickup_notes || "";
+            const rawDob =
+              p.dateOfBirth ||
+              p.date_of_birth ||
+              pRec.dob ||
+              pRec.birthDate ||
+              pRec.birth_date ||
+              pRec.tanggalLahir ||
+              pRec.tanggal_lahir ||
+              pRec.tglLahir ||
+              pRec.tgl_lahir ||
+              pUser?.dateOfBirth ||
+              pUser?.date_of_birth ||
+              pUser?.dob ||
+              pCust?.dateOfBirth ||
+              pCust?.date_of_birth ||
+              pCust?.dob;
+
+            const dob = typeof rawDob === "string" ? rawDob : rawDob instanceof Date ? rawDob.toISOString().split("T")[0] : undefined;
+            const formattedDob = dob ? escapeHtml(formatDate(dob)) : `<span style="color: #94a3b8; font-style: italic;">Tidak diisi</span>`;
+            
+            const hasInsurance = Boolean(
+              p.hasInsurance ??
+              p.has_insurance ??
+              pRec.isInsured ??
+              pRec.is_insured ??
+              pRec.insurance ??
+              (typeof p.insuranceFee === "number" && p.insuranceFee > 0) ??
+              Boolean(dob)
+            );
+            
+            const rawPickup =
+              p.pickupLocation ||
+              p.pickup_location ||
+              pRec.pickupAddress ||
+              pRec.pickup_address ||
+              pRec.pickup ||
+              pRec.pickupPoint ||
+              pRec.pickup_point ||
+              pRec.meetingPoint ||
+              pRec.meeting_point ||
+              pRec.titikJemput ||
+              pRec.lokasiPenjemputan ||
+              pUser?.pickupLocation ||
+              pCust?.pickupLocation ||
+              dest?.meetingPoint ||
+              "";
+
+            const parsedPickup = parsePickupLocation(String(rawPickup));
+            let pickupDisplay = "Area Penjemputan Terjadwal";
+            if (parsedPickup.placeName && parsedPickup.address) {
+              pickupDisplay = `${parsedPickup.placeName} (${parsedPickup.address})`;
+            } else if (parsedPickup.placeName) {
+              pickupDisplay = parsedPickup.placeName;
+            } else if (rawPickup) {
+              pickupDisplay = String(rawPickup);
+            } else if (dest?.meetingPoint) {
+              pickupDisplay = `${dest.meetingPoint} (Meeting Point)`;
+            }
+
+            const pickupNotes = p.pickupNotes || p.pickup_notes || pRec.pickupNote || pRec.catatanJemput || pRec.catatan || "";
 
             const gender = p.gender ? (p.gender === "male" ? "L" : p.gender === "female" ? "P" : "-") : "-";
-            const nationality = escapeHtml(p.nationality || "Indonesia");
-            const identityNumber = p.identityNumber || p.identity_number;
+            const nationality = escapeHtml(p.nationality || pUser?.nationality || pCust?.nationality || "Indonesia");
+            const identityNumber = p.identityNumber || p.identity_number || pRec.nik || pRec.ktp || pRec.idNumber || pUser?.identityNumber;
 
-            const emergencyName = p.emergencyContact?.name ? escapeHtml(p.emergencyContact.name) : "";
-            const emergencyPhone = p.emergencyContact?.phone ? escapeHtml(p.emergencyContact.phone) : "";
-            const emergencyRel = p.emergencyContact?.relationship ? escapeHtml(p.emergencyContact.relationship) : "";
+            let emergencyName = p.emergencyContact?.name || "";
+            let emergencyPhone = p.emergencyContact?.phone || "";
+            let emergencyRel = p.emergencyContact?.relationship || "Kerabat";
 
-            const healthNotes = p.healthNotes || p.health_notes || "";
+            if (!emergencyName && !emergencyPhone) {
+              const rawEmergObj = (pRec.emergencyContact || pRec.emergency_contact || pRec.emergency || pUser?.emergencyContact) as Record<string, unknown> | undefined;
+              if (rawEmergObj && typeof rawEmergObj === "object") {
+                emergencyName = String(rawEmergObj.name || rawEmergObj.fullName || rawEmergObj.nama || "");
+                emergencyPhone = String(rawEmergObj.phone || rawEmergObj.phoneNumber || rawEmergObj.noHp || "");
+                emergencyRel = String(rawEmergObj.relationship || rawEmergObj.relation || rawEmergObj.hubungan || "Kerabat");
+              } else {
+                emergencyName = String(pRec.emergencyName || pRec.emergency_name || pRec.namaKontakDarurat || "");
+                emergencyPhone = String(pRec.emergencyPhone || pRec.emergency_phone || pRec.noKontakDarurat || "");
+                emergencyRel = String(pRec.emergencyRelationship || pRec.emergency_relationship || pRec.emergencyRelation || "Kerabat");
+              }
+            }
+
+            const healthNotes = p.healthNotes || p.health_notes || pRec.medicalNotes || pRec.catatanKesehatan || "";
 
             return `
               <tr style="page-break-inside: avoid; border-bottom: 1px solid #e2e8f0;">
@@ -127,7 +197,7 @@ export function printGroupManifest(group: BookingGroup): void {
                 <td style="padding: 8px 6px; vertical-align: top; font-size: 10px; line-height: 1.3;">
                   ${
                     emergencyName || emergencyPhone
-                      ? `<div style="color: #334155;"><strong>${emergencyName}</strong> (${emergencyRel || "Kerabat"})<br/><span style="color: #0284c7; font-weight: 600;">${emergencyPhone}</span></div>`
+                      ? `<div style="color: #334155;"><strong>${escapeHtml(emergencyName)}</strong> (${escapeHtml(emergencyRel)})<br/><span style="color: #0284c7; font-weight: 600;">${escapeHtml(emergencyPhone)}</span></div>`
                       : `<span style="color: #94a3b8; font-style: italic;">Tidak ada</span>`
                   }
                   ${
@@ -154,7 +224,12 @@ export function printGroupManifest(group: BookingGroup): void {
           })
           .join("");
 
-  const insuredCount = participants.filter((p) => Boolean(p.hasInsurance ?? p.has_insurance ?? Boolean(p.dateOfBirth ?? p.date_of_birth))).length;
+  const insuredCount = participants.filter((p) => {
+    const pRec = p as unknown as Record<string, unknown>;
+    const pUser = (pRec.user && typeof pRec.user === "object") ? (pRec.user as Record<string, unknown>) : undefined;
+    const dob = p.dateOfBirth || p.date_of_birth || pRec.dob || pRec.birthDate || pRec.birth_date || pRec.tanggalLahir || pUser?.dateOfBirth;
+    return Boolean(p.hasInsurance ?? p.has_insurance ?? pRec.isInsured ?? pRec.is_insured ?? Boolean(dob));
+  }).length;
 
   const html = `<!DOCTYPE html>
 <html lang="id">

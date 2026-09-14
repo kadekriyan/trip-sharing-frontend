@@ -274,12 +274,14 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
 
   const raw = rawRecord as Record<string, unknown>;
   const user = (raw.user && typeof raw.user === "object") ? (raw.user as Record<string, unknown>) : undefined;
+  const customer = (raw.customer && typeof raw.customer === "object") ? (raw.customer as Record<string, unknown>) : undefined;
+  const participantObj = (raw.participant && typeof raw.participant === "object") ? (raw.participant as Record<string, unknown>) : undefined;
   const rawGroup = (raw.group || raw.bookingGroup || raw.booking_group) as BookingGroup | undefined;
   const rawTrip = (raw.trip || rawGroup?.trip) as Trip | undefined;
   const rawDest = (raw.destination || rawTrip?.destination) as Destination | undefined;
 
-  const id = String(raw.id || raw.participant_id || raw.participantId || `part-${Date.now()}`);
-  const bookingCode = String(raw.bookingCode || raw.booking_code || raw.code || "TRV-XXXX");
+  const id = String(raw.id || raw.participant_id || raw.participantId || participantObj?.id || `part-${Date.now()}`);
+  const bookingCode = String(raw.bookingCode || raw.booking_code || raw.code || participantObj?.bookingCode || participantObj?.booking_code || "TRV-XXXX");
   const fullName = String(
     raw.fullName ||
       raw.full_name ||
@@ -287,38 +289,122 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
       user?.fullName ||
       user?.full_name ||
       user?.name ||
+      customer?.fullName ||
+      customer?.full_name ||
+      customer?.name ||
+      participantObj?.fullName ||
+      participantObj?.full_name ||
+      participantObj?.name ||
       "Traveler"
   );
-  const email = String(raw.email || user?.email || "");
+  const email = String(raw.email || user?.email || customer?.email || participantObj?.email || "");
   const phoneNumber = String(
     raw.phoneNumber ||
       raw.phone_number ||
       raw.phone ||
       user?.phoneNumber ||
       user?.phone_number ||
+      customer?.phoneNumber ||
+      customer?.phone_number ||
+      participantObj?.phoneNumber ||
+      participantObj?.phone_number ||
       ""
   );
-  const nationality = String(raw.nationality || user?.nationality || "Indonesia");
+  const nationality = String(raw.nationality || user?.nationality || customer?.nationality || participantObj?.nationality || "Indonesia");
   const totalAmount = Number(raw.totalAmount ?? raw.total_amount ?? raw.amount ?? raw.price ?? 850000);
   const paymentStatus = (raw.paymentStatus || raw.payment_status || "pending") as PaymentStatus;
   const checkInStatus = (raw.checkInStatus || raw.check_in_status || "pending") as CheckInStatus;
-  const healthNotes =
-    typeof raw.healthNotes === "string"
-      ? raw.healthNotes
-      : typeof raw.health_notes === "string"
-      ? raw.health_notes
-      : typeof raw.notes === "string"
-      ? raw.notes
+
+  // Tanggal Lahir (DOB) Fallbacks
+  const rawDob =
+    raw.dateOfBirth ||
+    raw.date_of_birth ||
+    raw.dob ||
+    raw.birthDate ||
+    raw.birth_date ||
+    raw.birth ||
+    raw.tanggalLahir ||
+    raw.tanggal_lahir ||
+    raw.tglLahir ||
+    raw.tgl_lahir ||
+    user?.dateOfBirth ||
+    user?.date_of_birth ||
+    user?.dob ||
+    user?.birthDate ||
+    user?.birth_date ||
+    user?.tanggalLahir ||
+    customer?.dateOfBirth ||
+    customer?.date_of_birth ||
+    customer?.dob ||
+    customer?.birthDate ||
+    customer?.birth_date ||
+    participantObj?.dateOfBirth ||
+    participantObj?.date_of_birth ||
+    participantObj?.dob;
+
+  const dateOfBirth =
+    typeof rawDob === "string" && rawDob.trim() !== ""
+      ? rawDob.trim()
+      : rawDob instanceof Date
+      ? rawDob.toISOString().split("T")[0]
       : undefined;
 
-  const pickupLocation =
-    typeof raw.pickupLocation === "string"
-      ? raw.pickupLocation
-      : typeof raw.pickup_location === "string"
-      ? raw.pickup_location
-      : typeof raw.pickup_address === "string"
-      ? raw.pickup_address
+  // Asuransi (Insurance)
+  const rawHasInsurance =
+    raw.hasInsurance ??
+    raw.has_insurance ??
+    raw.insurance ??
+    raw.isInsured ??
+    raw.is_insured ??
+    user?.hasInsurance ??
+    user?.has_insurance ??
+    customer?.hasInsurance;
+
+  const insuranceFee =
+    typeof raw.insuranceFee === "number"
+      ? raw.insuranceFee
+      : typeof raw.insurance_fee === "number"
+      ? raw.insurance_fee
       : undefined;
+
+  const hasInsurance =
+    typeof rawHasInsurance === "boolean"
+      ? rawHasInsurance
+      : typeof rawHasInsurance === "string"
+      ? rawHasInsurance === "true" || rawHasInsurance === "1"
+      : insuranceFee !== undefined && insuranceFee > 0
+      ? true
+      : Boolean(dateOfBirth);
+
+  // Titik Penjemputan (Pickup Location)
+  const rawPickup =
+    raw.pickupLocation ||
+    raw.pickup_location ||
+    raw.pickupAddress ||
+    raw.pickup_address ||
+    raw.pickup ||
+    raw.pickupPoint ||
+    raw.pickup_point ||
+    raw.pickupSpot ||
+    raw.pickup_spot ||
+    raw.meetingPoint ||
+    raw.meeting_point ||
+    raw.titikJemput ||
+    raw.titik_jemput ||
+    raw.lokasiPenjemputan ||
+    raw.lokasi_penjemputan ||
+    raw.lokasiJemput ||
+    raw.lokasi_jemput ||
+    user?.pickupLocation ||
+    user?.pickup_location ||
+    user?.pickupAddress ||
+    customer?.pickupLocation ||
+    customer?.pickup_location ||
+    participantObj?.pickupLocation ||
+    participantObj?.pickup_location ||
+    rawDest?.meetingPoint;
+
+  const pickupLocation = typeof rawPickup === "string" && rawPickup.trim() !== "" ? rawPickup.trim() : undefined;
 
   const pickupLatitude =
     typeof raw.pickupLatitude === "number"
@@ -334,11 +420,108 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
       ? raw.pickup_longitude
       : undefined;
 
-  const pickupNotes =
-    typeof raw.pickupNotes === "string"
-      ? raw.pickupNotes
-      : typeof raw.pickup_notes === "string"
-      ? raw.pickup_notes
+  // Catatan Penjemputan (Pickup Notes)
+  const rawPickupNotes =
+    raw.pickupNotes ||
+    raw.pickup_notes ||
+    raw.pickupNote ||
+    raw.pickup_note ||
+    raw.catatanJemput ||
+    raw.catatan_jemput ||
+    raw.catatanPenjemputan ||
+    raw.catatan_penjemputan;
+
+  const pickupNotes = typeof rawPickupNotes === "string" && rawPickupNotes.trim() !== "" ? rawPickupNotes.trim() : undefined;
+
+  // Catatan Kesehatan / Medis (Health Notes)
+  const rawHealth =
+    raw.healthNotes ||
+    raw.health_notes ||
+    raw.medicalNotes ||
+    raw.medical_notes ||
+    raw.catatanKesehatan ||
+    raw.catatan_kesehatan ||
+    raw.riwayatPenyakit ||
+    raw.riwayat_penyakit ||
+    (typeof raw.notes === "string" && /alergi|sakit|asma|hamil|medis|diet/i.test(raw.notes) ? raw.notes : undefined);
+
+  const healthNotes = typeof rawHealth === "string" && rawHealth.trim() !== "" ? rawHealth.trim() : undefined;
+
+  // Kontak Darurat (Emergency Contact)
+  let emergencyContact: Participant["emergencyContact"] = undefined;
+  const rawEmerg = (raw.emergencyContact || raw.emergency_contact || raw.emergency || user?.emergencyContact || user?.emergency_contact) as Record<string, unknown> | undefined;
+
+  if (rawEmerg && typeof rawEmerg === "object") {
+    emergencyContact = {
+      name: String(rawEmerg.name || rawEmerg.fullName || rawEmerg.full_name || rawEmerg.nama || ""),
+      relationship: String(rawEmerg.relationship || rawEmerg.relation || rawEmerg.hubungan || "Kerabat"),
+      phone: String(rawEmerg.phone || rawEmerg.phoneNumber || rawEmerg.phone_number || rawEmerg.noHp || rawEmerg.no_hp || ""),
+    };
+  } else {
+    const emergName = String(
+      raw.emergencyName ||
+        raw.emergency_name ||
+        raw.emergencyContactName ||
+        raw.emergency_contact_name ||
+        raw.namaKontakDarurat ||
+        raw.nama_kontak_darurat ||
+        ""
+    );
+    const emergPhone = String(
+      raw.emergencyPhone ||
+        raw.emergency_phone ||
+        raw.emergencyContactPhone ||
+        raw.emergency_contact_phone ||
+        raw.noKontakDarurat ||
+        raw.no_kontak_darurat ||
+        raw.teleponKontakDarurat ||
+        ""
+    );
+    const emergRel = String(
+      raw.emergencyRelationship ||
+        raw.emergency_relationship ||
+        raw.emergencyRelation ||
+        raw.emergency_relation ||
+        raw.hubunganKontakDarurat ||
+        raw.hubungan_kontak_darurat ||
+        "Kerabat"
+    );
+    if (emergName || emergPhone) {
+      emergencyContact = {
+        name: emergName,
+        phone: emergPhone,
+        relationship: emergRel,
+      };
+    }
+  }
+
+  // Identitas / NIK / Paspor
+  const rawIdNum =
+    raw.identityNumber ||
+    raw.identity_number ||
+    raw.nik ||
+    raw.idNumber ||
+    raw.id_number ||
+    raw.ktp ||
+    raw.noKtp ||
+    raw.no_ktp ||
+    raw.passport ||
+    raw.passportNumber ||
+    raw.passport_number ||
+    user?.identityNumber ||
+    user?.identity_number ||
+    user?.nik;
+  const identityNumber = typeof rawIdNum === "string" && rawIdNum.trim() !== "" ? rawIdNum.trim() : typeof rawIdNum === "number" ? String(rawIdNum) : undefined;
+
+  // Jenis Kelamin (Gender)
+  const rawGender = String(raw.gender || raw.jenisKelamin || raw.jenis_kelamin || raw.sex || user?.gender || "").toLowerCase();
+  const gender: Participant["gender"] =
+    rawGender === "male" || rawGender === "laki-laki" || rawGender === "l" || rawGender === "pria"
+      ? "male"
+      : rawGender === "female" || rawGender === "perempuan" || rawGender === "p" || rawGender === "wanita"
+      ? "female"
+      : rawGender === "other"
+      ? "other"
       : undefined;
 
   const tripId = String(raw.tripId || raw.trip_id || rawTrip?.id || "");
@@ -378,6 +561,7 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
   return {
     id,
     bookingCode,
+    booking_code: bookingCode,
     tripId,
     trip: rawTrip,
     bookingGroupId,
@@ -390,14 +574,13 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
     phoneNumber,
     phone_number: phoneNumber,
     nationality,
-    dateOfBirth: typeof raw.dateOfBirth === "string" ? raw.dateOfBirth : typeof raw.date_of_birth === "string" ? raw.date_of_birth : undefined,
-    date_of_birth: typeof raw.dateOfBirth === "string" ? raw.dateOfBirth : typeof raw.date_of_birth === "string" ? raw.date_of_birth : undefined,
-    totalAmount,
-    total_amount: totalAmount,
-    paymentStatus,
-    payment_status: paymentStatus,
-    checkInStatus,
-    check_in_status: checkInStatus,
+    identityNumber,
+    identity_number: identityNumber,
+    dateOfBirth,
+    date_of_birth: dateOfBirth,
+    gender,
+    roomPreference: typeof raw.roomPreference === "string" ? raw.roomPreference : typeof raw.room_preference === "string" ? raw.room_preference : undefined,
+    room_preference: typeof raw.roomPreference === "string" ? raw.roomPreference : typeof raw.room_preference === "string" ? raw.room_preference : undefined,
     healthNotes,
     health_notes: healthNotes,
     pickupLocation,
@@ -408,7 +591,19 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
     pickup_longitude: pickupLongitude,
     pickupNotes,
     pickup_notes: pickupNotes,
+    emergencyContact,
+    hasInsurance,
+    has_insurance: hasInsurance,
+    insuranceFee,
+    insurance_fee: insuranceFee,
+    totalAmount,
+    total_amount: totalAmount,
+    paymentStatus,
+    payment_status: paymentStatus,
+    checkInStatus,
+    check_in_status: checkInStatus,
     voucherQrCode,
+    voucher_qr_code: voucherQrCode,
     departureDate,
     departure_date: departureDate,
     createdAt,
