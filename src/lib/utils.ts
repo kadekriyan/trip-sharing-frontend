@@ -368,13 +368,12 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
       : undefined;
 
   const hasInsurance =
-    typeof rawHasInsurance === "boolean"
-      ? rawHasInsurance
-      : typeof rawHasInsurance === "string"
-      ? rawHasInsurance === "true" || rawHasInsurance === "1"
-      : insuranceFee !== undefined && insuranceFee > 0
-      ? true
-      : Boolean(dateOfBirth);
+    Boolean(dateOfBirth && String(dateOfBirth).trim() !== "" && String(dateOfBirth).trim() !== "-") ||
+    rawHasInsurance === true ||
+    rawHasInsurance === "true" ||
+    rawHasInsurance === 1 ||
+    rawHasInsurance === "1" ||
+    (typeof insuranceFee === "number" && insuranceFee > 0);
 
   // Titik Penjemputan (Pickup Location)
   const rawPickup =

@@ -96,13 +96,14 @@ export function printGroupManifest(group: BookingGroup): void {
             const formattedDob = dob ? escapeHtml(formatDate(dob)) : `<span style="color: #94a3b8; font-style: italic;">Tidak diisi</span>`;
             
             const hasInsurance = Boolean(
-              p.hasInsurance ??
-              p.has_insurance ??
-              pRec.isInsured ??
-              pRec.is_insured ??
-              pRec.insurance ??
-              (typeof p.insuranceFee === "number" && p.insuranceFee > 0) ??
-              Boolean(dob)
+              (dob && String(dob).trim() !== "" && String(dob).trim() !== "-") ||
+              p.hasInsurance === true ||
+              p.has_insurance === true ||
+              pRec.isInsured === true ||
+              pRec.is_insured === true ||
+              pRec.insurance === true ||
+              (typeof p.insuranceFee === "number" && p.insuranceFee > 0) ||
+              (typeof p.insurance_fee === "number" && p.insurance_fee > 0)
             );
             
             const rawPickup =
@@ -227,8 +228,24 @@ export function printGroupManifest(group: BookingGroup): void {
   const insuredCount = participants.filter((p) => {
     const pRec = p as unknown as Record<string, unknown>;
     const pUser = (pRec.user && typeof pRec.user === "object") ? (pRec.user as Record<string, unknown>) : undefined;
-    const dob = p.dateOfBirth || p.date_of_birth || pRec.dob || pRec.birthDate || pRec.birth_date || pRec.tanggalLahir || pUser?.dateOfBirth;
-    return Boolean(p.hasInsurance ?? p.has_insurance ?? pRec.isInsured ?? pRec.is_insured ?? Boolean(dob));
+    const rawDob =
+      p.dateOfBirth ||
+      p.date_of_birth ||
+      pRec.dob ||
+      pRec.birthDate ||
+      pRec.birth_date ||
+      pRec.tanggalLahir ||
+      pUser?.dateOfBirth;
+    const dob = typeof rawDob === "string" ? rawDob : rawDob instanceof Date ? rawDob.toISOString().split("T")[0] : undefined;
+    return Boolean(
+      (dob && String(dob).trim() !== "" && String(dob).trim() !== "-") ||
+      p.hasInsurance === true ||
+      p.has_insurance === true ||
+      pRec.isInsured === true ||
+      pRec.is_insured === true ||
+      pRec.insurance === true ||
+      (typeof p.insuranceFee === "number" && p.insuranceFee > 0)
+    );
   }).length;
 
   const html = `<!DOCTYPE html>

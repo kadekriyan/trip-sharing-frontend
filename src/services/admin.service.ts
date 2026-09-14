@@ -826,17 +826,26 @@ export const adminService = {
               g.participants = g.participants.map((p) => {
                 const fullP = partsById.get(p.id) || (p.bookingCode ? partsById.get(p.bookingCode) : undefined);
                 if (fullP) {
+                  const mergedDob = p.dateOfBirth || fullP.dateOfBirth || p.date_of_birth || fullP.date_of_birth;
+                  const isInsured =
+                    Boolean(mergedDob && String(mergedDob).trim() !== "" && String(mergedDob).trim() !== "-") ||
+                    p.hasInsurance === true ||
+                    p.has_insurance === true ||
+                    fullP.hasInsurance === true ||
+                    fullP.has_insurance === true;
+
                   return {
                     ...fullP,
                     ...p,
-                    dateOfBirth: p.dateOfBirth || fullP.dateOfBirth,
-                    date_of_birth: p.date_of_birth || fullP.date_of_birth,
+                    dateOfBirth: mergedDob,
+                    date_of_birth: mergedDob,
                     pickupLocation: p.pickupLocation || fullP.pickupLocation,
                     pickup_location: p.pickup_location || fullP.pickup_location,
                     pickupNotes: p.pickupNotes || fullP.pickupNotes,
                     emergencyContact: p.emergencyContact || fullP.emergencyContact,
                     identityNumber: p.identityNumber || fullP.identityNumber,
-                    hasInsurance: typeof p.hasInsurance === "boolean" ? p.hasInsurance : fullP.hasInsurance,
+                    hasInsurance: isInsured,
+                    has_insurance: isInsured,
                   };
                 }
                 return p;
