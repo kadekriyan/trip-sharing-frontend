@@ -204,20 +204,40 @@ export default function BookingInvoicePage() {
                 </div>
                 <div>
                   <h1 className="font-heading font-extrabold text-xl print:text-base text-[#191c1e] tracking-tight">
-                    {issuer.companyName || "Share Tour Jogja"}
+                    {issuer.companyName && !issuer.companyName.toLowerCase().includes("trip sharing platform")
+                      ? issuer.companyName
+                      : "Share Tour Jogja"}
                   </h1>
                   <span className="text-[11px] print:text-[10px] font-semibold text-[#00677d] block">
-                    {issuer.tagline || "Open Trip & Sharing Tour Yogyakarta"}
+                    {issuer.tagline && !issuer.tagline.toLowerCase().includes("teman berbagi")
+                      ? issuer.tagline
+                      : "Platform Petualangan Wisata Sharing Tour Yogyakarta"}
                   </span>
                 </div>
               </div>
               <p className="text-xs print:text-[10px] text-slate-500 max-w-sm leading-relaxed print:leading-tight">
-                {issuer.address}
+                {issuer.address && !issuer.address.toLowerCase().includes("malang")
+                  ? issuer.address
+                  : "Tegallayang 9, RT 02, Caturharjo, Pandak Bantul, Yogyakarta, 55761"}
               </p>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs print:text-[10px] text-slate-500">
-                <span>Email: <strong className="text-slate-700">{issuer.supportEmail}</strong></span>
+                <span>
+                  Email:{" "}
+                  <strong className="text-slate-700">
+                    {issuer.supportEmail && !issuer.supportEmail.includes("support@tripsharing.id")
+                      ? issuer.supportEmail
+                      : "dejaayajax@gmail.com"}
+                  </strong>
+                </span>
                 <span>•</span>
-                <span>Telp/WA: <strong className="text-slate-700">{issuer.supportPhone}</strong></span>
+                <span>
+                  Telp/WA:{" "}
+                  <strong className="text-slate-700">
+                    {issuer.supportPhone && !issuer.supportPhone.includes("812-3456-7890")
+                      ? issuer.supportPhone
+                      : "081216916003"}
+                  </strong>
+                </span>
               </div>
             </div>
 
@@ -262,7 +282,7 @@ export default function BookingInvoicePage() {
                 <User className="h-3.5 w-3.5 print:h-3 print:w-3" />
                 Ditagihkan Kepada (Customer)
               </span>
-              <div className="space-y-1 print:space-y-0.5 text-slate-600">
+              <div className="space-y-1.5 print:space-y-0.5 text-slate-600">
                 <div className="text-sm print:text-xs font-bold text-slate-800">{customer.fullName}</div>
                 <div className="flex items-center gap-1.5">
                   <Phone className="h-3 w-3 print:h-2.5 print:w-2.5 text-slate-400 shrink-0" />
@@ -274,7 +294,29 @@ export default function BookingInvoicePage() {
                 </div>
                 <div>
                   <span className="text-slate-400">Kewarganegaraan: </span>
-                  <span className="font-medium text-slate-700">{customer.country || "Indonesia"}</span>
+                  <span className="font-medium text-slate-700">{customer.country || customer.nationality || "Indonesia"}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Tanggal Lahir: </span>
+                  <span className="font-medium text-slate-700">
+                    {customer.dateOfBirth || customer.date_of_birth
+                      ? formatDate(customer.dateOfBirth || customer.date_of_birth || "")
+                      : "— (Tidak diisi)"}
+                  </span>
+                </div>
+                {/* Status Asuransi Perjalanan */}
+                <div className="pt-1">
+                  {customer.dateOfBirth || customer.date_of_birth || customer.hasInsurance || customer.has_insurance ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
+                      <ShieldCheck className="h-3 w-3 text-emerald-600 shrink-0" />
+                      Tercover Asuransi Perjalanan (Polis Aktif)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-medium">
+                      <ShieldCheck className="h-3 w-3 text-slate-400 shrink-0" />
+                      Tanpa Asuransi (Tanggal Lahir Tidak Diisi)
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -469,7 +511,13 @@ export default function BookingInvoicePage() {
               Dokumen ini diterbitkan secara otomatis dan sah oleh sistem komputerisasi <strong>Share Tour Jogja</strong>.
             </p>
             <p>
-              Untuk pertanyaan atau klaim faktur, silakan hubungi customer service kami di <strong className="text-slate-600">{issuer.supportEmail}</strong>.
+              Untuk pertanyaan atau klaim faktur, silakan hubungi customer service kami di{" "}
+              <strong className="text-slate-600">
+                {issuer.supportEmail && !issuer.supportEmail.includes("support@tripsharing.id")
+                  ? issuer.supportEmail
+                  : "dejaayajax@gmail.com"}
+              </strong>
+              .
             </p>
           </div>
         </div>

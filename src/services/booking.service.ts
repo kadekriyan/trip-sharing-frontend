@@ -145,6 +145,22 @@ export const bookingService = {
     try {
       const res = await apiClient.get<InvoiceData>(`/bookings/${encodeURIComponent(cleanId)}/invoice`);
       if (res.success && res.data) {
+        if (!res.data.customer.dateOfBirth && !res.data.customer.date_of_birth) {
+          try {
+            const myBookings = await this.getMyBookings({ bookingCode: cleanId });
+            if (myBookings.length > 0 && (myBookings[0].dateOfBirth || myBookings[0].date_of_birth)) {
+              res.data.customer.dateOfBirth = myBookings[0].dateOfBirth || myBookings[0].date_of_birth;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+        res.data.customer.hasInsurance = Boolean(
+          res.data.customer.dateOfBirth ||
+            res.data.customer.date_of_birth ||
+            res.data.customer.hasInsurance ||
+            res.data.customer.has_insurance
+        );
         return res.data;
       }
     } catch {
@@ -155,6 +171,22 @@ export const bookingService = {
     try {
       const altRes = await apiClient.get<InvoiceData>(`/bookings/invoice/${encodeURIComponent(cleanId)}`);
       if (altRes.success && altRes.data) {
+        if (!altRes.data.customer.dateOfBirth && !altRes.data.customer.date_of_birth) {
+          try {
+            const myBookings = await this.getMyBookings({ bookingCode: cleanId });
+            if (myBookings.length > 0 && (myBookings[0].dateOfBirth || myBookings[0].date_of_birth)) {
+              altRes.data.customer.dateOfBirth = myBookings[0].dateOfBirth || myBookings[0].date_of_birth;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+        altRes.data.customer.hasInsurance = Boolean(
+          altRes.data.customer.dateOfBirth ||
+            altRes.data.customer.date_of_birth ||
+            altRes.data.customer.hasInsurance ||
+            altRes.data.customer.has_insurance
+        );
         return altRes.data;
       }
     } catch {
@@ -194,6 +226,7 @@ export const bookingService = {
     const totalAmount = foundParticipant.totalAmount || basePrice;
     const isPaid = foundParticipant.paymentStatus === "paid";
     const bookingCode = foundParticipant.bookingCode || cleanId;
+    const dob = foundParticipant.dateOfBirth || foundParticipant.date_of_birth;
 
     const items: InvoiceItem[] = [
       {
@@ -222,9 +255,9 @@ export const bookingService = {
       },
       issuer: {
         companyName: "Share Tour Jogja",
-        legalName: "",
-        tagline: "Open Trip & Sharing Tour Yogyakarta",
-        website: "https://sharingtouryogyakarta.com",
+        legalName: "PT Share Tour Jogja",
+        tagline: "Platform Petualangan Wisata Sharing Tour Yogyakarta",
+        website: "https://tripsharing.id",
         supportEmail: "dejaayajax@gmail.com",
         supportPhone: "081216916003",
         address: "Tegallayang 9, RT 02, Caturharjo, Pandak Bantul, Yogyakarta, 55761",
@@ -233,6 +266,10 @@ export const bookingService = {
         fullName: foundParticipant.fullName || "Traveler",
         email: foundParticipant.email || "-",
         phoneNumber: foundParticipant.phoneNumber || "-",
+        dateOfBirth: dob,
+        date_of_birth: dob,
+        hasInsurance: Boolean(dob || foundParticipant.hasInsurance || foundParticipant.has_insurance),
+        has_insurance: Boolean(dob || foundParticipant.hasInsurance || foundParticipant.has_insurance),
         country: foundParticipant.nationality || "Indonesia",
         nationality: foundParticipant.nationality || "Indonesia",
         gender: foundParticipant.gender || "male",

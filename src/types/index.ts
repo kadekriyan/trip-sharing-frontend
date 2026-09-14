@@ -438,6 +438,10 @@ export interface InvoiceData {
     phoneNumber: string;
     identityNumber?: string;
     identityType?: string;
+    dateOfBirth?: string;
+    date_of_birth?: string;
+    hasInsurance?: boolean;
+    has_insurance?: boolean;
     country: string;
     nationality: string;
     gender?: string;
