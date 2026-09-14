@@ -546,21 +546,21 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               </div>
 
               {/* USP Badges */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
-                <div className="p-3.5 rounded-2xl bg-[#00677d]/5 border border-[#00677d]/10 text-center">
-                  <Users className="h-5 w-5 text-[#00677d] mx-auto mb-1.5" />
-                  <span className="font-heading font-bold text-xs text-[#00677d] block">Maksimal 6 Pax</span>
-                  <span className="text-[10px] text-slate-500">Mobil tidak berdesakan</span>
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-3 pt-4 border-t border-slate-100">
+                <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#00677d]/5 border border-[#00677d]/10 text-center flex flex-col items-center justify-center">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#00677d] mx-auto mb-1 sm:mb-1.5 shrink-0" />
+                  <span className="font-heading font-bold text-[10px] sm:text-xs text-[#00677d] block leading-tight">Maksimal 6 Pax</span>
+                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">Mobil tidak berdesakan</span>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-[#ff7f50]/5 border border-[#ff7f50]/10 text-center">
-                  <CreditCard className="h-5 w-5 text-[#ff7f50] mx-auto mb-1.5" />
-                  <span className="font-heading font-bold text-xs text-[#ff7f50] block">Biaya Patungan</span>
-                  <span className="text-[10px] text-slate-500">Hemat hingga 60%</span>
+                <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#ff7f50]/5 border border-[#ff7f50]/10 text-center flex flex-col items-center justify-center">
+                  <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-[#ff7f50] mx-auto mb-1 sm:mb-1.5 shrink-0" />
+                  <span className="font-heading font-bold text-[10px] sm:text-xs text-[#ff7f50] block leading-tight">Biaya Patungan</span>
+                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">Hemat hingga 60%</span>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600 mx-auto mb-1.5" />
-                  <span className="font-heading font-bold text-xs text-emerald-600 block">Garansi Jalan</span>
-                  <span className="text-[10px] text-slate-500">1 Orang pun berangkat</span>
+                <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center flex flex-col items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 mx-auto mb-1 sm:mb-1.5 shrink-0" />
+                  <span className="font-heading font-bold text-[10px] sm:text-xs text-emerald-600 block leading-tight">Garansi Jalan</span>
+                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">1 Orang pun jalan</span>
                 </div>
               </div>
 
