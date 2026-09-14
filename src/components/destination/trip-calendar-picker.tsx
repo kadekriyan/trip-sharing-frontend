@@ -24,23 +24,22 @@ interface TripCalendarPickerProps {
   onClose?: () => void;
 }
 
-const MONTH_NAMES_ID = [
-  "Januari",
-  "Februari",
-  "Maret",
+const MONTH_NAMES_EN = [
+  "January",
+  "February",
+  "March",
   "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
+  "May",
+  "June",
+  "July",
+  "August",
   "September",
-  "Oktober",
+  "October",
   "November",
-  "Desember",
+  "December",
 ];
 
-const DAYS_HEADER = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
-const DAYS_HEADER_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS_HEADER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function padZero(num: number): string {
   return num < 10 ? `0${num}` : `${num}`;
@@ -249,7 +248,7 @@ export function TripCalendarPicker({
                 type="button"
                 disabled={isPast}
                 onClick={() => handleDateClick(dateISO, trip)}
-                aria-label={`Pilih tanggal ${day} ${MONTH_NAMES_ID[month]} ${year}`}
+                aria-label={`Select date ${day} ${MONTH_NAMES_EN[month]} ${year}`}
                 className={`group relative h-11 sm:h-12 w-full rounded-2xl transition-all duration-150 flex flex-col items-center justify-center font-sans ${
                   isPast
                     ? "text-slate-300 cursor-not-allowed pointer-events-none"
@@ -271,17 +270,17 @@ export function TripCalendarPicker({
                 {/* Subtitle / Supertext indicator */}
                 {isSelected ? (
                   <span className="text-[9px] text-teal-300 font-bold leading-none mt-1">
-                    {trip ? "Terjadwal" : "Pilihan"}
+                    {trip ? "Scheduled" : "Selected"}
                   </span>
                 ) : trip ? (
                   <span className="text-[9px] leading-none mt-1 opacity-90 group-hover:text-teal-100 font-bold truncate max-w-full px-0.5">
                     {remainingSeats !== undefined && remainingSeats > 0
-                      ? `${remainingSeats} slot`
-                      : "Grup Ada"}
+                      ? `${remainingSeats} seats`
+                      : "Group Active"}
                   </span>
                 ) : isToday ? (
                   <span className="text-[9px] text-[#00677d] font-bold leading-none mt-1">
-                    Hari ini
+                    Today
                   </span>
                 ) : null}
               </button>
@@ -303,21 +302,21 @@ export function TripCalendarPicker({
           onClick={handlePrevMonth}
           disabled={!canGoPrev}
           className="p-2 rounded-full hover:bg-slate-100 active:scale-95 text-slate-700 disabled:opacity-20 disabled:pointer-events-none transition"
-          aria-label="Bulan Sebelumnya"
+          aria-label="Previous Month"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
 
         <div className="text-center font-heading font-extrabold text-sm sm:text-base text-[#191c1e] flex items-center gap-1.5">
           <CalendarIcon className="h-4 w-4 text-[#00677d]" />
-          <span>{MONTH_NAMES_ID[viewMonth]} {viewYear}</span>
+          <span>{MONTH_NAMES_EN[viewMonth]} {viewYear}</span>
         </div>
 
         <button
           type="button"
           onClick={handleNextMonth}
           className="p-2 rounded-full hover:bg-slate-100 active:scale-95 text-slate-700 transition"
-          aria-label="Bulan Berikutnya"
+          aria-label="Next Month"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
@@ -335,19 +334,19 @@ export function TripCalendarPicker({
             <span className="h-3 w-3 rounded-md bg-[#191c1e] text-white flex items-center justify-center text-[9px]">
               ✓
             </span>
-            <span className="font-medium">Terpilih</span>
+            <span className="font-medium">Selected</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-md bg-teal-50 border border-teal-300 flex items-center justify-center">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             </span>
-            <span className="font-medium">Trip Terjadwal</span>
+            <span className="font-medium">Scheduled Trip</span>
           </div>
 
           <div className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-md border border-slate-200 bg-white" />
-            <span className="font-medium">Inisiator (On-Demand)</span>
+            <span className="font-medium">New Group (On-Demand)</span>
           </div>
         </div>
 
@@ -359,7 +358,7 @@ export function TripCalendarPicker({
             onClick={onClose}
             className="text-xs h-7 px-3 rounded-full border-slate-200 font-bold"
           >
-            Tutup
+            Close
           </Button>
         )}
       </div>
@@ -368,7 +367,7 @@ export function TripCalendarPicker({
       <div className="mt-3 p-2.5 rounded-2xl bg-gradient-to-r from-teal-50/80 to-emerald-50/80 border border-teal-200/60 flex items-center gap-2 text-[11px] text-teal-900">
         <Info className="h-4 w-4 text-[#00677d] shrink-0" />
         <span className="leading-tight font-medium">
-          <strong>Garansi Pasti Berangkat:</strong> Gabung grup yang sudah ada atau buka grup armada 6 pax baru.
+          <strong>Guaranteed Departure:</strong> Join an existing group or initiate a new 6-pax fleet departure.
         </span>
       </div>
     </div>

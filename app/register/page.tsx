@@ -34,7 +34,7 @@ export default function RegisterPage() {
     setErrorMsg(null);
 
     if (!fullName || !email || !password || !phoneNumber) {
-      setErrorMsg("Harap lengkapi semua kolom wajib (*).");
+      setErrorMsg("Please complete all required fields (*).");
       return;
     }
 
@@ -49,7 +49,7 @@ export default function RegisterPage() {
       });
       router.push("/bookings");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Pendaftaran gagal. Silakan coba lagi.";
+      const msg = err instanceof Error ? err.message : "Registration failed. Please try again.";
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -67,10 +67,10 @@ export default function RegisterPage() {
             </div>
           </Link>
           <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#191c1e] tracking-tight">
-            Daftar Akun Traveler
+            Create Traveler Account
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Bergabunglah dengan komunitas trip cost-sharing dan nikmati liburan hemat.
+            Join the trip cost-sharing community and enjoy budget-friendly adventures.
           </p>
         </div>
 
@@ -85,13 +85,13 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Nama Lengkap *
+                Full Name *
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   required
-                  placeholder="Contoh: Budi Traveler"
+                  placeholder="e.g. John Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="pl-9 bg-slate-50 border-slate-200"
@@ -101,14 +101,14 @@ export default function RegisterPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Email Aktif *
+                Active Email *
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   required
                   type="email"
-                  placeholder="nama@email.com"
+                  placeholder="name@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9 bg-slate-50 border-slate-200"
@@ -118,7 +118,7 @@ export default function RegisterPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                No. WhatsApp *
+                WhatsApp / Phone Number *
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -135,14 +135,14 @@ export default function RegisterPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Kata Sandi *
+                Password *
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   required
                   type="password"
-                  placeholder="Minimal 6 karakter"
+                  placeholder="Minimum 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-9 bg-slate-50 border-slate-200"
@@ -152,7 +152,7 @@ export default function RegisterPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Kewarganegaraan
+                Nationality
               </label>
               <div className="relative">
                 <Globe className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -165,7 +165,7 @@ export default function RegisterPage() {
                   <option value="Malaysia">Malaysia</option>
                   <option value="Singapore">Singapore</option>
                   <option value="Australia">Australia</option>
-                  <option value="Other">Lainnya</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
             </div>
@@ -176,16 +176,16 @@ export default function RegisterPage() {
               disabled={isSubmitting}
               className="w-full justify-center font-bold text-sm shadow-md mt-2"
             >
-              {isSubmitting ? "Mendaftarkan..." : "Daftar Akun Baru"}
+              {isSubmitting ? "Registering..." : "Create Account"}
             </Button>
           </form>
         </Card>
 
         {/* Footer Link to Login */}
         <p className="text-center text-xs text-slate-500">
-          Sudah memiliki akun?{" "}
+          Already have an account?{" "}
           <Link href="/login" className="font-bold text-[#00677d] hover:underline">
-            Masuk di sini
+            Sign in here
           </Link>
         </p>
       </div>

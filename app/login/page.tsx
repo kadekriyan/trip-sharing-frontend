@@ -33,7 +33,7 @@ function LoginFormContent() {
     setErrorMsg(null);
 
     if (!email || !password) {
-      setErrorMsg("Harap masukkan email dan kata sandi.");
+      setErrorMsg("Please enter your email and password.");
       return;
     }
 
@@ -46,7 +46,7 @@ function LoginFormContent() {
         router.push(redirectPath.startsWith("/admin") ? "/" : redirectPath);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Kredensial login tidak valid.";
+      const msg = err instanceof Error ? err.message : "Invalid login credentials.";
       setErrorMsg(msg);
     } finally {
       setIsSubmitting(false);
@@ -64,10 +64,10 @@ function LoginFormContent() {
             </div>
           </Link>
           <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#191c1e] tracking-tight">
-            Selamat Datang Kembali
+            Welcome Back
           </h1>
           <p className="text-xs sm:text-sm text-slate-500">
-            Masuk ke akun Anda untuk mengelola pemesanan dan jadwal perjalanan.
+            Sign in to manage your bookings, invoices, and trip itineraries.
           </p>
         </div>
 
@@ -84,14 +84,14 @@ function LoginFormContent() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Email Akun *
+                Account Email *
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   required
                   type="email"
-                  placeholder="nama@email.com"
+                  placeholder="name@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-9 bg-slate-50 border-slate-200"
@@ -102,10 +102,10 @@ function LoginFormContent() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Kata Sandi *
+                  Password *
                 </label>
                 <span className="text-[11px] text-[#00677d] hover:underline cursor-pointer">
-                  Lupa password?
+                  Forgot password?
                 </span>
               </div>
               <div className="relative">
@@ -134,16 +134,16 @@ function LoginFormContent() {
               disabled={isSubmitting}
               className="w-full justify-center font-bold text-sm shadow-md mt-2"
             >
-              {isSubmitting ? "Memverifikasi..." : "Masuk ke Akun"}
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </Button>
           </form>
         </Card>
 
         {/* Footer Link to Register */}
         <p className="text-center text-xs text-slate-500">
-          Belum punya akun traveler?{" "}
+          Don&apos;t have a traveler account?{" "}
           <Link href="/register" className="font-bold text-[#00677d] hover:underline">
-            Daftar Akun Baru
+            Create Account
           </Link>
         </p>
       </div>
@@ -153,7 +153,7 @@ function LoginFormContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Memuat...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
       <LoginFormContent />
     </Suspense>
   );

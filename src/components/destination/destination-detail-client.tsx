@@ -254,8 +254,8 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
         capacity: 6,
         currentParticipants: 0,
         status: "open",
-        name: "Grup Inisiator #1",
-        notes: "Grup Baru - Kursi pertama siap dikunci!",
+        name: "Initiator Group #1",
+        notes: "New Group - First seat ready to book!",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -269,15 +269,15 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center space-y-4">
         <PackageOpen className="h-16 w-16 text-slate-300 mx-auto" />
         <h1 className="font-heading text-2xl font-bold text-slate-800">
-          Paket Wisata Tidak Ditemukan
+          Tour Package Not Found
         </h1>
         <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-          Destinasi dengan tautan <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-600 font-mono text-xs">{slug}</code> tidak tersedia atau telah dinonaktifkan.
+          The tour destination with link <code className="bg-slate-100 px-1.5 py-0.5 rounded text-rose-600 font-mono text-xs">{slug}</code> is not available or has been disabled.
         </p>
         <Button asChild className="gap-2">
           <Link href="/destinations">
             <ArrowLeft className="h-4 w-4" />
-            Kembali ke Katalog Destinasi
+            Back to Tour Catalog
           </Link>
         </Button>
       </div>
@@ -295,30 +295,30 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
     // Validate Full Name (Min 2, Max 100, safe characters)
     const trimmedName = fullName.trim();
     if (!trimmedName) {
-      errors.fullName = "Nama lengkap pemesan wajib diisi.";
+      errors.fullName = "Full name is required.";
     } else if (trimmedName.length < 2 || trimmedName.length > 100) {
-      errors.fullName = "Nama lengkap harus memiliki panjang antara 2 hingga 100 karakter.";
+      errors.fullName = "Full name must be between 2 and 100 characters.";
     } else if (!/^[a-zA-Z\s.'\-,]+$/u.test(trimmedName)) {
-      errors.fullName = "Nama lengkap hanya boleh berupa huruf, spasi, dan tanda baca nama standar.";
+      errors.fullName = "Full name may only contain letters, spaces, and standard name punctuation.";
     }
 
     // Validate Email (RFC format)
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      errors.email = "Alamat email wajib diisi.";
+      errors.email = "Email address is required.";
     } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail)) {
-      errors.email = "Format alamat email tidak valid (contoh: traveler@domain.com).";
+      errors.email = "Invalid email format (e.g. traveler@domain.com).";
     }
 
     // Validate WhatsApp / Phone Number (Only numbers & safe symbols, 8 to 20 digits, no alphabets)
     const trimmedPhone = phoneNumber.trim();
     const cleanPhoneDigits = trimmedPhone.replace(/[\s\-()]/g, "");
     if (!trimmedPhone) {
-      errors.phoneNumber = "Nomor WhatsApp / telepon wajib diisi.";
+      errors.phoneNumber = "WhatsApp / phone number is required.";
     } else if (/[a-zA-Z]/.test(trimmedPhone)) {
-      errors.phoneNumber = "Nomor telepon tidak boleh mengandung huruf alfabet.";
+      errors.phoneNumber = "Phone number must not contain alphabet letters.";
     } else if (!/^\+?[0-9]{8,20}$/.test(cleanPhoneDigits)) {
-      errors.phoneNumber = "Nomor telepon harus terdiri dari 8 hingga 20 digit angka valid (contoh: 081234567890).";
+      errors.phoneNumber = "Phone number must be between 8 and 20 valid digits (e.g. +6281234567890).";
     }
 
     // Validate Date of Birth (Optional, but if filled must be valid ISO date between 1900-01-01 and today)
@@ -327,17 +327,17 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       const today = new Date();
       const minDate = new Date("1900-01-01");
       if (isNaN(birthDateObj.getTime()) || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
-        errors.dateOfBirth = "Format tanggal lahir tidak valid (YYYY-MM-DD).";
+        errors.dateOfBirth = "Invalid date of birth format (YYYY-MM-DD).";
       } else if (birthDateObj > today) {
-        errors.dateOfBirth = "Tanggal lahir tidak boleh melebihi hari ini.";
+        errors.dateOfBirth = "Date of birth cannot be in the future.";
       } else if (birthDateObj < minDate) {
-        errors.dateOfBirth = "Tanggal lahir tidak boleh lebih awal dari tahun 1900.";
+        errors.dateOfBirth = "Date of birth cannot be earlier than 1900.";
       }
     }
 
     // Validate Departure Date
     if (!selectedDate && !customDateInput) {
-      errors.departureDate = "Silakan pilih tanggal keberangkatan trip.";
+      errors.departureDate = "Please select your trip departure date.";
     }
 
     // Validate reCAPTCHA in production
@@ -347,7 +347,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       (process.env.NODE_ENV === "development" ? "dev-dummy-captcha-token" : null);
 
     if (!activeToken && process.env.NODE_ENV === "production" && recaptchaSiteKey) {
-      errors.captcha = "Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.";
+      errors.captcha = "Please complete the reCAPTCHA verification.";
     }
 
     setFieldErrors(errors);
@@ -371,7 +371,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       setErrorMessage(
         errors.captcha ||
           errors.departureDate ||
-          "Terdapat data yang belum valid. Silakan periksa kolom yang disorot merah."
+          "Some fields contain errors. Please review the highlighted fields."
       );
       return false;
     }
@@ -416,7 +416,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
       setCreatedBooking(result.participant);
       setIsPaymentModalOpen(true);
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Gagal memproses pemesanan tiket.";
+      const errorMsg = err instanceof Error ? err.message : "Failed to process tour booking.";
       setErrorMessage(errorMsg);
       recaptchaRef.current?.reset();
       setCaptchaToken(null);
@@ -490,14 +490,14 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
           >
             <Link href="/destinations">
               <ArrowLeft className="h-4 w-4" />
-              Kembali ke Katalog
+              Back to Catalog
             </Link>
           </Button>
 
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="coral" className="text-xs font-bold px-3 py-1 shadow-md">
-                Trip Sharing Maks 6 Pax
+                Max 6 Pax Sharing Tour
               </Badge>
               {destination.category && (
                 <Badge variant="secondary" className="text-xs font-bold bg-white/95 text-slate-800 shadow-md">
@@ -513,7 +513,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-200 pt-1">
               <span className="flex items-center gap-1 font-medium">
                 <MapPin className="h-4 w-4 text-[#ff7f50]" />
-                {destination.location || "Indonesia"}
+                {destination.location || "Yogyakarta"}
               </span>
               <span>•</span>
               <span className="flex items-center gap-1 font-medium">
@@ -538,7 +538,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-100 shadow-stitch-card space-y-6">
               <div className="space-y-3">
                 <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-[#191c1e]">
-                  Tentang Perjalanan Ini
+                  About This Tour
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal whitespace-pre-line">
                   {destination.description}
@@ -549,18 +549,18 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               <div className="grid grid-cols-3 gap-1.5 sm:gap-3 pt-4 border-t border-slate-100">
                 <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#00677d]/5 border border-[#00677d]/10 text-center flex flex-col items-center justify-center">
                   <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#00677d] mx-auto mb-1 sm:mb-1.5 shrink-0" />
-                  <span className="font-heading font-bold text-[10px] sm:text-xs text-[#00677d] block leading-tight">Maksimal 6 Pax</span>
-                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">Mobil tidak berdesakan</span>
+                  <span className="font-heading font-bold text-[10px] sm:text-xs text-[#00677d] block leading-tight">Max 6 Guests</span>
+                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">Spacious & comfortable</span>
                 </div>
                 <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-[#ff7f50]/5 border border-[#ff7f50]/10 text-center flex flex-col items-center justify-center">
                   <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-[#ff7f50] mx-auto mb-1 sm:mb-1.5 shrink-0" />
-                  <span className="font-heading font-bold text-[10px] sm:text-xs text-[#ff7f50] block leading-tight">Biaya Patungan</span>
-                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">Hemat hingga 60%</span>
+                  <span className="font-heading font-bold text-[10px] sm:text-xs text-[#ff7f50] block leading-tight">Shared Cost</span>
+                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">Save up to 60%</span>
                 </div>
                 <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center flex flex-col items-center justify-center">
                   <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600 mx-auto mb-1 sm:mb-1.5 shrink-0" />
-                  <span className="font-heading font-bold text-[10px] sm:text-xs text-emerald-600 block leading-tight">Garansi Jalan</span>
-                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">1 Orang pun jalan</span>
+                  <span className="font-heading font-bold text-[10px] sm:text-xs text-emerald-600 block leading-tight">Guaranteed</span>
+                  <span className="text-[8px] sm:text-[10px] text-slate-500 leading-tight block mt-0.5">Departs even with 1 pax</span>
                 </div>
               </div>
 
@@ -569,7 +569,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <div className="space-y-3">
                   <h3 className="font-heading font-bold text-xs uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
                     <CheckCircle2 className="h-4 w-4" />
-                    Fasilitas Termasuk
+                    Included Facilities
                   </h3>
                   <ul className="space-y-2 text-xs text-slate-600">
                     {inclusions.map((item, idx) => (
@@ -584,7 +584,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <div className="space-y-3">
                   <h3 className="font-heading font-bold text-xs uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
                     <XCircle className="h-4 w-4" />
-                    Tidak Termasuk
+                    Not Included
                   </h3>
                   <ul className="space-y-2 text-xs text-slate-600">
                     {exclusions.map((item, idx) => (
@@ -602,7 +602,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             {Array.isArray(destination.galleryImages) && destination.galleryImages.length > 0 && (
               <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-100 shadow-stitch-card space-y-4">
                 <h2 className="font-heading font-extrabold text-lg text-[#191c1e]">
-                  Galeri Dokumentasi & Suasana Trip
+                  Tour Gallery & Atmosphere
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {destination.galleryImages.map((imgUrl, idx) => (
@@ -612,7 +612,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     >
                       <Image
                         src={getImageUrl(imgUrl)}
-                        alt={`Galeri ${getDestinationTitle(destination)} ${idx + 1}`}
+                        alt={`Gallery ${getDestinationTitle(destination)} ${idx + 1}`}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
@@ -630,13 +630,13 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 </div>
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Titik Kumpul / Penjemputan Resmi
+                    Meeting Point / Pickup Base
                   </span>
                   <h3 className="font-heading font-extrabold text-base text-[#191c1e] mt-0.5">
                     {destination.meetingPoint}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Driver akan menunggu di area meeting point 30 menit sebelum jam keberangkatan.
+                    Driver will be ready at the meeting point 30 minutes before departure time.
                   </p>
                 </div>
               </div>
@@ -646,7 +646,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             {Array.isArray(destination.itinerary) && destination.itinerary.length > 0 && (
               <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-100 shadow-stitch-card space-y-6">
                 <h2 className="font-heading font-extrabold text-xl text-[#191c1e]">
-                  Rencana Perjalanan (Itinerary)
+                  Tour Itinerary
                 </h2>
                 <div className="space-y-6">
                   {destination.itinerary.map((day) => (
@@ -654,7 +654,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full bg-[#00677d] border-2 border-white shadow-sm" />
                       <div className="space-y-1.5">
                         <span className="text-xs font-bold uppercase tracking-wider text-[#ff7f50]">
-                          Hari Ke-{day.day}
+                          Day {day.day}
                         </span>
                         <h3 className="font-heading font-bold text-base text-[#191c1e]">
                           {day.title}
@@ -700,7 +700,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               {/* Price Header */}
               <div className="flex items-baseline justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <span className="text-xs text-slate-500 block">Biaya Per Orang (Sharing):</span>
+                  <span className="text-xs text-slate-500 block">Price Per Person (Sharing):</span>
                   <span className="font-heading font-extrabold text-2xl sm:text-3xl text-[#a43c12]">
                     {formatCurrency(basePrice)}
                   </span>
@@ -715,15 +715,15 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
                     <Calendar className="h-4 w-4" />
-                    1. Pilih Tanggal Keberangkatan
+                    1. Select Departure Date
                   </label>
                   {isCustomDateMode ? (
                     <Badge variant="secondary" className="text-[10px] bg-amber-100 text-amber-800 font-bold">
-                      Inisiator Trip Baru
+                      Trip Initiator
                     </Badge>
                   ) : (
                     <Badge variant="success" className="text-[10px] font-bold">
-                      Trip Terjadwal Aktif
+                      Scheduled Active Trip
                     </Badge>
                   )}
                 </div>
@@ -735,7 +735,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     onClick={() => setIsCalendarOpen(!isCalendarOpen)}
                     className="w-full p-3.5 sm:p-4 rounded-2xl border-2 border-slate-200 hover:border-[#00677d] bg-white transition-all shadow-sm hover:shadow text-left flex items-center justify-between group active:scale-[0.99]"
                     aria-expanded={isCalendarOpen}
-                    aria-label="Buka kalender pemilihan tanggal trip"
+                    aria-label="Open date selection calendar"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-11 w-11 rounded-2xl bg-teal-50 text-[#00677d] flex items-center justify-center font-bold shrink-0 group-hover:bg-[#00677d] group-hover:text-white transition-colors shadow-inner">
@@ -743,19 +743,19 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       </div>
                       <div className="min-w-0">
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                          Tanggal Trip Dipilih
+                          Selected Trip Date
                         </span>
                         <span className="font-heading font-extrabold text-sm sm:text-base text-[#191c1e] truncate block">
                           {selectedDate || customDateInput
                             ? formatDate(selectedDate || customDateInput)
-                            : "Ketuk untuk memilih tanggal..."}
+                            : "Tap to select date..."}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs font-bold text-[#00677d] hidden sm:inline-block">
-                        {isCalendarOpen ? "Tutup Kalender" : "Pilih di Kalender"}
+                        {isCalendarOpen ? "Close Calendar" : "Select on Calendar"}
                       </span>
                       <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-teal-50 group-hover:text-[#00677d] transition">
                         <ChevronDown
@@ -793,7 +793,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 {trips.length > 0 && !isCalendarOpen && (
                   <div className="space-y-1.5 pt-1">
                     <span className="text-[11px] font-bold text-slate-500 block">
-                      Jadwal Populer Terdekat:
+                      Upcoming Scheduled Trips:
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {trips.slice(0, 4).map((trp) => {
@@ -842,15 +842,15 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                               </span>
                               <span className="text-[10px] text-slate-500 flex items-center gap-1">
                                 <Clock className="h-3 w-3 text-[#00677d]" />
-                                s.d. {formatDate(trp.returnDate)}
+                                to {formatDate(trp.returnDate)}
                               </span>
                             </div>
                             <div className="text-right">
                               <span className="text-[11px] font-extrabold text-[#00677d] block">
-                                {remainingSeats > 0 ? `Sisa ${remainingSeats}` : "Penuh"}
+                                {remainingSeats > 0 ? `${remainingSeats} left` : "Sold Out"}
                               </span>
                               <span className="text-[9px] text-slate-400">
-                                {fleetCount} Armada
+                                {fleetCount} Fleet
                               </span>
                             </div>
                           </button>
@@ -865,11 +865,11 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs space-y-1.5 animate-in fade-in duration-200">
                     <div className="flex items-center gap-1.5 font-bold text-amber-900">
                       <CalendarPlus className="h-4 w-4 text-[#ff7f50]" />
-                      <span>Jadilah Inisiator Trip!</span>
+                      <span>Be the Trip Initiator!</span>
                     </div>
                     <p className="text-[11px] text-amber-800 leading-relaxed font-normal">
-                      Belum ada grup di tanggal <strong>{formatDate(selectedDate || customDateInput)}</strong>.
-                      Pemesanan Anda otomatis membuka <strong>Grup Mobil #1</strong> baru, dan traveler lain dapat bergabung.
+                      No group is active on <strong>{formatDate(selectedDate || customDateInput)}</strong> yet.
+                      Your booking will automatically initiate new <strong>Vehicle Group #1</strong>, allowing other travelers to join!
                     </p>
                   </div>
                 )}
@@ -879,17 +879,17 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
                   <Car className="h-4 w-4" />
-                  2. Pilih Grup Mobil (Maksimal 6 Orang)
+                  2. Select Vehicle Group (Max 6 Guests)
                 </label>
 
                 {isLoadingAvailability ? (
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center space-x-2 text-xs text-slate-500">
                     <Loader2 className="h-4 w-4 animate-spin text-[#00677d]" />
-                    <span>Memuat ketersediaan slot grup...</span>
+                    <span>Loading vehicle group slots...</span>
                   </div>
                 ) : groups.length === 0 ? (
                   <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
-                    Grup mobil baru akan dibuat otomatis saat pemesanan pertama.
+                    A new vehicle group will be created automatically upon first booking.
                   </div>
                 ) : (
                   <div className="space-y-2.5">
@@ -914,11 +914,11 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                           <div className="flex items-center justify-between text-xs font-bold">
                             <span className="text-[#191c1e] flex items-center gap-1.5">
                               <Users className="h-3.5 w-3.5 text-[#00677d]" />
-                              {grp.name || `Grup Mobil #${grp.groupNumber}`}
+                              {grp.name || `Vehicle Group #${grp.groupNumber}`}
                             </span>
                             <span className={isFull ? "text-rose-600" : "text-[#00677d]"}>
-                              {grp.currentParticipants} / {maxCap} Kursi
-                              {isFull ? " (Penuh)" : ` (Sisa ${maxCap - grp.currentParticipants})`}
+                              {grp.currentParticipants} / {maxCap} Seats
+                              {isFull ? " (Full)" : ` (${maxCap - grp.currentParticipants} left)`}
                             </span>
                           </div>
 
@@ -946,14 +946,14 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               {/* STEP 3: BOOKING FORM */}
               <form onSubmit={handleBookingSubmit} className="space-y-4 pt-2 border-t border-slate-100">
                 <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] block">
-                  3. Data Diri Pemesan
+                  3. Lead Guest Details
                 </label>
 
                 {/* Insurance Notice Banner */}
                 <div className="p-3 rounded-xl bg-sky-50/80 border border-sky-200/80 text-[11px] text-sky-900 flex items-start gap-2">
                   <Info className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    <strong>Keterangan:</strong> Nama lengkap, tanggal lahir, dan kewarganegaraan akan digunakan untuk penerbitan <strong>asuransi perjalanan</strong> demi keselamatan dan kenyamanan Anda.
+                    <strong>Notice:</strong> Full name, date of birth, and nationality are used for issuing <strong>complimentary travel insurance</strong> for your safety and comfort.
                   </p>
                 </div>
 
@@ -966,12 +966,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Nama Lengkap Pemesan *
+                    Lead Guest Full Name *
                   </label>
                   <Input
                     ref={fullNameInputRef}
                     required
-                    placeholder="Sesuai KTP / Paspor"
+                    placeholder="As shown on Passport / ID"
                     value={fullName}
                     onChange={(e) => {
                       setFullName(e.target.value);
@@ -1000,7 +1000,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       ref={emailInputRef}
                       required
                       type="email"
-                      placeholder="rian@example.com"
+                      placeholder="traveler@example.com"
                       value={email}
                       onChange={(e) => {
                         setEmail(e.target.value);
@@ -1021,12 +1021,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                      No. WhatsApp *
+                      WhatsApp / Phone *
                     </label>
                     <Input
                       ref={phoneInputRef}
                       required
-                      placeholder="081234567890"
+                      placeholder="+62 812 3456 7890"
                       value={phoneNumber}
                       onChange={(e) => {
                         setPhoneNumber(e.target.value);
@@ -1051,10 +1051,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                        Tanggal Lahir
+                        Date of Birth
                       </label>
                       <span className="text-[10px] text-slate-400 font-normal lowercase">
-                        (opsional / asuransi)
+                        (for insurance)
                       </span>
                     </div>
                     <Input
@@ -1080,27 +1080,30 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       </p>
                     ) : (
                       <span className="text-[10px] text-slate-400 block">
-                        Untuk data klaim asuransi trip (dapat dikosongkan jika tidak berkenan).
+                        Required for insurance policy claim (optional if you decline insurance).
                       </span>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
                     <label htmlFor="nationality-select" className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                      Kewarganegaraan
+                      Nationality
                     </label>
                     <select
                       id="nationality-select"
-                      aria-label="Pilih kewarganegaraan pemesan"
+                      aria-label="Select guest nationality"
                       value={nationality}
                       onChange={(e) => setNationality(e.target.value)}
                       className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
                     >
-                      <option value="Indonesia">Indonesia (WNI)</option>
+                      <option value="Indonesia">Indonesia</option>
                       <option value="Malaysia">Malaysia</option>
                       <option value="Singapore">Singapore</option>
                       <option value="Australia">Australia</option>
-                      <option value="Other">Lainnya (WNA)</option>
+                      <option value="United States">United States</option>
+                      <option value="United Kingdom">United Kingdom</option>
+                      <option value="Japan">Japan</option>
+                      <option value="Other">Other / International</option>
                     </select>
                   </div>
                 </div>
@@ -1109,12 +1112,12 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 <div className="space-y-3 pt-2 border-t border-slate-100">
                   <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
                     <MapPin className="h-4 w-4" />
-                    Informasi Penjemputan (Pickup Location)
+                    Pickup Location Details
                   </label>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                      Titik / Alamat Penjemputan
+                      Pickup Address / Landmark
                     </label>
                     <GooglePlacesAutocomplete
                       value={pickupLocation}
@@ -1127,20 +1130,20 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                         setPickupLatitude(sel.latitude);
                         setPickupLongitude(sel.longitude);
                       }}
-                      placeholder="Cari nama hotel, stasiun, bandara, atau alamat penjemputan..."
+                      placeholder="Search hotel name, train station, airport, or address..."
                     />
                     <span className="text-[10px] text-slate-400 block">
-                      Armada kami akan menjemput Anda langsung di lobi hotel / alamat yang ditentukan.
+                      Our fleet driver will pick you up directly at your hotel lobby or designated address in Yogyakarta.
                     </span>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                      Catatan Khusus Penjemputan (Opsional)
+                      Special Pickup Notes (Optional)
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Contoh: Tunggu di lobi timur dekat pos satpam, kami membawa 2 koper besar."
+                      placeholder="e.g. Waiting at hotel lobby near reception, traveling with 2 suitcases."
                       value={pickupNotes}
                       onChange={(e) => setPickupNotes(e.target.value)}
                       className="w-full rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#00677d] focus:bg-white focus:outline-none transition-colors resize-none"
@@ -1151,10 +1154,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 {/* Health & Special Notes */}
                 <div className="space-y-1.5 pt-2 border-t border-slate-100">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Catatan Khusus / Riwayat Kesehatan (Opsional)
+                    Health & Dietary Notes (Optional)
                   </label>
                   <Input
-                    placeholder="Misal: Alergi makanan, asma, dsb."
+                    placeholder="e.g. Food allergies, motion sickness, asthma, etc."
                     value={healthNotes}
                     onChange={(e) => setHealthNotes(e.target.value)}
                     className="text-xs bg-slate-50 border-slate-200"
@@ -1164,17 +1167,17 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 {/* Price Breakdown Summary */}
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
                   <div className="flex justify-between text-xs text-slate-600">
-                    <span>Tanggal Dipilih:</span>
+                    <span>Selected Date:</span>
                     <span className="font-bold text-[#00677d]">
-                      {selectedDate ? formatDate(selectedDate) : "Belum dipilih"}
+                      {selectedDate ? formatDate(selectedDate) : "Not selected"}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-600">
-                    <span>Tiket Trip Sharing:</span>
+                    <span>Sharing Tour Ticket:</span>
                     <span>{formatCurrency(basePrice)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold text-[#191c1e] pt-2 border-t border-slate-200">
-                    <span>Total Tagihan:</span>
+                    <span>Total Amount:</span>
                     <span className="font-heading font-extrabold text-[#a43c12]">
                       {formatCurrency(totalAmount)}
                     </span>
@@ -1200,7 +1203,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   className="w-full justify-center font-bold text-sm shadow-md"
                 >
                   <Lock className="h-4 w-4 mr-2" />
-                  {isSubmitting ? "Memproses Data..." : "Lanjut ke Pembayaran"}
+                  {isSubmitting ? "Processing Booking..." : "Continue to Payment"}
                 </Button>
               </form>
             </div>
@@ -1217,18 +1220,18 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             </div>
             <div>
               <DialogTitle className="font-heading font-bold text-lg text-slate-900">
-                Konfirmasi Asuransi Perjalanan
+                Travel Insurance Notice
               </DialogTitle>
               <span className="text-[11px] font-semibold text-amber-700">
-                Perlindungan Keselamatan Trip
+                Passenger Safety Protection
               </span>
             </div>
           </div>
           <DialogDescription className="text-xs text-slate-600 leading-relaxed pt-2">
-            Tanggal lahir belum diisi. Tanggal lahir akan digunakan untuk penerbitan polis <strong>asuransi perjalanan</strong>. Jika Anda tidak mengisi tanggal lahir, maka Anda <strong>tidak akan mendapatkan perlindungan asuransi</strong> selama perjalanan.
+            Date of birth was left blank. Date of birth is required to issue your complimentary <strong>travel insurance policy</strong>. If omitted, your trip will proceed <strong>without insurance coverage</strong>.
           </DialogDescription>
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 mt-2 font-medium">
-            Apakah Anda yakin ingin tetap melanjutkan pemesanan ke pembayaran?
+            Are you sure you want to proceed to payment without insurance?
           </div>
           <div className="flex items-center justify-end gap-2.5 pt-4">
             <Button
@@ -1244,7 +1247,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               }}
               className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-100"
             >
-              Batal (Isi Tanggal Lahir)
+              Cancel (Add Birth Date)
             </Button>
             <Button
               type="button"
@@ -1255,7 +1258,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               }}
               className="text-xs font-bold bg-[#00677d] hover:bg-[#005264] text-white shadow-sm"
             >
-              Yakin, Lanjut ke Pembayaran
+              Proceed to Payment
             </Button>
           </div>
         </DialogContent>
@@ -1269,17 +1272,17 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               Midtrans Payment Gateway
             </Badge>
             <DialogTitle className="font-heading font-extrabold text-xl text-white">
-              Selesaikan Pembayaran
+              Complete Payment
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-100">
-              Pilih metode transaksi instan dan aman untuk mengunci kursi Anda.
+              Choose an instant and secure payment method to lock in your tour seat.
             </DialogDescription>
           </div>
 
           <div className="p-6 space-y-5">
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex justify-between items-center">
               <div>
-                <span className="text-[11px] text-slate-500 block">Total Tagihan:</span>
+                <span className="text-[11px] text-slate-500 block">Total Amount:</span>
                 <span className="font-heading font-extrabold text-xl text-[#00677d]">
                   {formatCurrency(totalAmount)}
                 </span>
@@ -1292,7 +1295,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             {/* Payment Method Selector */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Metode Pembayaran
+                Payment Method
               </label>
 
               <div className="grid grid-cols-1 gap-2">
@@ -1309,7 +1312,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     <QrCode className="h-4 w-4 text-[#00677d]" />
                     <span>QRIS (GoPay, OVO, ShopeePay, Dana, BCA)</span>
                   </div>
-                  <Badge variant="success" className="text-[9px]">Instan</Badge>
+                  <Badge variant="success" className="text-[9px]">Instant</Badge>
                 </button>
 
                 <button
@@ -1325,7 +1328,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     <Building2 className="h-4 w-4 text-[#00677d]" />
                     <span>BCA Virtual Account</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Otomatis</span>
+                  <span className="text-[11px] text-slate-400">Automatic</span>
                 </button>
 
                 <button
@@ -1339,7 +1342,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 >
                   <div className="flex items-center gap-2.5">
                     <CreditCard className="h-4 w-4 text-[#00677d]" />
-                    <span>Kartu Kredit / Debit (Visa / Mastercard)</span>
+                    <span>Credit / Debit Card (Visa / Mastercard)</span>
                   </div>
                   <span className="text-[11px] text-slate-400">3D Secure</span>
                 </button>
@@ -1353,7 +1356,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   <QrCode className="h-28 w-28 text-slate-800" />
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  Pindai QRIS di atas dengan aplikasi m-Banking atau e-Wallet favorit Anda.
+                  Scan the QRIS code above with your mobile banking or e-wallet app.
                 </p>
               </div>
             )}
@@ -1364,7 +1367,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               size="lg"
               className="w-full justify-center font-bold text-sm bg-emerald-600 hover:bg-emerald-700 shadow-md"
             >
-              {isProcessingPayment ? "Memverifikasi Transaksi..." : "Saya Sudah Membayar (Simulasi Sukses)"}
+              {isProcessingPayment ? "Verifying Transaction..." : "I Have Paid (Simulate Success)"}
             </Button>
           </div>
         </DialogContent>
@@ -1378,10 +1381,10 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               <CheckCircle2 className="h-8 w-8 text-white" />
             </div>
             <DialogTitle className="font-heading font-extrabold text-xl sm:text-2xl text-white">
-              Pemesanan Berhasil!
+              Booking Confirmed!
             </DialogTitle>
             <DialogDescription className="text-xs text-emerald-100 max-w-xs mx-auto">
-              Pembayaran telah terverifikasi lunas. Kursi armada trip sharing Anda telah resmi terkunci.
+              Your payment has been successfully verified. Your sharing tour seat is officially secured.
             </DialogDescription>
           </div>
 
@@ -1389,7 +1392,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             {/* Booking Code Highlight */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 text-center space-y-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Kode Booking Resmi Anda
+                Your Official Booking Code
               </span>
               <div className="flex items-center justify-center gap-2">
                 <span className="font-mono text-2xl font-black text-[#00677d] tracking-widest">
@@ -1399,7 +1402,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   type="button"
                   onClick={() => handleCopyCode(createdBooking?.bookingCode || "TRV-SUCCESS")}
                   className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-[#00677d] transition-colors shadow-sm no-print"
-                  title="Salin Kode Booking"
+                  title="Copy Booking Code"
                 >
                   {isCopiedBookingCode ? (
                     <Check className="h-4 w-4 text-emerald-600" />
@@ -1410,7 +1413,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
               </div>
               {isCopiedBookingCode && (
                 <span className="text-[10px] font-bold text-emerald-600 block animate-in fade-in">
-                  Kode booking berhasil disalin!
+                  Booking code copied to clipboard!
                 </span>
               )}
             </div>
@@ -1418,23 +1421,23 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             {/* Trip & Group Info Summary */}
             <div className="space-y-2 text-xs">
               <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">Destinasi:</span>
+                <span className="text-slate-500">Destination:</span>
                 <span className="font-bold text-slate-800">{getDestinationTitle(destination)}</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">Tanggal Berangkat:</span>
+                <span className="text-slate-500">Departure Date:</span>
                 <span className="font-bold text-[#00677d]">
                   {formatDate(selectedDate || customDateInput)}
                 </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">Alokasi Armada:</span>
+                <span className="text-slate-500">Fleet Allocation:</span>
                 <span className="font-bold text-slate-800">
-                  {createdBooking?.group?.name || `Grup Mobil #${createdBooking?.group?.groupNumber || 1}`} (Maks 6 Pax)
+                  {createdBooking?.group?.name || `Vehicle Group #${createdBooking?.group?.groupNumber || 1}`} (Max 6 Pax)
                 </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">Nama Pemesan:</span>
+                <span className="text-slate-500">Lead Guest:</span>
                 <span className="font-bold text-slate-800">{fullName}</span>
               </div>
               {(createdBooking?.pickupLocation || pickupLocation) && (() => {
@@ -1443,7 +1446,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 return (
                   <div className="py-2 border-b border-slate-100 space-y-1">
                     <div className="flex justify-between items-start text-xs">
-                      <span className="text-slate-500 shrink-0">Lokasi Penjemputan:</span>
+                      <span className="text-slate-500 shrink-0">Pickup Location:</span>
                       <span className="font-extrabold text-[#00677d] text-right ml-2 max-w-[220px]">
                         {parsed.placeName}
                       </span>
@@ -1455,15 +1458,15 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     )}
                     {(createdBooking?.pickupNotes || pickupNotes) && (
                       <div className="text-[10px] text-slate-400 italic text-right">
-                        Catatan: {createdBooking?.pickupNotes || pickupNotes}
+                        Notes: {createdBooking?.pickupNotes || pickupNotes}
                       </div>
                     )}
                   </div>
                 );
               })()}
               <div className="flex justify-between py-1.5">
-                <span className="text-slate-500">Status Transaksi:</span>
-                <Badge variant="success" className="text-[10px] font-bold">LUNAS / PAID</Badge>
+                <span className="text-slate-500">Payment Status:</span>
+                <Badge variant="success" className="text-[10px] font-bold">CONFIRMED / PAID</Badge>
               </div>
             </div>
 
@@ -1478,7 +1481,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                 className="w-full font-bold text-xs gap-2 bg-[#00677d] hover:bg-[#005264] shadow-md"
               >
                 <Ticket className="h-4 w-4" />
-                Buka E-Voucher di Booking Saya
+                Open E-Voucher in My Bookings
               </Button>
 
               <div className="flex gap-2">
@@ -1506,7 +1509,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   className="flex-1 text-xs font-semibold gap-1.5 text-slate-600"
                 >
                   <Printer className="h-3.5 w-3.5" />
-                  Cetak Bukti
+                  Print Receipt
                 </Button>
                 <Button
                   type="button"
@@ -1518,7 +1521,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   }}
                   className="flex-1 text-xs font-semibold text-slate-600"
                 >
-                  Katalog Lain
+                  Explore More Tours
                 </Button>
               </div>
             </div>

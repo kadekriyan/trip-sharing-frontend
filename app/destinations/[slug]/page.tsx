@@ -13,18 +13,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!destination) {
     return {
-      title: "Paket Wisata Tidak Ditemukan | Share Tour Jogja",
-      description: "Destinasi wisata yang Anda cari tidak ditemukan atau telah kedaluwarsa.",
+      title: "Tour Package Not Found | Share Tour Jogja",
+      description: "The tour destination you are looking for was not found or is no longer available.",
     };
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
   const ogImageUrl = destination.coverImage || `${siteUrl}/images/hero-bromo.png`;
-  const pageTitle = `${destination.title} — Open Trip Cost-Sharing (Maks 6 Pax)`;
+  const pageTitle = `${destination.title} — Yogyakarta Sharing Tour (Max 6 Pax)`;
   const pageDescription =
     destination.shortDescription ||
     destination.description ||
-    `Gabung open trip ${destination.title} kapasitas maksimal 6 orang per mobil. Hemat biaya hingga 60% dan garansi berangkat 100%.`;
+    `Join ${destination.title} open trip with maximum 6 guests per vehicle. Save up to 60% with guaranteed departure.`;
 
   return {
     title: pageTitle,
@@ -32,10 +32,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     keywords: [
       destination.title,
       destination.location,
-      destination.category || "Wisata",
+      destination.category || "Tour",
       "Trip Sharing",
-      "Open Trip Indonesia",
-      "Wisata 6 Orang",
+      "Open Trip Yogyakarta",
+      "6 Pax Sharing Tour",
     ],
     openGraph: {
       title: pageTitle,
@@ -47,11 +47,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `Paket Wisata ${destination.title} - ${destination.location}`,
+          alt: `Tour Package ${destination.title} - ${destination.location}`,
         },
       ],
       type: "website",
-      locale: "id_ID",
+      locale: "en_US",
     },
     twitter: {
       card: "summary_large_image",
@@ -103,7 +103,7 @@ export default async function DestinationDetailPage({ params }: PageProps) {
       {
         "@type": "ListItem",
         position: 2,
-        name: "Destinasi",
+        name: "Explore Tours",
         item: `${siteUrl}/destinations`,
       },
       {

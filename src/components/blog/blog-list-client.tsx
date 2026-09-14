@@ -62,7 +62,13 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
       })
     : [];
 
-  const categories = ["all", "Tips Wisata", "Rute & Itinerary", "Cerita Komunitas", "Edukasi"];
+  const categories = [
+    { label: "All Topics", value: "all" },
+    { label: "Travel Tips", value: "Tips Wisata" },
+    { label: "Routes & Itineraries", value: "Rute & Itinerary" },
+    { label: "Community Stories", value: "Cerita Komunitas" },
+    { label: "Education", value: "Edukasi" },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f7f9fb] py-10">
@@ -70,13 +76,13 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
           <Badge variant="azure" className="font-bold">
-            Tips & Cerita Perjalanan
+            Travel Guides & Stories
           </Badge>
           <h1 className="font-heading text-3xl sm:text-4xl font-extrabold text-[#191c1e]">
-            Blog Wisata & Panduan Trip Sharing
+            Travel Guides & Trip Sharing Insights
           </h1>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Inspirasi rute wisata alam, panduan budget travel, dan tips berteman seru di perjalanan grup kecil.
+            Nature tour route inspiration, budget travel guides, and small-group adventure tips.
           </p>
         </div>
 
@@ -85,16 +91,16 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             {categories.map((cat) => (
               <button
-                key={cat}
+                key={cat.value}
                 type="button"
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => setSelectedCategory(cat.value)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                  selectedCategory === cat
+                  selectedCategory === cat.value
                     ? "bg-[#00677d] text-white shadow-sm"
                     : "bg-slate-50 text-slate-700 hover:bg-slate-100"
                 }`}
               >
-                {cat === "all" ? "Semua Topik" : cat}
+                {cat.label}
               </button>
             ))}
           </div>
@@ -103,8 +109,8 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
               id="blog-search-input"
-              aria-label="Cari artikel blog wisata"
-              placeholder="Cari artikel..."
+              aria-label="Search travel guide articles"
+              placeholder="Search articles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-10 text-xs bg-slate-50 border-slate-200 text-slate-800"
@@ -127,10 +133,10 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
           <div className="p-16 text-center bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
             <PackageOpen className="h-12 w-12 text-slate-400 mx-auto" />
             <h3 className="font-heading font-bold text-lg text-slate-800">
-              Belum Ada Artikel yang Cocok
+              No Matching Articles Found
             </h3>
             <p className="text-xs text-slate-600 max-w-sm mx-auto">
-              Coba gunakan kata kunci pencarian lain atau pilih kategori topik yang berbeda.
+              Try using different search keywords or choose a different topic category.
             </p>
             <Button
               size="sm"
@@ -140,7 +146,7 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
                 setSearchQuery("");
               }}
             >
-              Reset Filter
+              Reset Filters
             </Button>
           </div>
         ) : (
@@ -170,7 +176,7 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
                       <Clock className="h-3.5 w-3.5" />
                       <span>{formatDate(art.publishedAt)}</span>
                       <span>•</span>
-                      <span>{art.readTime || "5 Menit"}</span>
+                      <span>{art.readTime?.replace("Menit", "Min Read") || "5 Min Read"}</span>
                     </div>
 
                     <h2 className="font-heading font-bold text-base text-[#191c1e] group-hover:text-[#00677d] transition-colors line-clamp-2">
@@ -185,12 +191,12 @@ export function BlogListClient({ initialArticles }: BlogListClientProps) {
 
                 <div className="p-6 pt-0 border-t border-slate-100 flex items-center justify-between mt-auto">
                   <span className="text-[11px] text-slate-500 font-semibold">
-                    Oleh {art.author?.name || "Redaksi"}
+                    By {art.author?.name || "Editorial Team"}
                   </span>
 
                   <Button asChild size="sm" variant="ghost" className="text-xs font-bold text-[#00677d] gap-1 hover:bg-[#00677d]/5">
                     <Link href={`/blog/${art.slug}`}>
-                      Baca Artikel
+                      Read Article
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>

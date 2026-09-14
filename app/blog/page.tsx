@@ -6,13 +6,13 @@ import { BlogListClient } from "@/src/components/blog/blog-list-client";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
 export const metadata: Metadata = {
-  title: "Blog Wisata, Cerita Komunitas & Panduan Trip Sharing",
+  title: "Travel Guides, Community Stories & Cost-Sharing Tips",
   description:
-    "Kumpulan artikel, tips berhemat liburan, rute rekomendasi, dan edukasi seputar open trip cost-sharing maksimal 6 pax di Indonesia.",
+    "Explore travel articles, vacation budget tips, recommended routes, and essential guides for open trip cost-sharing tours in Yogyakarta and Indonesia.",
   openGraph: {
-    title: "Blog Wisata & Tips Share Tour Jogja",
+    title: "Travel Guides & Tips - Share Tour Jogja",
     description:
-      "Kumpulan artikel, tips berhemat liburan, rute rekomendasi, dan edukasi seputar open trip cost-sharing.",
+      "Explore travel articles, vacation budget tips, recommended routes, and essential guides for open trip cost-sharing tours.",
     url: `${siteUrl}/blog`,
     siteName: "Share Tour Jogja",
     images: [
@@ -20,15 +20,15 @@ export const metadata: Metadata = {
         url: "/images/hero-bromo.png",
         width: 1200,
         height: 630,
-        alt: "Blog Wisata Share Tour Jogja",
+        alt: "Share Tour Jogja Travel Guides",
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Blog Wisata & Tips Share Tour Jogja",
-    description: "Kumpulan artikel dan panduan open trip cost-sharing di Indonesia.",
+    title: "Travel Guides & Tips - Share Tour Jogja",
+    description: "Explore travel articles, vacation budget tips, and open trip guides in Indonesia.",
     images: ["/images/hero-bromo.png"],
   },
 };

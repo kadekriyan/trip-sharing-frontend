@@ -6,13 +6,13 @@ import { DestinationsCatalogClient } from "@/src/components/destination/destinat
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
 export const metadata: Metadata = {
-  title: "Katalog Destinasi Wisata & Open Trip Cost-Sharing (Maks 6 Pax)",
+  title: "Explore Tour Packages & Yogyakarta Sharing Trips (Max 6 Pax)",
   description:
-    "Jelajahi paket wisata populer Indonesia: Bromo, Labuan Bajo, Nusa Penida, Derawan, dan Toba. Gabung grup mobil 6 orang dan hemat biaya hingga 60%.",
+    "Discover popular Yogyakarta tour packages: Prambanan, Merapi Lava Tour, Timang Beach, and Borobudur. Join 6-pax vehicle groups and save up to 60% with cost-sharing.",
   openGraph: {
-    title: "Katalog Destinasi Wisata Open Trip — Share Tour Jogja",
+    title: "Explore Tour Packages & Yogyakarta Sharing Trips — Share Tour Jogja",
     description:
-      "Jelajahi paket wisata populer Indonesia dengan sistem cost-sharing maksimal 6 orang per mobil.",
+      "Explore top Yogyakarta tourist destinations with a transparent cost-sharing system for max 6 passengers per vehicle.",
     url: `${siteUrl}/destinations`,
     siteName: "Share Tour Jogja",
     images: [
@@ -20,15 +20,15 @@ export const metadata: Metadata = {
         url: "/images/hero-bromo.png",
         width: 1200,
         height: 630,
-        alt: "Katalog Wisata Share Tour Jogja",
+        alt: "Share Tour Jogja Tour Catalog",
       },
     ],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Katalog Destinasi Wisata Open Trip — Share Tour Jogja",
-    description: "Jelajahi paket wisata populer Indonesia dengan sistem cost-sharing 6 pax.",
+    title: "Explore Tour Packages & Yogyakarta Sharing Trips — Share Tour Jogja",
+    description: "Explore top Yogyakarta tourist destinations with a transparent 6-pax cost-sharing system.",
     images: ["/images/hero-bromo.png"],
   },
 };
