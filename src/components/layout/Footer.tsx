@@ -25,9 +25,9 @@ export function Footer() {
                 <Users className="h-6 w-6" />
               </div>
               <div>
-                <h4 className="font-heading font-bold text-[#191c1e] text-base">Grup Nyaman Maks 6 Orang</h4>
+                <h4 className="font-heading font-bold text-[#191c1e] text-base">Comfortable Small Groups (Max 6)</h4>
                 <p className="mt-1 text-sm text-slate-600">
-                  Setiap armada didesain untuk kenyamanan optimal dengan maksimal 6 traveler per mobil.
+                  Each vehicle is dedicated for optimal comfort with a maximum of 6 travelers per car.
                 </p>
               </div>
             </div>
@@ -37,9 +37,9 @@ export function Footer() {
                 <HeartHandshake className="h-6 w-6" />
               </div>
               <div>
-                <h4 className="font-heading font-bold text-[#191c1e] text-base">Cost-Sharing Transparan</h4>
+                <h4 className="font-heading font-bold text-[#191c1e] text-base">Transparent Cost-Sharing</h4>
                 <p className="mt-1 text-sm text-slate-600">
-                  Hemat biaya sewa armada, bensin, dan pemandu lokal dengan pembagian harga yang adil dan terbuka.
+                  Save on fleet rentals, fuel, and expert drivers with fair, clear, and split pricing.
                 </p>
               </div>
             </div>
@@ -49,9 +49,9 @@ export function Footer() {
                 <Shield className="h-6 w-6" />
               </div>
               <div>
-                <h4 className="font-heading font-bold text-[#191c1e] text-base">Pembayaran Aman & Instan</h4>
+                <h4 className="font-heading font-bold text-[#191c1e] text-base">Instant & Secure Payments</h4>
                 <p className="mt-1 text-sm text-slate-600">
-                  Didukung Midtrans Snap dengan opsi QRIS, Virtual Account bank nasional, dan kartu kredit.
+                  Protected by Midtrans Snap with QRIS, National Virtual Accounts, and Credit Cards.
                 </p>
               </div>
             </div>
@@ -79,19 +79,19 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Platform petualangan wisata sharing tour Yogyakarta yang menghubungkan traveler dalam grup perjalanan yang nyaman, hemat, dan bersahabat.
+              The premier Yogyakarta sharing tour platform connecting travelers in comfortable, affordable, and friendly group adventures.
             </p>
           </div>
 
           {/* Destinasi Populer */}
           <div>
             <h4 className="font-heading font-bold text-[#191c1e] text-sm uppercase tracking-wider mb-4">
-              Destinasi Unggulan
+              Featured Tours
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/destinations" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Candi Prambanan & Ratu Boko
+                  Prambanan Temple & Ratu Boko
                 </Link>
               </li>
               <li>
@@ -101,12 +101,12 @@ export function Footer() {
               </li>
               <li>
                 <Link href="/destinations" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Sunset Pantai Parangtritis & Obelix
+                  Sunset Parangtritis & Obelix Sea View
                 </Link>
               </li>
               <li>
                 <Link href="/destinations" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Gua Pindul & Pantai Timang
+                  Pindul Cave & Timang Beach Gondola
                 </Link>
               </li>
             </ul>
@@ -115,26 +115,26 @@ export function Footer() {
           {/* Informasi Platform */}
           <div>
             <h4 className="font-heading font-bold text-[#191c1e] text-sm uppercase tracking-wider mb-4">
-              Informasi & Bantuan
+              Explore & Support
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/blog" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Tips & Panduan Perjalanan
+                  Travel Guides & Tips
                 </Link>
               </li>
               <li>
                 <Link href="/bookings" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Cek Status Booking
+                  Check Booking Status
                 </Link>
               </li>
               <li>
                 <Link href="/admin" className="text-slate-600 hover:text-[#00677d] transition-colors">
-                  Portal Admin & Driver
+                  Staff & Admin Portal
                 </Link>
               </li>
               <li>
-                <span className="text-slate-400 text-xs">Syarat & Ketentuan Pembatalan</span>
+                <span className="text-slate-400 text-xs">Terms & Cancellation Policy</span>
               </li>
             </ul>
           </div>
@@ -142,7 +142,7 @@ export function Footer() {
           {/* Kontak & Alamat */}
           <div>
             <h4 className="font-heading font-bold text-[#191c1e] text-sm uppercase tracking-wider mb-4">
-              Kontak Kami
+              Contact Us
             </h4>
             <ul className="space-y-3 text-sm text-slate-600">
               <li className="flex items-start gap-2.5">
@@ -151,7 +151,7 @@ export function Footer() {
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="h-4 w-4 text-[#00677d] shrink-0" />
-                <span>081216916003 (24/7 Support)</span>
+                <span>+62 812-1691-6003 (24/7 Support)</span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="h-4 w-4 text-[#00677d] shrink-0" />
@@ -163,13 +163,13 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 Share Tour Jogja. Hak Cipta Dilindungi Undang-Undang.</p>
+          <p>© 2026 Share Tour Jogja. All Rights Reserved.</p>
           <div className="flex items-center gap-4">
             <span>Midtrans Verified Merchant</span>
             <span>•</span>
             <span>Google reCAPTCHA Protected</span>
             <span>•</span>
-            <span>Armada Nyaman & Terawat</span>
+            <span>Premium AC Fleet</span>
           </div>
         </div>
       </div>

@@ -32,7 +32,7 @@ export default async function HomePage() {
   const jsonLdTrips = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Paket Wisata Open Trip & Sharing Tour Yogyakarta",
+    name: "Yogyakarta Open Trip & Sharing Tour Packages",
     itemListElement: destinations.slice(0, 6).map((dest, index) => ({
       "@type": "ListItem",
       position: index + 1,
@@ -77,30 +77,30 @@ export default async function HomePage() {
             </div>
 
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#191c1e] leading-[1.12]">
-              Jelajahi Negeri,{" "}
+              Explore Yogyakarta,{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00677d] via-[#00a3c4] to-[#ff7f50]">
-                Bagi Biayanya
+                Split the Cost
               </span>
-              , Temukan Teman Baru.
+              , Meet New Friends.
             </h1>
 
             <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              Platform sharing tour terpercaya di Yogyakarta. Nikmati perjalanan wisata dengan armada nyaman ber-AC dan biaya patungan yang hemat hingga 60%.
+              The premier cost-sharing tour platform in Yogyakarta. Enjoy comfortable journeys in air-conditioned vehicles and save up to 60% with fellow travelers.
             </p>
 
             {/* Micro Highlights */}
             <div className="grid grid-cols-3 gap-3 pt-2 max-w-lg mx-auto lg:mx-0">
               <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center lg:items-start text-center lg:text-left">
                 <span className="font-heading font-extrabold text-[#00677d] text-lg sm:text-xl">Full AC</span>
-                <span className="text-[11px] text-slate-600 font-medium">Armada Nyaman</span>
+                <span className="text-[11px] text-slate-600 font-medium">Comfortable Fleet</span>
               </div>
               <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center lg:items-start text-center lg:text-left">
                 <span className="font-heading font-extrabold text-[#ff7f50] text-lg sm:text-xl">60%</span>
-                <span className="text-[11px] text-slate-600 font-medium">Lebih Hemat Biaya</span>
+                <span className="text-[11px] text-slate-600 font-medium">More Cost-Efficient</span>
               </div>
               <div className="p-3 rounded-2xl bg-white border border-slate-100 shadow-sm flex flex-col items-center lg:items-start text-center lg:text-left">
                 <span className="font-heading font-extrabold text-emerald-600 text-lg sm:text-xl">100%</span>
-                <span className="text-[11px] text-slate-600 font-medium">Garansi Berangkat</span>
+                <span className="text-[11px] text-slate-600 font-medium">Guaranteed Departure</span>
               </div>
             </div>
 
@@ -109,12 +109,12 @@ export default async function HomePage() {
               <Button asChild size="lg" className="w-full sm:w-auto text-sm font-bold shadow-stitch-button gap-2">
                 <Link href="/destinations">
                   <Compass className="h-4 w-4" />
-                  Pilih Destinasi Wisata
+                  Explore Tour Packages
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="w-full sm:w-auto text-sm font-semibold gap-2 border-slate-300 hover:bg-slate-50">
                 <Link href="/bookings">
-                  Cek Booking Saya
+                  Check My Booking
                 </Link>
               </Button>
             </div>
@@ -126,7 +126,7 @@ export default async function HomePage() {
                   <div key={idx} className="relative h-8 w-8 rounded-full border-2 border-white overflow-hidden bg-slate-200">
                     <Image
                       src={`https://images.unsplash.com/photo-${imgId}?w=100&auto=format&fit=crop&q=80`}
-                      alt="Traveler Trip Sharing"
+                      alt="Trip Sharing Traveler"
                       fill
                       sizes="32px"
                       className="object-cover"
@@ -139,7 +139,7 @@ export default async function HomePage() {
                   <Star className="h-3.5 w-3.5 fill-current" />
                   <span>4.9 / 5.0</span>
                 </div>
-                <span>dari 1,200+ Solo Traveler Indonesia</span>
+                <span>from 1,200+ Happy Solo & Group Travelers</span>
               </div>
             </div>
           </div>
@@ -167,7 +167,7 @@ export default async function HomePage() {
                 {/* Floating Badge on Image */}
                 <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                   <Badge variant="coral" className="text-xs font-bold px-3 py-1 shadow-lg backdrop-blur-sm">
-                    🔥 Paket Paling Diminati
+                    🔥 Most Popular Tour
                   </Badge>
                 </div>
 
@@ -187,7 +187,7 @@ export default async function HomePage() {
 
                   <div className="flex items-center justify-between pt-3 border-t border-white/20">
                     <div>
-                      <span className="text-[11px] text-slate-300 block">Biaya per Orang:</span>
+                      <span className="text-[11px] text-slate-300 block">Rate per Person:</span>
                       <span className="font-heading font-extrabold text-xl text-white">
                         {formatCurrency(featuredDest.pricePerPax)}
                       </span>
@@ -195,7 +195,7 @@ export default async function HomePage() {
 
                     <Button asChild size="sm" className="rounded-xl font-bold bg-[#ff7f50] hover:bg-[#ff7f50]/90 text-white shadow-lg">
                       <Link href={`/destinations/${featuredDest.slug}`}>
-                        Gabung Trip
+                        Join Trip
                         <ChevronRight className="h-4 w-4 ml-1" />
                       </Link>
                     </Button>
@@ -214,19 +214,19 @@ export default async function HomePage() {
                       Share Tour Jogja
                     </Badge>
                     <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm">
-                      Wisata Jogja
+                      Yogyakarta Tours
                     </div>
                   </div>
 
                   <div className="pt-2">
                     <span className="text-xs font-bold tracking-wider uppercase text-[#ff7f50] block">
-                      Platform Sharing Tour Yogyakarta
+                      Yogyakarta Sharing Tour Platform
                     </span>
                     <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-white mt-1 leading-tight">
-                      Jalan-Jalan Seru, Patungan Hemat.
+                      Great Adventures, Shared Savings.
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-200 mt-2 leading-relaxed">
-                      Eksplorasi destinasi terbaik Yogyakarta & sekitarnya dengan sistem cost-sharing armada nyaman. Lebih hemat, nyaman, dan bergaransi berangkat.
+                      Explore the best destinations in Yogyakarta with clean, air-conditioned vehicles and transparent cost-sharing.
                     </p>
                   </div>
                 </div>
@@ -234,19 +234,19 @@ export default async function HomePage() {
                 <div className="relative z-10 space-y-4 pt-4 border-t border-white/15">
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
-                      <span className="text-[10px] text-slate-300 block">Armada Bersih</span>
-                      <span className="font-bold text-white">Driver Profesional</span>
+                      <span className="text-[10px] text-slate-300 block">Clean Fleet</span>
+                      <span className="font-bold text-white">Professional Drivers</span>
                     </div>
                     <div className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
-                      <span className="text-[10px] text-slate-300 block">Jaminan Layanan</span>
-                      <span className="font-bold text-emerald-300">Driver & AC Nyaman</span>
+                      <span className="text-[10px] text-slate-300 block">Service Guarantee</span>
+                      <span className="font-bold text-emerald-300">Comfortable AC Transport</span>
                     </div>
                   </div>
 
                   <Button asChild size="default" className="w-full rounded-xl font-bold bg-[#ff7f50] hover:bg-[#ff7f50]/90 text-white shadow-lg gap-2">
                     <Link href="/destinations">
                       <Compass className="h-4 w-4" />
-                      Jelajah Katalog Destinasi
+                      Explore Tour Catalog
                     </Link>
                   </Button>
                 </div>
@@ -261,13 +261,13 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-3 mb-16">
             <Badge variant="azure" className="text-xs font-bold">
-              Konsep Trip Sharing
+              How It Works
             </Badge>
             <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-[#191c1e]">
-              Bagaimana Cara Kerja Trip Sharing?
+              How Does Sharing Tour Work?
             </h2>
             <p className="text-sm sm:text-base text-slate-600">
-              Solusi cerdas bagi solo traveler atau pasangan yang ingin jalan-jalan hemat tanpa harus menyewa satu mobil penuh sendirian.
+              A smart, hassle-free way for solo travelers, couples, and friends to explore without paying for an entire private charter.
             </p>
           </div>
 
@@ -278,10 +278,10 @@ export default async function HomePage() {
                 1
               </div>
               <h3 className="font-heading font-bold text-lg text-[#191c1e]">
-                Pilih Destinasi & Tanggal
+                Select Tour & Date
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Pilih paket wisata yang kamu inginkan. Kamu bisa pesan 1 kursi saja atau bersama temanmu.
+                Pick your preferred itinerary. Book just 1 seat or invite friends to join on your chosen departure date.
               </p>
             </Card>
 
@@ -291,10 +291,10 @@ export default async function HomePage() {
                 2
               </div>
               <h3 className="font-heading font-bold text-lg text-[#191c1e]">
-                Sistem Otomatis Menggabungkan
+                Automated Group Pairing
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Sistem kami secara cerdas mengelompokkanmu ke grup mobil bersama traveler lain yang memiliki tanggal sama.
+                Our system automatically groups you into a comfortable 6-seater car with fellow travelers sharing the same date.
               </p>
             </Card>
 
@@ -304,10 +304,10 @@ export default async function HomePage() {
                 3
               </div>
               <h3 className="font-heading font-bold text-lg text-[#191c1e]">
-                Berangkat Hemat & Seru
+                Enjoy & Save Together
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Driver menjemput di titik kumpul, biaya transportasi terbagi rata, dan kamu mendapat teman baru selama petualangan!
+                The driver picks you up at the meeting point, costs are split evenly, and you make new friends along the adventure!
               </p>
             </Card>
           </div>
@@ -320,19 +320,19 @@ export default async function HomePage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
               <Badge variant="coral" className="text-xs font-bold mb-2">
-                Pilihan Destinasi
+                Popular Tours
               </Badge>
               <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-[#191c1e]">
-                Eksplorasi Paket Wisata Populer
+                Explore Popular Tour Packages
               </h2>
               <p className="text-sm text-slate-600 mt-1">
-                Semua paket sudah termasuk mobil 6-seater ber-AC, bensin, tiket masuk, dan driver berpengalaman.
+                All packages include a 6-seater AC vehicle, fuel, admission tickets, and an experienced local driver.
               </p>
             </div>
 
             <Button asChild variant="outline" className="gap-2 border-slate-300 hover:bg-white text-xs font-bold self-start md:self-auto">
               <Link href="/destinations">
-                Lihat Semua ({destinations.length})
+                View All ({destinations.length})
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -350,19 +350,19 @@ export default async function HomePage() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
                 <Badge variant="azure" className="text-xs font-bold mb-2">
-                  Inspirasi Perjalanan
+                  Travel Inspiration
                 </Badge>
                 <h2 className="font-heading text-3xl sm:text-4xl font-extrabold text-[#191c1e]">
-                  Tips Wisata & Panduan Trip Sharing
+                  Travel Guides & Sharing Tour Tips
                 </h2>
                 <p className="text-sm text-slate-600 mt-1">
-                  Baca cerita seru, tips packing, dan rute rekomendasi dari komunitas trip sharing Indonesia.
+                  Discover travel stories, packing guides, and recommended routes across Yogyakarta.
                 </p>
               </div>
 
               <Button asChild variant="ghost" className="gap-2 text-[#00677d] hover:bg-[#00677d]/5 text-xs font-bold self-start md:self-auto">
                 <Link href="/blog">
-                  Lihat Semua Artikel
+                  View All Articles
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -393,7 +393,7 @@ export default async function HomePage() {
                         <Clock className="h-3.5 w-3.5" />
                         <span>{formatDate(art.publishedAt)}</span>
                         <span>•</span>
-                        <span>{art.readTime || "5 Menit"}</span>
+                        <span>{art.readTime || "5 Min Read"}</span>
                       </div>
 
                       <h3 className="font-heading font-bold text-base text-[#191c1e] group-hover:text-[#00677d] transition-colors line-clamp-2">
@@ -409,7 +409,7 @@ export default async function HomePage() {
                   <div className="p-6 pt-0">
                     <Button asChild size="sm" variant="outline" className="w-full justify-between text-xs font-bold rounded-xl group-hover:border-[#00677d] group-hover:text-[#00677d]">
                       <Link href={`/blog/${art.slug}`}>
-                        Baca Selengkapnya
+                        Read Full Story
                         <ChevronRight className="h-3.5 w-3.5" />
                       </Link>
                     </Button>

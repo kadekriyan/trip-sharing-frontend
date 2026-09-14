@@ -37,13 +37,13 @@ export function Navbar() {
   }
 
   const navLinks: NavLinkItem[] = [
-    { label: "Jelajah Destinasi", href: "/destinations", icon: Compass },
-    { label: "Booking Saya", href: "/bookings", icon: CalendarCheck },
-    { label: "Tips & Blog", href: "/blog", icon: BookOpen },
+    { label: "Explore Tours", href: "/destinations", icon: Compass },
+    { label: "My Bookings", href: "/bookings", icon: CalendarCheck },
+    { label: "Travel Guide", href: "/blog", icon: BookOpen },
   ];
 
   if (isHydrated && isAdmin) {
-    navLinks.push({ label: "Portal Admin", href: "/admin", icon: ShieldCheck, badge: "Staff" });
+    navLinks.push({ label: "Admin Portal", href: "/admin", icon: ShieldCheck, badge: "Staff" });
   }
 
   return (
@@ -66,7 +66,7 @@ export function Navbar() {
               Share Tour Jogja
             </span>
             <span className="text-[11px] font-medium text-slate-500">
-              Sharing Tour & Open Trip Yogyakarta
+              Open Trip & Sharing Tour Yogyakarta
             </span>
           </div>
         </Link>
@@ -122,7 +122,7 @@ export function Navbar() {
                 className="text-slate-500 hover:text-rose-600 gap-1 text-xs"
               >
                 <LogOut className="h-3.5 w-3.5" />
-                Keluar
+                Sign Out
               </Button>
             </div>
           ) : (
@@ -130,12 +130,12 @@ export function Navbar() {
               <Button asChild variant="ghost" size="sm" className="gap-1.5 text-xs font-semibold">
                 <Link href="/login">
                   <LogIn className="h-3.5 w-3.5 text-[#00677d]" />
-                  Masuk
+                  Sign In
                 </Link>
               </Button>
               <Button asChild size="sm" className="gap-1.5 text-xs font-bold shadow-sm">
                 <Link href="/register">
-                  Daftar
+                  Sign Up
                 </Link>
               </Button>
             </div>
@@ -184,7 +184,7 @@ export function Navbar() {
             {isAuthenticated ? (
               <div className="space-y-2">
                 <div className="text-xs text-slate-600 px-3">
-                  Login sebagai: <strong>{user?.fullName || user?.email}</strong>
+                  Signed in as: <strong>{user?.fullName || user?.email}</strong>
                 </div>
                 <Button
                   variant="outline"
@@ -196,16 +196,16 @@ export function Navbar() {
                   className="w-full text-rose-600 justify-center gap-2"
                 >
                   <LogOut className="h-4 w-4" />
-                  Logout
+                  Sign Out
                 </Button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 <Button asChild variant="outline" size="sm" onClick={() => setMobileMenuOpen(false)}>
-                  <Link href="/login" className="justify-center">Masuk</Link>
+                  <Link href="/login" className="justify-center">Sign In</Link>
                 </Button>
                 <Button asChild size="sm" onClick={() => setMobileMenuOpen(false)}>
-                  <Link href="/register" className="justify-center">Daftar</Link>
+                  <Link href="/register" className="justify-center">Sign Up</Link>
                 </Button>
               </div>
             )}

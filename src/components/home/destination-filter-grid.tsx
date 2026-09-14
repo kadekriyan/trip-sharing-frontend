@@ -51,16 +51,16 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
           {/* Location Filter */}
           <div className="flex items-center gap-2">
             <label htmlFor="filter-location" className="text-xs font-bold text-slate-700 sr-only">
-              Pilih Lokasi
+              Select Location
             </label>
             <select
               id="filter-location"
-              aria-label="Pilih lokasi destinasi wisata"
+              aria-label="Select tour destination location"
               value={searchLocation}
               onChange={(e) => setSearchLocation(e.target.value)}
               className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
             >
-              <option value="all">Semua Lokasi Wisata</option>
+              <option value="all">All Tour Locations</option>
               {locations.map((loc) => (
                 <option key={loc} value={loc}>
                   {loc}
@@ -72,24 +72,24 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
           {/* Duration Filter */}
           <div className="flex items-center gap-2">
             <label htmlFor="filter-duration" className="text-xs font-bold text-slate-700 sr-only">
-              Pilih Durasi
+              Select Duration
             </label>
             <select
               id="filter-duration"
-              aria-label="Pilih durasi perjalanan wisata"
+              aria-label="Select tour trip duration"
               value={searchDuration}
               onChange={(e) => setSearchDuration(e.target.value)}
               className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
             >
-              <option value="all">Semua Durasi Trip</option>
-              <option value="short">Trip Singkat (1-2 Hari)</option>
-              <option value="long">Trip Panjang (&gt; 2 Hari)</option>
+              <option value="all">All Durations</option>
+              <option value="short">Short Trips (1-2 Days)</option>
+              <option value="long">Multi-Day Trips (&gt; 2 Days)</option>
             </select>
           </div>
         </div>
 
         <span className="text-xs font-semibold text-slate-600">
-          Menampilkan <strong className="text-[#00677d]">{filtered.length}</strong> Paket Trip Sharing
+          Showing <strong className="text-[#00677d]">{filtered.length}</strong> Sharing Tour Packages
         </span>
       </div>
 
@@ -98,10 +98,10 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
         <div className="p-12 text-center bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-3">
           <PackageOpen className="h-10 w-10 text-slate-400 mx-auto" />
           <h3 className="font-heading font-bold text-base text-slate-800">
-            Tidak ada destinasi yang cocok
+            No tour packages match your filters
           </h3>
           <p className="text-xs text-slate-600 max-w-sm mx-auto">
-            Coba ganti filter lokasi atau durasi untuk menemukan paket wisata trip sharing lainnya.
+            Try resetting or changing the location and duration filters to find other tours.
           </p>
           <Button
             size="sm"
@@ -111,7 +111,7 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
               setSearchDuration("all");
             }}
           >
-            Reset Filter
+            Reset Filters
           </Button>
         </div>
       ) : (
@@ -131,7 +131,7 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                     <Image
                       src={dest.coverImage || dest.image || dest.imageUrl || "https://images.unsplash.com/photo-1596401057633-54a8fe8ef647?w=800&auto=format&fit=crop&q=80"}
-                      alt={`Paket Wisata ${getDestinationTitle(dest)} - ${dest.location || "Indonesia"}`}
+                      alt={`Tour Package ${getDestinationTitle(dest)} - ${dest.location || "Indonesia"}`}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -165,7 +165,7 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                         <Link href={`/destinations/${dest.slug || dest.id}`}>{getDestinationTitle(dest)}</Link>
                       </h3>
                       <p className="text-xs text-slate-600 line-clamp-2 mt-1 leading-relaxed">
-                        {dest.tagline || dest.shortDescription || dest.description || "Jelajahi keindahan alam bersama teman baru."}
+                        {dest.tagline || dest.shortDescription || dest.description || "Explore beautiful natural and cultural wonders with fellow travelers."}
                       </p>
                     </div>
 
@@ -174,10 +174,10 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                       <div className="flex items-center justify-between text-xs font-semibold">
                         <span className="flex items-center gap-1.5 text-slate-700">
                           <Users className="h-3.5 w-3.5 text-[#00677d]" />
-                          Slot Terisi
+                          Seats Booked
                         </span>
                         <span className="text-[#00677d] font-bold">
-                          {dest.currentParticipants || 0} / {dest.maxGroupCapacity || dest.maxParticipants || 6} Kursi
+                          {dest.currentParticipants || 0} / {dest.maxGroupCapacity || dest.maxParticipants || 6} Seats
                         </span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
@@ -193,7 +193,7 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                 {/* Footer Price & CTA */}
                 <div className="p-6 pt-0 border-t border-slate-100 flex items-center justify-between mt-auto">
                   <div>
-                    <span className="text-[11px] text-slate-500 font-medium block">Biaya Patungan:</span>
+                    <span className="text-[11px] text-slate-500 font-medium block">Sharing Rate:</span>
                     <span className="font-heading font-extrabold text-lg text-[#a43c12]">
                       {formatCurrency(getDestinationPrice(dest))}
                     </span>
@@ -202,7 +202,7 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
 
                   <Button asChild size="sm" className="gap-1 rounded-xl shadow-sm text-xs font-bold">
                     <Link href={`/destinations/${dest.slug || dest.id}`}>
-                      Pesan Kursi
+                      Book Seat
                       <ChevronRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>
