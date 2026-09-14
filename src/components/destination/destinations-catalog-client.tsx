@@ -7,6 +7,7 @@ import {
   Search,
   Filter,
   MapPin,
+  Calendar,
   Users,
   ChevronRight,
   PackageOpen,
@@ -16,7 +17,14 @@ import { Badge } from "@/src/components/ui/badge";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { destinationService } from "@/src/services/destination.service";
-import { formatCurrency, formatDuration, getDestinationTitle, getDestinationPrice, getImageUrl } from "@/src/lib/utils";
+import {
+  formatCurrency,
+  formatDuration,
+  getDestinationTitle,
+  getDestinationPrice,
+  getDestinationTripCount,
+  getImageUrl,
+} from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 interface DestinationsCatalogClientProps {
@@ -145,7 +153,7 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                 Yogyakarta Sharing Tour Catalog
               </h1>
               <p className="text-sm text-slate-600 mt-1">
-                Choose your favorite tour package and join small groups of max 6 guests to share costs and make new friends.
+                Choose your favorite tour package and join small groups to share costs and make new friends.
               </p>
             </div>
 
@@ -318,7 +326,7 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
 
                         <div className="absolute top-3.5 left-3.5 flex gap-2">
                           <Badge variant="coral" className="text-[10px] font-bold">
-                            Max 6 Pax
+                            Sharing Tour
                           </Badge>
                           {dest.category && (
                             <Badge variant="secondary" className="text-[10px] font-bold bg-white/95 text-slate-800">
@@ -347,12 +355,10 @@ export function DestinationsCatalogClient({ initialDestinations }: DestinationsC
                           {dest.tagline || dest.shortDescription || dest.description || "Explore the wonders of Yogyakarta with fun travel companions."}
                         </p>
 
-                        <div className="flex items-center gap-4 text-xs text-slate-600 pt-1">
-                          <span>⏱️ {formatDuration(dest.durationDays || 2, dest.durationNights || 1)}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <Users className="h-3.5 w-3.5 text-[#00677d]" />
-                            {dest.currentParticipants || 0}/{dest.maxGroupCapacity || dest.maxParticipants || 6} Seats
+                        <div className="flex items-center gap-2 text-xs font-semibold text-[#00677d] pt-1">
+                          <Calendar className="h-3.5 w-3.5 text-[#00677d] shrink-0" />
+                          <span>
+                            {getDestinationTripCount(dest)} {getDestinationTripCount(dest) === 1 ? "Trip Available" : "Trips Available"}
                           </span>
                         </div>
                       </CardContent>

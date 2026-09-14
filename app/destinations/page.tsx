@@ -6,13 +6,13 @@ import { DestinationsCatalogClient } from "@/src/components/destination/destinat
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
 export const metadata: Metadata = {
-  title: "Explore Tour Packages & Yogyakarta Sharing Trips (Max 6 Pax)",
+  title: "Explore Tour Packages & Yogyakarta Sharing Trips",
   description:
-    "Discover popular Yogyakarta tour packages: Prambanan, Merapi Lava Tour, Timang Beach, and Borobudur. Join 6-pax vehicle groups and save up to 60% with cost-sharing.",
+    "Discover popular Yogyakarta tour packages: Prambanan, Merapi Lava Tour, Timang Beach, and Borobudur. Join vehicle groups and save up to 60% with cost-sharing.",
   openGraph: {
     title: "Explore Tour Packages & Yogyakarta Sharing Trips — Share Tour Jogja",
     description:
-      "Explore top Yogyakarta tourist destinations with a transparent cost-sharing system for max 6 passengers per vehicle.",
+      "Explore top Yogyakarta tourist destinations with a transparent cost-sharing system.",
     url: `${siteUrl}/destinations`,
     siteName: "Share Tour Jogja",
     images: [
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Explore Tour Packages & Yogyakarta Sharing Trips — Share Tour Jogja",
-    description: "Explore top Yogyakarta tourist destinations with a transparent 6-pax cost-sharing system.",
+    description: "Explore top Yogyakarta tourist destinations with a transparent cost-sharing system.",
     images: ["/images/hero-bromo.png"],
   },
 };

@@ -13,6 +13,7 @@ export interface DestinationFilterParams {
 
 export const destinationService = {
   async getAllDestinations(filters?: DestinationFilterParams): Promise<Destination[]> {
+    let destinations: Destination[] = [];
     try {
       const res = await apiClient.get<Destination[]>("/destinations", {
         params: {
@@ -25,19 +26,85 @@ export const destinationService = {
         },
       });
       if (res.success && Array.isArray(res.data)) {
-        return res.data;
+        destinations = res.data;
       }
     } catch {
       // Return empty array on network/server error
     }
-    return [];
+
+    if (destinations.length > 0) {
+      try {
+        let allTrips: Trip[] = [];
+        const tripsRes = await apiClient.get<Record<string, unknown>[]>("/trips");
+        if (tripsRes.success && Array.isArray(tripsRes.data)) {
+          allTrips = tripsRes.data.map((raw) => normalizeTrip(raw));
+        } else {
+          const altTripsRes = await apiClient.get<Record<string, unknown>[]>("/admin/trips");
+          if (altTripsRes.success && Array.isArray(altTripsRes.data)) {
+            allTrips = altTripsRes.data.map((raw) => normalizeTrip(raw));
+          }
+        }
+
+        if (allTrips.length > 0) {
+          const tripsByDestId = new Map<string, Trip[]>();
+          const tripsByDestSlug = new Map<string, Trip[]>();
+
+          for (const t of allTrips) {
+            const dId = t.destinationId || t.destination_id || t.destination?.id;
+            const dSlug = t.destination?.slug;
+            if (dId) {
+              if (!tripsByDestId.has(dId)) tripsByDestId.set(dId, []);
+              tripsByDestId.get(dId)!.push(t);
+            }
+            if (dSlug) {
+              if (!tripsByDestSlug.has(dSlug)) tripsByDestSlug.set(dSlug, []);
+              tripsByDestSlug.get(dSlug)!.push(t);
+            }
+          }
+
+          destinations = destinations.map((dest) => {
+            const matchedTrips =
+              tripsByDestId.get(dest.id) ||
+              (dest.slug ? tripsByDestSlug.get(dest.slug) : undefined) ||
+              dest.trips ||
+              dest.activeTrips ||
+              [];
+            return {
+              ...dest,
+              trips: matchedTrips,
+              activeTrips: matchedTrips,
+              tripsCount: matchedTrips.length,
+              totalTrips: matchedTrips.length,
+            };
+          });
+        }
+      } catch {
+        // Silently continue with raw destinations
+      }
+    }
+
+    return destinations;
   },
 
   async getDestinationBySlug(slug: string): Promise<Destination | null> {
     try {
       const res = await apiClient.get<Destination>(`/destinations/${slug}`);
       if (res.success && res.data) {
-        return res.data;
+        const dest = res.data;
+        if (!dest.trips || dest.trips.length === 0) {
+          try {
+            const trips = await this.getTripsByDestination(dest.id);
+            if (trips.length > 0) {
+              dest.trips = trips;
+              dest.activeTrips = trips;
+              dest.tripsCount = trips.length;
+              dest.totalTrips = trips.length;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+        return dest;
       }
     } catch {
       // Not found or network error

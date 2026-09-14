@@ -73,6 +73,24 @@ export function getDestinationPrice(dest?: Partial<Destination> | Record<string,
   return isNaN(numeric) || !isFinite(numeric) ? 0 : numeric;
 }
 
+export function getDestinationTripCount(dest?: Partial<Destination> | Record<string, unknown> | null): number {
+  if (!dest) return 0;
+  const anyDest = dest as Record<string, unknown>;
+
+  if (typeof anyDest.tripsCount === "number") return anyDest.tripsCount;
+  if (typeof anyDest.totalTrips === "number") return anyDest.totalTrips;
+  if (typeof anyDest.tripCount === "number") return anyDest.tripCount;
+  if (Array.isArray(anyDest.trips)) return anyDest.trips.length;
+  if (Array.isArray(anyDest.activeTrips)) return anyDest.activeTrips.length;
+  if (Array.isArray(anyDest.scheduledTrips)) return anyDest.scheduledTrips.length;
+  if (anyDest._count && typeof anyDest._count === "object") {
+    const countObj = anyDest._count as Record<string, unknown>;
+    if (typeof countObj.trips === "number") return countObj.trips;
+  }
+
+  return 0;
+}
+
 export function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions): string {
   try {
     const date = new Date(dateString);

@@ -43,6 +43,10 @@ export interface Destination {
   maxGroupCapacity: number; // 6
   currentParticipants?: number;
   maxParticipants?: number;
+  trips?: Trip[];
+  activeTrips?: Trip[];
+  totalTrips?: number;
+  tripsCount?: number;
   createdAt: string;
   updatedAt: string;
 }

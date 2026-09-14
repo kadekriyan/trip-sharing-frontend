@@ -13,7 +13,14 @@ import {
 import { Badge } from "@/src/components/ui/badge";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { Button } from "@/src/components/ui/button";
-import { formatCurrency, formatDuration, calculateOccupancyPercent, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
+import {
+  formatCurrency,
+  formatDuration,
+  calculateOccupancyPercent,
+  getDestinationTitle,
+  getDestinationPrice,
+  getDestinationTripCount,
+} from "@/src/lib/utils";
 import type { Destination } from "@/src/types";
 
 interface DestinationFilterGridProps {
@@ -169,23 +176,15 @@ export function DestinationFilterGrid({ initialDestinations }: DestinationFilter
                       </p>
                     </div>
 
-                    {/* Auto-grouping slot indicator */}
-                    <div className="space-y-1.5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="flex items-center justify-between text-xs font-semibold">
-                        <span className="flex items-center gap-1.5 text-slate-700">
-                          <Users className="h-3.5 w-3.5 text-[#00677d]" />
-                          Seats Booked
-                        </span>
-                        <span className="text-[#00677d] font-bold">
-                          {dest.currentParticipants || 0} / {dest.maxGroupCapacity || dest.maxParticipants || 6} Seats
-                        </span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-[#00677d] to-[#ff7f50] transition-all duration-500"
-                          style={{ width: `${occupancy}%` }}
-                        />
-                      </div>
+                    {/* Scheduled Trip indicator */}
+                    <div className="flex items-center justify-between text-xs font-semibold p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                      <span className="flex items-center gap-1.5 text-slate-700">
+                        <Calendar className="h-3.5 w-3.5 text-[#00677d]" />
+                        <span>Available Schedule</span>
+                      </span>
+                      <span className="text-[#00677d] font-bold">
+                        {getDestinationTripCount(dest)} {getDestinationTripCount(dest) === 1 ? "Trip" : "Trips"}
+                      </span>
                     </div>
                   </CardContent>
                 </div>
