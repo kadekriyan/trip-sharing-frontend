@@ -144,13 +144,23 @@ export default function DriversAdminPage() {
           vehicleName.includes(query) ||
           plate.includes(query);
 
-        const isAvail = d.isAvailable !== undefined ? Boolean(d.isAvailable) : d.status === "available";
+        const isAvail =
+          d.isAvailable !== undefined
+            ? Boolean(d.isAvailable)
+            : d.status === "active" || d.status === "available";
+
         const matchAvail =
           availabilityFilter === "all"
             ? true
-            : availabilityFilter === "available"
+            : availabilityFilter === "active" || availabilityFilter === "available"
             ? isAvail
-            : !isAvail;
+            : availabilityFilter === "on_duty"
+            ? d.status === "on_duty"
+            : availabilityFilter === "off_duty" || availabilityFilter === "off"
+            ? d.status === "off_duty" || !isAvail
+            : availabilityFilter === "inactive"
+            ? d.status === "inactive"
+            : true;
 
         const hasVehicle = Boolean(d.vehicleId || d.vehicle || d.plateNumber || d.vehicleModel);
         const matchVehicle =
@@ -165,8 +175,10 @@ export default function DriversAdminPage() {
     : [];
 
   const totalDriversCount = drivers.length;
-  const readyDriversCount = drivers.filter(
-    (d) => (d.isAvailable !== undefined ? Boolean(d.isAvailable) : d.status === "available")
+  const readyDriversCount = drivers.filter((d) =>
+    d.isAvailable !== undefined
+      ? Boolean(d.isAvailable)
+      : d.status === "active" || d.status === "available"
   ).length;
   const assignedVehicleCount = drivers.filter((d) => d.vehicleId || d.vehicle || d.plateNumber).length;
   const unassignedVehicleCount = totalDriversCount - assignedVehicleCount;
@@ -307,9 +319,11 @@ export default function DriversAdminPage() {
               onChange={(e) => setAvailabilityFilter(e.target.value)}
               className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
             >
-              <option value="all">Semua Status Ketersediaan</option>
-              <option value="available">Siap Bertugas (Available)</option>
-              <option value="off">Off / Sedang Cuti</option>
+              <option value="all">Semua Status Driver</option>
+              <option value="active">Siap Bertugas (Active)</option>
+              <option value="on_duty">Sedang Bertugas (On Duty)</option>
+              <option value="off_duty">Cuti / Libur (Off Duty)</option>
+              <option value="inactive">Non-Aktif (Inactive)</option>
             </select>
           </div>
 
@@ -442,10 +456,32 @@ export default function DriversAdminPage() {
 
                     <div className="flex items-center justify-between pt-1">
                       <Badge
-                        variant={isAvailable ? "default" : "secondary"}
-                        className="capitalize text-[10px] px-2.5 py-0.5"
+                        variant={
+                          driver.status === "on_duty"
+                            ? "azure"
+                            : isAvailable || driver.status === "active"
+                            ? "default"
+                            : driver.status === "off_duty"
+                            ? "outline"
+                            : "secondary"
+                        }
+                        className={`capitalize text-[10px] px-2.5 py-0.5 ${
+                          driver.status === "on_duty"
+                            ? "bg-sky-50 text-sky-800 border-sky-200"
+                            : driver.status === "off_duty"
+                            ? "bg-amber-50 text-amber-800 border-amber-200"
+                            : driver.status === "inactive"
+                            ? "bg-slate-100 text-slate-600 border-slate-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        }`}
                       >
-                        {isAvailable ? "Siap Bertugas" : "Off / Cuti"}
+                        {driver.status === "on_duty"
+                          ? "Sedang Bertugas"
+                          : driver.status === "off_duty"
+                          ? "Cuti / Off"
+                          : driver.status === "inactive"
+                          ? "Non-Aktif"
+                          : "Siap Bertugas"}
                       </Badge>
 
                       <span className="text-[10px] text-slate-500 font-mono font-semibold">

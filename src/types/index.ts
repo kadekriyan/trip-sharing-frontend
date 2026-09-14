@@ -1,6 +1,6 @@
 export type PaymentStatus = "pending" | "paid" | "failed" | "cancelled" | "refunded";
 export type GroupStatus = "open" | "waiting" | "full" | "confirmed" | "in_progress" | "completed" | "cancelled";
-export type DriverStatus = "available" | "on_trip" | "maintenance" | "off_duty";
+export type DriverStatus = "active" | "on_duty" | "off_duty" | "inactive" | "available" | "on_trip";
 export type CheckInStatus = "pending" | "checked_in" | "no_show" | "cancelled";
 
 export interface ItineraryDay {

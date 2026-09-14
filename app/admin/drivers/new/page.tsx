@@ -27,6 +27,7 @@ export default function NewDriverPage() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [experienceYears, setExperienceYears] = useState(5);
   const [vehicleId, setVehicleId] = useState<string>("");
+  const [status, setStatus] = useState<"active" | "on_duty" | "off_duty" | "inactive">("active");
   const [isAvailable, setIsAvailable] = useState(true);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -62,8 +63,8 @@ export default function NewDriverPage() {
         licenseNumber,
         experienceYears: Number(experienceYears) || 1,
         vehicleId: vehicleId ? vehicleId : undefined,
-        status: isAvailable ? "available" : "off_duty",
-        isAvailable,
+        status: status,
+        isAvailable: status === "active",
         rating: 5.0,
         totalTrips: 0,
       });
@@ -217,16 +218,28 @@ export default function NewDriverPage() {
               </p>
             </div>
 
-            <div className="pt-3 border-t border-slate-100">
-              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={isAvailable}
-                  onChange={(e) => setIsAvailable(e.target.checked)}
-                  className="h-4 w-4 accent-[#00677d] rounded"
-                />
-                <span>Status Ketersediaan Driver: {isAvailable ? "Siap Bertugas (Available)" : "Sedang Cuti / Off Duty"}</span>
+            {/* Operational Status Select */}
+            <div className="pt-3 border-t border-slate-100 space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Status Operasional Driver *
               </label>
+              <select
+                value={status}
+                onChange={(e) => {
+                  const newStatus = e.target.value as "active" | "on_duty" | "off_duty" | "inactive";
+                  setStatus(newStatus);
+                  setIsAvailable(newStatus === "active");
+                }}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d] font-medium"
+              >
+                <option value="active">Aktif & Siap Bertugas (Active)</option>
+                <option value="on_duty">Sedang Bertugas di Lapangan (On Duty)</option>
+                <option value="off_duty">Sedang Cuti / Libur (Off Duty)</option>
+                <option value="inactive">Non-Aktif (Inactive)</option>
+              </select>
+              <p className="text-[11px] text-slate-500">
+                Pilih status operasional pengemudi. Driver dengan status &ldquo;Active&rdquo; otomatis terhitung siap ditugaskan pada armada.
+              </p>
             </div>
           </div>
         </Card>

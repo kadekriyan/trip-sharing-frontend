@@ -35,6 +35,7 @@ export default function EditDriverPage() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [experienceYears, setExperienceYears] = useState(5);
   const [vehicleId, setVehicleId] = useState<string>("");
+  const [status, setStatus] = useState<"active" | "on_duty" | "off_duty" | "inactive">("active");
   const [isAvailable, setIsAvailable] = useState(true);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -59,11 +60,21 @@ export default function EditDriverPage() {
             setLicenseNumber(driver.licenseNumber || "");
             setExperienceYears(driver.experienceYears || 5);
             setVehicleId(driver.vehicleId || driver.vehicle?.id || "");
-            setIsAvailable(
-              driver.isAvailable !== undefined
-                ? Boolean(driver.isAvailable)
-                : driver.status === "available"
-            );
+            let currentStatus: "active" | "on_duty" | "off_duty" | "inactive" = "active";
+            if (
+              driver.status === "active" ||
+              driver.status === "on_duty" ||
+              driver.status === "off_duty" ||
+              driver.status === "inactive"
+            ) {
+              currentStatus = driver.status;
+            } else if (driver.isAvailable === false) {
+              currentStatus = "off_duty";
+            } else {
+              currentStatus = "active";
+            }
+            setStatus(currentStatus);
+            setIsAvailable(currentStatus === "active");
           }
         }
       } catch {
@@ -97,9 +108,9 @@ export default function EditDriverPage() {
         email: email ? email.trim() : undefined,
         licenseNumber,
         experienceYears: Number(experienceYears),
-        isAvailable,
-        status: isAvailable ? "available" : "off_duty",
-        vehicleId: vehicleId ? vehicleId : undefined,
+        isAvailable: status === "active",
+        status: status,
+        vehicleId: vehicleId ? vehicleId : null,
       });
 
       // Synchronize assign vehicle to driver
@@ -277,17 +288,28 @@ export default function EditDriverPage() {
               </select>
             </div>
 
-            {/* Availability Status Toggle */}
-            <div className="pt-3 border-t border-slate-100 space-y-3">
-              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={isAvailable}
-                  onChange={(e) => setIsAvailable(e.target.checked)}
-                  className="h-4 w-4 accent-[#00677d] rounded"
-                />
-                <span>Status Ketersediaan: {isAvailable ? "Siap Bertugas (Available)" : "Sedang Cuti / Off"}</span>
+            {/* Operational Status Select */}
+            <div className="pt-3 border-t border-slate-100 space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Status Operasional Driver *
               </label>
+              <select
+                value={status}
+                onChange={(e) => {
+                  const newStatus = e.target.value as "active" | "on_duty" | "off_duty" | "inactive";
+                  setStatus(newStatus);
+                  setIsAvailable(newStatus === "active");
+                }}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d] font-medium"
+              >
+                <option value="active">Aktif & Siap Bertugas (Active)</option>
+                <option value="on_duty">Sedang Bertugas di Lapangan (On Duty)</option>
+                <option value="off_duty">Sedang Cuti / Libur (Off Duty)</option>
+                <option value="inactive">Non-Aktif (Inactive)</option>
+              </select>
+              <p className="text-[11px] text-slate-500">
+                Pilih status operasional pengemudi. Driver dengan status &ldquo;Active&rdquo; otomatis terhitung siap ditugaskan pada armada.
+              </p>
             </div>
           </div>
         </Card>
