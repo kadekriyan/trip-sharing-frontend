@@ -27,6 +27,8 @@ import {
   Ticket,
   Printer,
   ChevronDown,
+  ShieldAlert,
+  Info,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -80,6 +82,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [nationality, setNationality] = useState("Indonesia");
   const [pickupLocation, setPickupLocation] = useState("");
   const [pickupPlaceName, setPickupPlaceName] = useState("");
@@ -89,6 +92,16 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const [healthNotes, setHealthNotes] = useState("");
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  // Field-level Validation Errors & DOM element refs for instant focus/scrolling
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fullNameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const dateOfBirthInputRef = useRef<HTMLInputElement>(null);
+
+  // Travel Insurance Warning Modal State
+  const [isInsuranceWarningOpen, setIsInsuranceWarningOpen] = useState(false);
 
   // Midtrans Payment Modal State
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -276,42 +289,116 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
   const basePrice = activeTrip?.pricePerPax || getDestinationPrice(destination);
   const totalAmount = basePrice;
 
-  const handleBookingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage(null);
+  const validateBookingForm = (): boolean => {
+    const errors: Record<string, string> = {};
 
-    if (!fullName || !email || !phoneNumber) {
-      setErrorMessage("Mohon lengkapi semua data diri wajib (*) sebelum melanjutkan.");
-      return;
+    // Validate Full Name (Min 2, Max 100, safe characters)
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      errors.fullName = "Nama lengkap pemesan wajib diisi.";
+    } else if (trimmedName.length < 2 || trimmedName.length > 100) {
+      errors.fullName = "Nama lengkap harus memiliki panjang antara 2 hingga 100 karakter.";
+    } else if (!/^[a-zA-Z\s.'\-,]+$/u.test(trimmedName)) {
+      errors.fullName = "Nama lengkap hanya boleh berupa huruf, spasi, dan tanda baca nama standar.";
     }
 
+    // Validate Email (RFC format)
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      errors.email = "Alamat email wajib diisi.";
+    } else if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail)) {
+      errors.email = "Format alamat email tidak valid (contoh: traveler@domain.com).";
+    }
+
+    // Validate WhatsApp / Phone Number (Only numbers & safe symbols, 8 to 20 digits, no alphabets)
+    const trimmedPhone = phoneNumber.trim();
+    const cleanPhoneDigits = trimmedPhone.replace(/[\s\-()]/g, "");
+    if (!trimmedPhone) {
+      errors.phoneNumber = "Nomor WhatsApp / telepon wajib diisi.";
+    } else if (/[a-zA-Z]/.test(trimmedPhone)) {
+      errors.phoneNumber = "Nomor telepon tidak boleh mengandung huruf alfabet.";
+    } else if (!/^\+?[0-9]{8,20}$/.test(cleanPhoneDigits)) {
+      errors.phoneNumber = "Nomor telepon harus terdiri dari 8 hingga 20 digit angka valid (contoh: 081234567890).";
+    }
+
+    // Validate Date of Birth (Optional, but if filled must be valid ISO date between 1900-01-01 and today)
+    if (dateOfBirth) {
+      const birthDateObj = new Date(dateOfBirth);
+      const today = new Date();
+      const minDate = new Date("1900-01-01");
+      if (isNaN(birthDateObj.getTime()) || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+        errors.dateOfBirth = "Format tanggal lahir tidak valid (YYYY-MM-DD).";
+      } else if (birthDateObj > today) {
+        errors.dateOfBirth = "Tanggal lahir tidak boleh melebihi hari ini.";
+      } else if (birthDateObj < minDate) {
+        errors.dateOfBirth = "Tanggal lahir tidak boleh lebih awal dari tahun 1900.";
+      }
+    }
+
+    // Validate Departure Date
     if (!selectedDate && !customDateInput) {
-      setErrorMessage("Mohon pilih tanggal keberangkatan trip.");
-      return;
+      errors.departureDate = "Silakan pilih tanggal keberangkatan trip.";
     }
 
+    // Validate reCAPTCHA in production
     const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
     const activeToken =
       captchaToken ||
       (process.env.NODE_ENV === "development" ? "dev-dummy-captcha-token" : null);
 
     if (!activeToken && process.env.NODE_ENV === "production" && recaptchaSiteKey) {
-      setErrorMessage("Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.");
-      return;
+      errors.captcha = "Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.";
     }
 
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      // Auto-focus & smooth scroll to the first invalid field
+      if (errors.fullName) {
+        fullNameInputRef.current?.focus();
+        fullNameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else if (errors.email) {
+        emailInputRef.current?.focus();
+        emailInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else if (errors.phoneNumber) {
+        phoneInputRef.current?.focus();
+        phoneInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else if (errors.dateOfBirth) {
+        dateOfBirthInputRef.current?.focus();
+        dateOfBirthInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      setErrorMessage(
+        errors.captcha ||
+          errors.departureDate ||
+          "Terdapat data yang belum valid. Silakan periksa kolom yang disorot merah."
+      );
+      return false;
+    }
+
+    setErrorMessage(null);
+    return true;
+  };
+
+  const executeBookingProcess = async () => {
     setIsSubmitting(true);
+    setErrorMessage(null);
     try {
+      const activeToken =
+        captchaToken ||
+        (process.env.NODE_ENV === "development" ? "dev-dummy-captcha-token" : null);
+
       const targetTripId = selectedTripId || `trip-ondemand-${Date.now()}`;
       const payload = {
         tripId: targetTripId,
         destinationId: destination.id,
         bookingGroupId: selectedGroup || undefined,
-        fullName,
-        email,
-        phoneNumber,
-        nationality,
-        healthNotes: healthNotes || undefined,
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phoneNumber: phoneNumber.trim(),
+        nationality: nationality.trim(),
+        dateOfBirth: dateOfBirth ? dateOfBirth.trim() : undefined,
+        healthNotes: healthNotes?.trim() || undefined,
         departureDate: selectedDate || customDateInput,
         pickupLocation:
           pickupPlaceName && pickupLocation && !pickupLocation.toLowerCase().includes(pickupPlaceName.toLowerCase())
@@ -319,7 +406,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
             : pickupLocation || pickupPlaceName || undefined,
         pickupLatitude: pickupLatitude,
         pickupLongitude: pickupLongitude,
-        pickupNotes: pickupNotes || undefined,
+        pickupNotes: pickupNotes?.trim() || undefined,
         captchaToken: activeToken || "dev-dummy-captcha-token",
       };
 
@@ -336,6 +423,20 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const isValid = validateBookingForm();
+    if (!isValid) return;
+
+    // Check if traveler date of birth is empty -> prompt insurance confirmation
+    if (!dateOfBirth) {
+      setIsInsuranceWarningOpen(true);
+      return;
+    }
+
+    await executeBookingProcess();
   };
 
   const handleConfirmPayment = async () => {
@@ -848,8 +949,16 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                   3. Data Diri Pemesan
                 </label>
 
+                {/* Insurance Notice Banner */}
+                <div className="p-3 rounded-xl bg-sky-50/80 border border-sky-200/80 text-[11px] text-sky-900 flex items-start gap-2">
+                  <Info className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    <strong>Keterangan:</strong> Nama lengkap, tanggal lahir, dan kewarganegaraan akan digunakan untuk penerbitan <strong>asuransi perjalanan</strong> demi keselamatan dan kenyamanan Anda.
+                  </p>
+                </div>
+
                 {errorMessage && (
-                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2 animate-in fade-in">
                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                     <span>{errorMessage}</span>
                   </div>
@@ -860,12 +969,26 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                     Nama Lengkap Pemesan *
                   </label>
                   <Input
+                    ref={fullNameInputRef}
                     required
                     placeholder="Sesuai KTP / Paspor"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="text-xs bg-slate-50 border-slate-200"
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (fieldErrors.fullName) setFieldErrors((prev) => ({ ...prev, fullName: "" }));
+                    }}
+                    className={`text-xs transition-colors ${
+                      fieldErrors.fullName
+                        ? "border-rose-500 bg-rose-50/40 ring-1 ring-rose-500/30 text-rose-950"
+                        : "bg-slate-50 border-slate-200"
+                    }`}
                   />
+                  {fieldErrors.fullName && (
+                    <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1 animate-in fade-in">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {fieldErrors.fullName}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -874,45 +997,112 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       Email *
                     </label>
                     <Input
+                      ref={emailInputRef}
                       required
                       type="email"
                       placeholder="rian@example.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="text-xs bg-slate-50 border-slate-200"
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: "" }));
+                      }}
+                      className={`text-xs transition-colors ${
+                        fieldErrors.email
+                          ? "border-rose-500 bg-rose-50/40 ring-1 ring-rose-500/30 text-rose-950"
+                          : "bg-slate-50 border-slate-200"
+                      }`}
                     />
+                    {fieldErrors.email && (
+                      <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1 animate-in fade-in">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {fieldErrors.email}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                       No. WhatsApp *
                     </label>
                     <Input
+                      ref={phoneInputRef}
                       required
                       placeholder="081234567890"
                       value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="text-xs bg-slate-50 border-slate-200"
+                      onChange={(e) => {
+                        setPhoneNumber(e.target.value);
+                        if (fieldErrors.phoneNumber) setFieldErrors((prev) => ({ ...prev, phoneNumber: "" }));
+                      }}
+                      className={`text-xs transition-colors ${
+                        fieldErrors.phoneNumber
+                          ? "border-rose-500 bg-rose-50/40 ring-1 ring-rose-500/30 text-rose-950"
+                          : "bg-slate-50 border-slate-200"
+                      }`}
                     />
+                    {fieldErrors.phoneNumber && (
+                      <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1 animate-in fade-in">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {fieldErrors.phoneNumber}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="nationality-select" className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                    Kewarganegaraan
-                  </label>
-                  <select
-                    id="nationality-select"
-                    aria-label="Pilih kewarganegaraan pemesan"
-                    value={nationality}
-                    onChange={(e) => setNationality(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
-                  >
-                    <option value="Indonesia">Indonesia (WNI)</option>
-                    <option value="Malaysia">Malaysia</option>
-                    <option value="Singapore">Singapore</option>
-                    <option value="Australia">Australia</option>
-                    <option value="Other">Lainnya (WNA)</option>
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                        Tanggal Lahir
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-normal lowercase">
+                        (opsional / asuransi)
+                      </span>
+                    </div>
+                    <Input
+                      ref={dateOfBirthInputRef}
+                      type="date"
+                      min="1900-01-01"
+                      max={new Date().toISOString().split("T")[0]}
+                      value={dateOfBirth}
+                      onChange={(e) => {
+                        setDateOfBirth(e.target.value);
+                        if (fieldErrors.dateOfBirth) setFieldErrors((prev) => ({ ...prev, dateOfBirth: "" }));
+                      }}
+                      className={`text-xs transition-colors ${
+                        fieldErrors.dateOfBirth
+                          ? "border-rose-500 bg-rose-50/40 ring-1 ring-rose-500/30 text-rose-950"
+                          : "bg-slate-50 border-slate-200"
+                      }`}
+                    />
+                    {fieldErrors.dateOfBirth ? (
+                      <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1 animate-in fade-in">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {fieldErrors.dateOfBirth}
+                      </p>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 block">
+                        Untuk data klaim asuransi trip (dapat dikosongkan jika tidak berkenan).
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label htmlFor="nationality-select" className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Kewarganegaraan
+                    </label>
+                    <select
+                      id="nationality-select"
+                      aria-label="Pilih kewarganegaraan pemesan"
+                      value={nationality}
+                      onChange={(e) => setNationality(e.target.value)}
+                      className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
+                    >
+                      <option value="Indonesia">Indonesia (WNI)</option>
+                      <option value="Malaysia">Malaysia</option>
+                      <option value="Singapore">Singapore</option>
+                      <option value="Australia">Australia</option>
+                      <option value="Other">Lainnya (WNA)</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* INFORMASI PENJEMPUTAN (GOOGLE PLACES AUTOCOMPLETE) */}
@@ -1017,6 +1207,59 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
           </div>
         </div>
       </div>
+
+      {/* TRAVEL INSURANCE CONFIRMATION WARNING MODAL */}
+      <Dialog open={isInsuranceWarningOpen} onOpenChange={setIsInsuranceWarningOpen}>
+        <DialogContent className="max-w-md p-6 bg-white rounded-3xl border border-slate-100 shadow-2xl">
+          <div className="flex items-center gap-3 text-amber-600 mb-2">
+            <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+              <ShieldAlert className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <DialogTitle className="font-heading font-bold text-lg text-slate-900">
+                Konfirmasi Asuransi Perjalanan
+              </DialogTitle>
+              <span className="text-[11px] font-semibold text-amber-700">
+                Perlindungan Keselamatan Trip
+              </span>
+            </div>
+          </div>
+          <DialogDescription className="text-xs text-slate-600 leading-relaxed pt-2">
+            Tanggal lahir belum diisi. Tanggal lahir akan digunakan untuk penerbitan polis <strong>asuransi perjalanan</strong>. Jika Anda tidak mengisi tanggal lahir, maka Anda <strong>tidak akan mendapatkan perlindungan asuransi</strong> selama perjalanan.
+          </DialogDescription>
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 mt-2 font-medium">
+            Apakah Anda yakin ingin tetap melanjutkan pemesanan ke pembayaran?
+          </div>
+          <div className="flex items-center justify-end gap-2.5 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsInsuranceWarningOpen(false);
+                setTimeout(() => {
+                  dateOfBirthInputRef.current?.focus();
+                  dateOfBirthInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }, 150);
+              }}
+              className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-100"
+            >
+              Batal (Isi Tanggal Lahir)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                setIsInsuranceWarningOpen(false);
+                executeBookingProcess();
+              }}
+              className="text-xs font-bold bg-[#00677d] hover:bg-[#005264] text-white shadow-sm"
+            >
+              Yakin, Lanjut ke Pembayaran
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* MIDTRANS SNAP PAYMENT SIMULATION MODAL */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
@@ -1250,6 +1493,7 @@ export function DestinationDetailClient({ initialDestination, slug }: Destinatio
                       destinationTitle: destTitle,
                       fullName: createdBooking?.fullName || fullName || "Traveler",
                       identityNumber: createdBooking?.identityNumber,
+                      dateOfBirth: createdBooking?.dateOfBirth || dateOfBirth || undefined,
                       groupNumber: createdBooking?.group?.groupNumber || 1,
                       driverName: createdBooking?.group?.driver?.fullName,
                       vehicleModel: createdBooking?.group?.driver?.vehicleModel,

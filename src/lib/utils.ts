@@ -390,6 +390,8 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
     phoneNumber,
     phone_number: phoneNumber,
     nationality,
+    dateOfBirth: typeof raw.dateOfBirth === "string" ? raw.dateOfBirth : typeof raw.date_of_birth === "string" ? raw.date_of_birth : undefined,
+    date_of_birth: typeof raw.dateOfBirth === "string" ? raw.dateOfBirth : typeof raw.date_of_birth === "string" ? raw.date_of_birth : undefined,
     totalAmount,
     total_amount: totalAmount,
     paymentStatus,

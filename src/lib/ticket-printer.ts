@@ -9,6 +9,7 @@ export interface TicketPrintPayload {
   email?: string;
   phoneNumber?: string;
   identityNumber?: string;
+  dateOfBirth?: string;
   groupNumber?: number | string;
   driverName?: string;
   vehicleModel?: string;
@@ -182,6 +183,16 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
         <div class="detail-row">
           <span class="detail-label">Nomor Identitas (NIK)</span>
           <span class="detail-val font-mono">${data.identityNumber}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          data.dateOfBirth
+            ? `
+        <div class="detail-row">
+          <span class="detail-label">Tanggal Lahir</span>
+          <span class="detail-val">${data.dateOfBirth}</span>
         </div>
         `
             : ""

@@ -131,6 +131,7 @@ export interface Participant {
   identityNumber?: string; // Optional (Deprecated)
   identity_number?: string;
   dateOfBirth?: string;
+  date_of_birth?: string;
   gender?: "male" | "female" | "other";
   roomPreference?: "single" | "shared" | "none" | string;
   room_preference?: "single" | "shared" | "none" | string;
@@ -298,6 +299,7 @@ export interface CreateBookingPayload {
   nationality: string;
   identityNumber?: string;
   dateOfBirth?: string;
+  date_of_birth?: string;
   gender?: "male" | "female" | "other";
   roomPreference?: "single" | "shared" | "none" | string;
   healthNotes?: string;
