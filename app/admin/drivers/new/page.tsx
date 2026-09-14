@@ -1,19 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Car,
+  UserCheck,
   CheckCircle2,
   AlertCircle,
+  Car,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
+import type { Vehicle } from "@/src/types";
 
 export default function NewDriverPage() {
   const router = useRouter();
@@ -22,41 +25,62 @@ export default function NewDriverPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
-  const [vehicleModel, setVehicleModel] = useState("Toyota HiAce Commuter (6-Seater VIP)");
-  const [plateNumber, setPlateNumber] = useState("");
+  const [experienceYears, setExperienceYears] = useState(5);
+  const [vehicleId, setVehicleId] = useState<string>("");
+  const [isAvailable, setIsAvailable] = useState(true);
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  useEffect(() => {
+    async function loadVehicles() {
+      try {
+        const list = await adminService.getVehicles();
+        setVehicles(list);
+      } catch {
+        // Silently
+      }
+    }
+    loadVehicles();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !phoneNumber || !licenseNumber || !plateNumber) {
+    if (!fullName || !phoneNumber || !licenseNumber) {
       setFeedback({ type: "error", message: "Harap lengkapi semua kolom wajib (*)." });
       return;
     }
 
     setIsSubmitting(true);
+    setFeedback(null);
     try {
-      await adminService.addDriver({
+      const createdDriver = await adminService.addDriver({
         fullName,
         phoneNumber,
         email: email ? email.trim() : undefined,
         licenseNumber,
-        vehicleModel,
-        plateNumber: plateNumber.toUpperCase(),
-        passengerCapacity: 6,
-        status: "available",
-        isAvailable: true,
+        experienceYears: Number(experienceYears) || 1,
+        vehicleId: vehicleId ? vehicleId : undefined,
+        status: isAvailable ? "available" : "off_duty",
+        isAvailable,
         rating: 5.0,
         totalTrips: 0,
       });
 
-      setFeedback({ type: "success", message: "Driver dan armada berhasil didaftarkan!" });
+      // If vehicle selected, ensure paired
+      if (vehicleId && createdDriver?.id) {
+        await adminService.assignVehicleToDriver(createdDriver.id, vehicleId);
+      }
+
+      setFeedback({ type: "success", message: "Personil driver berhasil didaftarkan!" });
       setTimeout(() => {
         router.push("/admin/drivers");
       }, 1000);
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal mendaftarkan driver.";
+      setFeedback({ type: "error", message: msg });
       setIsSubmitting(false);
-      setFeedback({ type: "error", message: "Gagal mendaftarkan driver." });
     }
   };
 
@@ -73,21 +97,21 @@ export default function NewDriverPage() {
             Kembali ke Daftar Driver
           </Link>
           <h1 className="font-heading text-2xl font-extrabold text-[#191c1e] flex items-center gap-2">
-            <Car className="h-6 w-6 text-[#00677d]" />
-            Daftarkan Mitra Driver & Armada
+            <UserCheck className="h-6 w-6 text-[#00677d]" />
+            Daftarkan Personil Driver Baru
           </h1>
         </div>
-        <Badge variant="azure">Standar Kapasitas: 6 Pax</Badge>
+        <Badge variant="azure">Mitra Pengemudi Resmi</Badge>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Section 1: Profil Driver */}
-        <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-5">
+        {/* Section 1: Profil Pribadi Driver */}
+        <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-5 bg-white rounded-2xl">
           <h2 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2 border-b border-slate-100 pb-3">
             <span className="h-6 w-6 rounded-full bg-[#00677d] text-white flex items-center justify-center text-xs font-bold">
               1
             </span>
-            Informasi Pribadi Driver
+            Informasi Pribadi & Kontak Pengemudi
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -97,9 +121,10 @@ export default function NewDriverPage() {
               </label>
               <Input
                 required
-                placeholder="Contoh: Budi Santoso"
+                placeholder="Contoh: Pak Joko Santoso, S.Pd"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
+                className="text-xs"
               />
             </div>
 
@@ -113,80 +138,100 @@ export default function NewDriverPage() {
                 placeholder="+62 812-3344-5566"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
+                className="text-xs"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Email Driver (Opsional)
+                Email Driver (Akun Sistem)
               </label>
               <Input
                 type="email"
-                placeholder="driver@gmail.com (Opsional)"
+                placeholder="driver@tripsharing.local (Opsional)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="text-xs"
               />
               <span className="text-[10px] text-slate-400 block">
-                Jika dikosongkan, sistem otomatis membuat akun sistem berbasis no HP.
+                Jika dikosongkan, sistem membuat email akun otomatis berbasis no WhatsApp.
               </span>
             </div>
 
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Nomor SIM A / B1 *
               </label>
               <Input
                 required
-                placeholder="SIM-A-98721..."
+                placeholder="SIM-A-99218201..."
                 value={licenseNumber}
                 onChange={(e) => setLicenseNumber(e.target.value)}
+                className="text-xs font-mono"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Pengalaman Mengemudi (Tahun)
+              </label>
+              <Input
+                type="number"
+                min={1}
+                value={experienceYears}
+                onChange={(e) => setExperienceYears(Number(e.target.value))}
+                className="text-xs"
               />
             </div>
           </div>
         </Card>
 
-        {/* Section 2: Informasi Kendaraan */}
-        <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-5">
+        {/* Section 2: Penugasan Armada Master */}
+        <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-5 bg-white rounded-2xl">
           <h2 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2 border-b border-slate-100 pb-3">
             <span className="h-6 w-6 rounded-full bg-[#00677d] text-white flex items-center justify-center text-xs font-bold">
               2
             </span>
-            Spesifikasi Kendaraan Operasional
+            Penugasan Unit Master Armada
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Model Kendaraan
+                Pilih Unit Armada Fisik (Opsional)
               </label>
-              <Input
-                value={vehicleModel}
-                onChange={(e) => setVehicleModel(e.target.value)}
-              />
+              <select
+                value={vehicleId}
+                onChange={(e) => setVehicleId(e.target.value)}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+              >
+                <option value="">-- Belum Dipasangkan Unit Armada (Standby) --</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} — Plat: {v.plateNumber || v.plate_number} ({v.transmission || "Manual"} / {v.capacity || 6} Kursi)
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400">
+                Pilihan diambil langsung dari master inventaris armada fisik. Anda dapat mengubah penugasan ini kapan saja.
+              </p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Plat Nomor Polisi *
+            <div className="pt-3 border-t border-slate-100">
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={isAvailable}
+                  onChange={(e) => setIsAvailable(e.target.checked)}
+                  className="h-4 w-4 accent-[#00677d] rounded"
+                />
+                <span>Status Ketersediaan Driver: {isAvailable ? "Siap Bertugas (Available)" : "Sedang Cuti / Off Duty"}</span>
               </label>
-              <Input
-                required
-                placeholder="Contoh: N 1234 XY"
-                value={plateNumber}
-                onChange={(e) => setPlateNumber(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1.5 sm:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Kapasitas Penumpang Maksimal
-              </label>
-              <Input disabled value="6 Penumpang (Standar Trip Sharing)" />
             </div>
           </div>
         </Card>
 
-        {/* Feedback Message */}
+        {/* Feedback Alert */}
         {feedback && (
           <div
             className={`p-4 rounded-xl text-xs flex items-center gap-2.5 ${
@@ -210,16 +255,23 @@ export default function NewDriverPage() {
             type="button"
             variant="outline"
             onClick={() => router.push("/admin/drivers")}
-            className="flex-1 justify-center"
+            className="flex-1 justify-center rounded-xl font-semibold"
           >
             Batal
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 justify-center bg-[#00677d] text-white"
+            className="flex-1 justify-center bg-[#00677d] hover:bg-[#005264] text-white rounded-xl font-semibold shadow-md shadow-[#00677d]/20"
           >
-            {isSubmitting ? "Mendaftarkan..." : "Daftarkan Mitra Driver"}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span>Mendaftarkan...</span>
+              </>
+            ) : (
+              <span>Daftarkan Personil Driver</span>
+            )}
           </Button>
         </div>
       </form>

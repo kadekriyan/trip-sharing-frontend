@@ -24,6 +24,7 @@ import {
   Filter,
   DollarSign,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -48,6 +49,7 @@ import type {
   BookingGroup,
   Trip,
   Driver,
+  Vehicle,
   GroupStatus,
   CreateBookingGroupPayload,
   UpdateBookingGroupPayload,
@@ -57,12 +59,14 @@ export default function AdminGroupsPage() {
   const [groups, setGroups] = useState<BookingGroup[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [tripFilter, setTripFilter] = useState("all");
   const [driverFilter, setDriverFilter] = useState("all");
+  const [vehicleFilter, setVehicleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
   // Accordion state
@@ -72,6 +76,7 @@ export default function AdminGroupsPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createTripId, setCreateTripId] = useState("");
   const [createDriverId, setCreateDriverId] = useState("");
+  const [createVehicleId, setCreateVehicleId] = useState("");
   const [createGroupNumber, setCreateGroupNumber] = useState<number | undefined>(undefined);
   const [createMaxPax, setCreateMaxPax] = useState<number>(6);
   const [createPricePerPax, setCreatePricePerPax] = useState<number>(0);
@@ -86,6 +91,8 @@ export default function AdminGroupsPage() {
   const [editPricePerPax, setEditPricePerPax] = useState<number>(0);
   const [editStatus, setEditStatus] = useState<GroupStatus>("open");
   const [editGroupNumber, setEditGroupNumber] = useState<number>(1);
+  const [editDriverId, setEditDriverId] = useState<string>("");
+  const [editVehicleId, setEditVehicleId] = useState<string>("");
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -95,6 +102,13 @@ export default function AdminGroupsPage() {
   const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [isSubmittingDriver, setIsSubmittingDriver] = useState(false);
   const [driverModalError, setDriverModalError] = useState<string | null>(null);
+
+  // Vehicle Assignment Modal State
+  const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [groupForVehicle, setGroupForVehicle] = useState<BookingGroup | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [isSubmittingVehicle, setIsSubmittingVehicle] = useState(false);
+  const [vehicleModalError, setVehicleModalError] = useState<string | null>(null);
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -113,14 +127,16 @@ export default function AdminGroupsPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [groupsData, tripsData, driversData] = await Promise.all([
+      const [groupsData, tripsData, driversData, vehiclesData] = await Promise.all([
         adminService.getGroups(),
         adminService.getTrips(),
         adminService.getDrivers(),
+        adminService.getVehicles(),
       ]);
       setGroups(groupsData);
       setTrips(tripsData);
       setDrivers(driversData);
+      setVehicles(vehiclesData);
     } catch (err) {
       console.error("Gagal memuat data grup armada:", err);
     } finally {
@@ -129,32 +145,7 @@ export default function AdminGroupsPage() {
   };
 
   useEffect(() => {
-    let isMounted = true;
-    async function initData() {
-      try {
-        const [groupsData, tripsData, driversData] = await Promise.all([
-          adminService.getGroups(),
-          adminService.getTrips(),
-          adminService.getDrivers(),
-        ]);
-        if (isMounted) {
-          setGroups(groupsData);
-          setTrips(tripsData);
-          setDrivers(driversData);
-        }
-      } catch (err) {
-        console.error("Gagal inisialisasi data grup armada:", err);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    initData();
-    return () => {
-      isMounted = false;
-    };
+    fetchData();
   }, []);
 
   // Handle Trip Selection in Create Modal
@@ -182,6 +173,7 @@ export default function AdminGroupsPage() {
     const firstTripId = firstTrip?.id || "";
     setCreateTripId(firstTripId);
     setCreateDriverId("");
+    setCreateVehicleId("");
     setCreateMaxPax(6);
     setCreatePricePerPax(firstTrip?.pricePerPax || 850000);
     setCreateStatus("open");
@@ -208,7 +200,8 @@ export default function AdminGroupsPage() {
     try {
       const payload: CreateBookingGroupPayload = {
         tripId: createTripId,
-        driverId: createDriverId || undefined,
+        driverId: createDriverId ? createDriverId : undefined,
+        vehicleId: createVehicleId ? createVehicleId : undefined,
         groupNumber: createGroupNumber,
         maxParticipants: createMaxPax,
         capacity: createMaxPax,
@@ -236,6 +229,8 @@ export default function AdminGroupsPage() {
     setEditPricePerPax(group.pricePerPerson || group.trip?.pricePerPax || 0);
     setEditStatus(group.status || "open");
     setEditGroupNumber(group.groupNumber || 1);
+    setEditDriverId(group.driverId || group.driver?.id || "");
+    setEditVehicleId(group.vehicleId || group.vehicle?.id || "");
     setEditError(null);
     setIsEditModalOpen(true);
   };
@@ -262,6 +257,8 @@ export default function AdminGroupsPage() {
         pricePerPerson: editPricePerPax,
         status: editStatus,
         groupNumber: editGroupNumber,
+        driverId: editDriverId ? editDriverId : null,
+        vehicleId: editVehicleId ? editVehicleId : null,
       };
 
       await adminService.updateGroup(editingGroup.id, payload);
@@ -280,7 +277,7 @@ export default function AdminGroupsPage() {
   // Open Driver Assignment Modal
   const handleOpenDriverModal = (group: BookingGroup) => {
     setGroupForDriver(group);
-    setSelectedDriverId(group.driverId || "");
+    setSelectedDriverId(group.driverId || group.driver?.id || "");
     setDriverModalError(null);
     setIsDriverModalOpen(true);
   };
@@ -294,10 +291,14 @@ export default function AdminGroupsPage() {
     setDriverModalError(null);
 
     try {
-      const driverIdToSet = selectedDriverId ? selectedDriverId : null;
-      const res = await adminService.assignDriverToGroup(groupForDriver.id, driverIdToSet);
+      const dId = selectedDriverId ? selectedDriverId : null;
+      await adminService.assignDriverToGroup(groupForDriver.id, dId);
       setIsDriverModalOpen(false);
-      showSuccess(res.message || "Penugasan driver berhasil diperbarui!");
+      showSuccess(
+        dId
+          ? "Driver berhasil ditugaskan ke grup armada!"
+          : "Driver berhasil dicopot dari grup armada."
+      );
       await fetchData();
     } catch (err: unknown) {
       setDriverModalError(
@@ -305,6 +306,41 @@ export default function AdminGroupsPage() {
       );
     } finally {
       setIsSubmittingDriver(false);
+    }
+  };
+
+  // Open Vehicle Assignment Modal
+  const handleOpenVehicleModal = (group: BookingGroup) => {
+    setGroupForVehicle(group);
+    setSelectedVehicleId(group.vehicleId || group.vehicle?.id || "");
+    setVehicleModalError(null);
+    setIsVehicleModalOpen(true);
+  };
+
+  // Submit Vehicle Assignment
+  const handleAssignVehicle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupForVehicle) return;
+
+    setIsSubmittingVehicle(true);
+    setVehicleModalError(null);
+
+    try {
+      const vId = selectedVehicleId ? selectedVehicleId : null;
+      await adminService.assignVehicleToGroup(groupForVehicle.id, vId);
+      setIsVehicleModalOpen(false);
+      showSuccess(
+        vId
+          ? "Unit armada fisik berhasil dipasangkan ke grup!"
+          : "Unit armada berhasil dilepaskan dari grup."
+      );
+      await fetchData();
+    } catch (err: unknown) {
+      setVehicleModalError(
+        (err as { message?: string })?.message || "Gagal memasangkan armada."
+      );
+    } finally {
+      setIsSubmittingVehicle(false);
     }
   };
 
@@ -318,14 +354,6 @@ export default function AdminGroupsPage() {
   // Submit Delete Group
   const handleDeleteGroup = async () => {
     if (!groupToDelete) return;
-
-    const currentParts = groupToDelete.currentParticipants || groupToDelete.participants?.length || 0;
-    if (currentParts > 0) {
-      setDeleteError(
-        "Tidak dapat menghapus armada yang memiliki peserta aktif. Silakan pindahkan peserta terlebih dahulu di menu Manajemen Peserta."
-      );
-      return;
-    }
 
     setIsSubmittingDelete(true);
     setDeleteError(null);
@@ -344,59 +372,81 @@ export default function AdminGroupsPage() {
     }
   };
 
-  // Reset Filters
+  // Reset all filters
   const handleResetFilters = () => {
     setSearchQuery("");
     setTripFilter("all");
     setDriverFilter("all");
+    setVehicleFilter("all");
     setStatusFilter("all");
   };
 
-  // Filtered Groups Client-Side
-  const filteredGroups = groups.filter((g) => {
-    if (tripFilter !== "all" && g.tripId !== tripFilter) return false;
-    if (driverFilter !== "all" && g.driverId !== driverFilter) return false;
-    if (statusFilter !== "all" && g.status !== statusFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const destName = g.trip?.destination?.name || g.trip?.destination?.title || "";
-      const driverName = g.driver?.fullName || g.driver?.name || "";
-      const plate = g.driver?.plateNumber || g.driver?.vehiclePlat || "";
-      const vehicle = g.driver?.vehicleType || g.driver?.vehicleModel || "";
-      const groupName = g.name || `Grup Mobil #${g.groupNumber}`;
-      return (
-        destName.toLowerCase().includes(q) ||
-        driverName.toLowerCase().includes(q) ||
-        plate.toLowerCase().includes(q) ||
-        vehicle.toLowerCase().includes(q) ||
-        groupName.toLowerCase().includes(q)
-      );
-    }
-    return true;
+  // Filter logic
+  const filteredGroups = groups.filter((group) => {
+    const dest = group.trip?.destination;
+    const destTitle = getDestinationTitle(dest).toLowerCase();
+    const destLoc = (dest?.location || "").toLowerCase();
+    const driverName = (group.driver?.fullName || group.driver?.name || "").toLowerCase();
+    const vehicleName = (group.vehicle?.name || group.driver?.vehicleModel || "").toLowerCase();
+    const vehiclePlate = (group.vehicle?.plateNumber || group.vehicle?.plate_number || group.driver?.plateNumber || "").toLowerCase();
+    const groupName = (group.name || `Grup Mobil #${group.groupNumber}`).toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch =
+      !searchQuery ||
+      destTitle.includes(query) ||
+      destLoc.includes(query) ||
+      driverName.includes(query) ||
+      vehicleName.includes(query) ||
+      vehiclePlate.includes(query) ||
+      groupName.includes(query);
+
+    const matchesTrip = tripFilter === "all" || group.tripId === tripFilter;
+    const matchesDriver =
+      driverFilter === "all" ||
+      (driverFilter === "none" && !group.driverId && !group.driver) ||
+      group.driverId === driverFilter ||
+      group.driver?.id === driverFilter;
+
+    const matchesVehicle =
+      vehicleFilter === "all" ||
+      (vehicleFilter === "none" && !group.vehicleId && !group.vehicle) ||
+      group.vehicleId === vehicleFilter ||
+      group.vehicle?.id === vehicleFilter;
+
+    const matchesStatus = statusFilter === "all" || group.status === statusFilter;
+
+    return matchesSearch && matchesTrip && matchesDriver && matchesVehicle && matchesStatus;
   });
 
-  // Calculate Metrics
+  // Aggregated Stats
   const totalGroupsCount = groups.length;
-  const readyGroupsCount = groups.filter((g) => g.status === "open" || g.status === "confirmed").length;
-  const fullGroupsCount = groups.filter((g) => g.status === "full" || (g.currentParticipants >= (g.capacity || 6))).length;
+  const readyGroupsCount = groups.filter(
+    (g) => g.status === "open" || g.status === "confirmed"
+  ).length;
+  const fullGroupsCount = groups.filter((g) => {
+    const current = g.currentParticipants || g.participants?.length || 0;
+    const max = g.capacity || g.maxParticipants || 6;
+    return current >= max || g.status === "full";
+  }).length;
   const unassignedDriverCount = groups.filter((g) => !g.driverId && !g.driver).length;
 
-  const renderStatusBadge = (status: GroupStatus) => {
+  const getStatusBadge = (status: GroupStatus) => {
     switch (status) {
       case "open":
-        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold">Slot Tersedia (Open)</Badge>;
+        return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 font-semibold">Tersedia (Open)</Badge>;
       case "waiting":
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-semibold">Menunggu Kuota</Badge>;
+        return <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-semibold">Menunggu Kuota</Badge>;
       case "full":
-        return <Badge className="bg-purple-100 text-purple-800 border-purple-300 font-semibold">Grup Penuh</Badge>;
+        return <Badge className="bg-purple-50 text-purple-700 border-purple-200 font-semibold">Grup Penuh</Badge>;
       case "confirmed":
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-300 font-semibold">Terkonfirmasi Jalan</Badge>;
+        return <Badge className="bg-[#00677d]/10 text-[#00677d] border-[#00677d]/30 font-semibold">Terkonfirmasi</Badge>;
       case "in_progress":
-        return <Badge className="bg-sky-100 text-sky-800 border-sky-300 font-semibold">Sedang Perjalanan</Badge>;
+        return <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-semibold">Sedang Jalan</Badge>;
       case "completed":
-        return <Badge className="bg-slate-100 text-slate-800 border-slate-300 font-semibold">Selesai</Badge>;
+        return <Badge className="bg-slate-100 text-slate-700 border-slate-300 font-semibold">Selesai</Badge>;
       case "cancelled":
-        return <Badge className="bg-rose-100 text-rose-800 border-rose-300 font-semibold">Dibatalkan</Badge>;
+        return <Badge className="bg-rose-50 text-rose-700 border-rose-200 font-semibold">Dibatalkan</Badge>;
       default:
         return <Badge className="bg-slate-100 text-slate-800 border-slate-300 font-semibold">{status}</Badge>;
     }
@@ -409,13 +459,13 @@ export default function AdminGroupsPage() {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-[#00677d] uppercase tracking-wider mb-1">
             <Layers className="h-4 w-4" />
-            <span>Manajemen Operasional Armada</span>
+            <span>Manajemen Operasional Rombongan</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-heading font-extrabold text-slate-900 tracking-tight">
-            Grup Armada Mobil
+            Grup Rombongan Mobil
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola unit mobil 6-seater, atur kapasitas penumpang, harga per pax, dan penugasan sopir armada.
+            Kelola unit rombongan mobil 6-seater, atur kapasitas, harga per pax, serta pasangkan personil Driver dan Master Armada.
           </p>
         </div>
         <Button
@@ -423,7 +473,7 @@ export default function AdminGroupsPage() {
           className="bg-[#00677d] hover:bg-[#005264] text-white shadow-md shadow-[#00677d]/20 rounded-xl px-5 py-2.5 font-semibold flex items-center gap-2 self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
-          <span>Tambah Grup Armada</span>
+          <span>Tambah Grup Mobil</span>
         </Button>
       </div>
 
@@ -439,13 +489,13 @@ export default function AdminGroupsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase">Total Armada</span>
+            <span className="text-xs font-bold text-slate-500 uppercase">Total Grup</span>
             <div className="p-2 rounded-xl bg-teal-50 text-[#00677d]">
               <Layers className="h-5 w-5" />
             </div>
           </div>
           <div className="text-2xl md:text-3xl font-black text-slate-900 mt-2">{totalGroupsCount}</div>
-          <span className="text-[11px] text-slate-500 font-medium">Unit armada terdaftar</span>
+          <span className="text-[11px] text-slate-500 font-medium">Unit rombongan aktif</span>
         </Card>
 
         <Card className="p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
@@ -461,7 +511,7 @@ export default function AdminGroupsPage() {
 
         <Card className="p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase">Armada Penuh</span>
+            <span className="text-xs font-bold text-slate-500 uppercase">Rombongan Penuh</span>
             <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
               <Users className="h-5 w-5" />
             </div>
@@ -489,9 +539,9 @@ export default function AdminGroupsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
             <Filter className="h-4 w-4 text-[#00677d]" />
-            <span>Filter & Pencarian Armada</span>
+            <span>Filter & Pencarian Rombongan</span>
           </div>
-          {(searchQuery || tripFilter !== "all" || driverFilter !== "all" || statusFilter !== "all") && (
+          {(searchQuery || tripFilter !== "all" || driverFilter !== "all" || vehicleFilter !== "all" || statusFilter !== "all") && (
             <button
               onClick={handleResetFilters}
               className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
@@ -502,7 +552,7 @@ export default function AdminGroupsPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Search Box */}
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -538,10 +588,28 @@ export default function AdminGroupsPage() {
               onChange={(e) => setDriverFilter(e.target.value)}
               className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
             >
-              <option value="all">Semua Penugasan Driver</option>
+              <option value="all">Semua Driver</option>
+              <option value="none">Tanpa Driver</option>
               {drivers.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.fullName || d.name} ({d.plateNumber || d.vehiclePlat || "Tanpa Plat"})
+                  {d.fullName || d.name} (SIM: {d.licenseNumber})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Vehicle Filter */}
+          <div>
+            <select
+              value={vehicleFilter}
+              onChange={(e) => setVehicleFilter(e.target.value)}
+              className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+            >
+              <option value="all">Semua Master Armada</option>
+              <option value="none">Tanpa Armada Fisik</option>
+              {vehicles.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} ({v.plateNumber || v.plate_number})
                 </option>
               ))}
             </select>
@@ -554,7 +622,7 @@ export default function AdminGroupsPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 px-3 py-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
             >
-              <option value="all">Semua Status Grup</option>
+              <option value="all">Semua Status</option>
               <option value="open">Slot Tersedia (Open)</option>
               <option value="waiting">Menunggu Kuota (Waiting)</option>
               <option value="full">Grup Penuh (Full)</option>
@@ -571,7 +639,7 @@ export default function AdminGroupsPage() {
       {isLoading ? (
         <div className="py-20 flex flex-col items-center justify-center gap-3">
           <Loader2 className="h-8 w-8 text-[#00677d] animate-spin" />
-          <span className="text-sm font-medium text-slate-500">Memuat data grup armada...</span>
+          <span className="text-sm font-medium text-slate-500">Memuat data grup rombongan...</span>
         </div>
       ) : filteredGroups.length === 0 ? (
         <Card className="p-12 text-center rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-3">
@@ -580,11 +648,11 @@ export default function AdminGroupsPage() {
           </div>
           <h3 className="text-base font-bold text-slate-800">Tidak ada grup armada ditemukan</h3>
           <p className="text-xs text-slate-500 max-w-md mx-auto">
-            {searchQuery || tripFilter !== "all" || driverFilter !== "all" || statusFilter !== "all"
-              ? "Tidak ada data grup armada yang cocok dengan filter pencarian saat ini."
-              : "Belum ada grup armada yang terdaftar. Klik tombol Tambah Grup Armada di atas untuk membuat unit baru."}
+            {searchQuery || tripFilter !== "all" || driverFilter !== "all" || vehicleFilter !== "all" || statusFilter !== "all"
+              ? "Tidak ada data grup yang cocok dengan filter pencarian saat ini."
+              : "Belum ada grup armada yang terdaftar. Klik tombol Tambah Grup Mobil di atas untuk membuat unit baru."}
           </p>
-          {(searchQuery || tripFilter !== "all" || driverFilter !== "all" || statusFilter !== "all") && (
+          {(searchQuery || tripFilter !== "all" || driverFilter !== "all" || vehicleFilter !== "all" || statusFilter !== "all") && (
             <Button onClick={handleResetFilters} variant="outline" className="text-xs rounded-xl mt-2">
               Reset Semua Filter
             </Button>
@@ -599,54 +667,67 @@ export default function AdminGroupsPage() {
             const currentPax = group.currentParticipants || group.participants?.length || 0;
             const maxPax = group.capacity || group.maxParticipants || 6;
             const percent = calculateOccupancyPercent(currentPax, maxPax);
-            const price = group.pricePerPerson || group.trip?.pricePerPax || 0;
+            const price = group.pricePerPerson || group.trip?.pricePerPax || 850000;
             const totalRevenue = price * currentPax;
-            const isExpanded = !!expandedParticipants[group.id];
+            const isExpanded = expandedParticipants[group.id] || false;
             const participantsList = group.participants || [];
+
+            const assignedVehicle = group.vehicle || group.driver?.vehicle;
+            const vehicleTitle = assignedVehicle?.name || group.driver?.vehicleModel || group.driver?.vehicleType;
+            const vehiclePlate = assignedVehicle?.plateNumber || assignedVehicle?.plate_number || group.driver?.plateNumber || group.driver?.vehiclePlat;
 
             return (
               <Card
                 key={group.id}
-                className="rounded-2xl bg-white border border-slate-200/80 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow"
+                className="rounded-2xl bg-white border border-slate-200/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col justify-between"
               >
-                {/* Card Top: Destination & Group Info */}
-                <div className="p-5 space-y-4">
+                <div className="p-5 md:p-6 space-y-4">
+                  {/* Card Header: Title & Group Number */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-extrabold text-[#00677d] bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-100">
-                          {group.name || `Grup Mobil #${group.groupNumber}`}
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-lg bg-[#00677d] text-white text-xs font-bold">
+                          Mobil #{group.groupNumber}
                         </span>
-                        {renderStatusBadge(group.status)}
+                        {getStatusBadge(group.status)}
                       </div>
-                      <h3 className="font-heading text-lg font-bold text-slate-900 mt-1">
+                      <h3 className="font-heading font-bold text-base text-slate-900 leading-tight">
                         {destTitle}
                       </h3>
                       {dest?.location && (
                         <p className="text-xs text-slate-500 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                          <MapPin className="h-3.5 w-3.5 text-slate-400" />
                           <span>{dest.location}</span>
                         </p>
                       )}
                     </div>
 
-                    {/* Destination Thumbnail */}
-                    {dest?.coverImage && (
-                      <div className="relative h-14 w-14 rounded-xl overflow-hidden flex-shrink-0 border border-slate-100 shadow-sm">
-                        <Image
-                          src={dest.coverImage}
-                          alt={destTitle}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenEditModal(group)}
+                        className="h-8 w-8 p-0 text-slate-500 hover:text-[#00677d] hover:bg-slate-100 rounded-lg"
+                        title="Edit Properti Grup"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenDeleteModal(group)}
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                        title="Hapus Grup"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
-                  {/* Trip Schedule & Price */}
-                  <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-xl text-xs">
+                  {/* Schedule & Price Info */}
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
                     <div className="space-y-0.5">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">Jadwal Berangkat</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Jadwal Keberangkatan</span>
                       <p className="font-semibold text-slate-700 flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5 text-[#00677d]" />
                         {group.trip?.departureDate ? formatDate(group.trip.departureDate) : "-"}
@@ -666,7 +747,7 @@ export default function AdminGroupsPage() {
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-semibold text-slate-600 flex items-center gap-1">
                         <Users className="h-3.5 w-3.5 text-slate-400" />
-                        <span>Kapasitas Kursi Armada:</span>
+                        <span>Kapasitas Kursi Penumpang:</span>
                       </span>
                       <span className="font-bold text-slate-800">
                         {currentPax} / {maxPax} Pax ({percent}%)
@@ -690,81 +771,84 @@ export default function AdminGroupsPage() {
                     </div>
                   </div>
 
-                  {/* Driver Section */}
-                  <div className="p-3.5 rounded-xl border border-slate-200/90 bg-white space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                        <Car className="h-3.5 w-3.5 text-slate-400" />
-                        <span>Sopir & Armada Mobil</span>
-                      </span>
-                      <button
-                        onClick={() => handleOpenDriverModal(group)}
-                        className="text-[11px] font-bold text-[#00677d] hover:text-[#005264] flex items-center gap-1"
-                      >
-                        <Edit className="h-3 w-3" />
-                        <span>{group.driver ? "Ganti Driver" : "Tugaskan Driver"}</span>
-                      </button>
+                  {/* Operational Section: Driver & Vehicle Boxes */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Driver Box */}
+                    <div className="p-3 rounded-xl border border-slate-200/90 bg-slate-50/70 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                          <UserCheck className="h-3.5 w-3.5 text-[#00677d]" />
+                          <span>Personil Driver</span>
+                        </span>
+                        <button
+                          onClick={() => handleOpenDriverModal(group)}
+                          className="text-[11px] font-bold text-[#00677d] hover:underline"
+                        >
+                          {group.driver ? "Ganti" : "Tugaskan"}
+                        </button>
+                      </div>
+
+                      {group.driver ? (
+                        <div className="flex items-center justify-between pt-0.5">
+                          <div className="min-w-0">
+                            <span className="font-bold text-xs text-slate-900 block truncate">
+                              {group.driver.fullName || group.driver.name}
+                            </span>
+                            <span className="text-[10px] text-slate-500 block truncate">
+                              SIM: {group.driver.licenseNumber}
+                            </span>
+                          </div>
+                          {(group.driver.phoneNumber || group.driver.phone) && (
+                            <a
+                              href={`https://wa.me/${(group.driver.phoneNumber || group.driver.phone || "").replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                              title="WhatsApp Driver"
+                            >
+                              <Phone className="h-3.5 w-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-amber-700 italic flex items-center gap-1 py-1">
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span>Belum ada driver</span>
+                        </div>
+                      )}
                     </div>
 
-                    {group.driver ? (
-                      <div className="flex items-center justify-between gap-3 pt-1">
-                        <div className="flex items-center gap-2.5">
-                          <div className="relative h-9 w-9 rounded-full overflow-hidden bg-teal-50 border border-teal-100 flex items-center justify-center text-xs font-bold text-[#00677d]">
-                            {group.driver.photoUrl ? (
-                              <Image
-                                src={group.driver.photoUrl}
-                                alt={group.driver.fullName || group.driver.name || "Driver"}
-                                fill
-                                className="object-cover"
-                              />
-                            ) : (
-                              (group.driver.fullName || group.driver.name || "D").charAt(0)
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                              <span>{group.driver.fullName || group.driver.name}</span>
-                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] px-1.5 py-0 font-semibold">
-                                Aktif
-                              </Badge>
-                            </div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                              <span>{group.driver.vehicleType || group.driver.vehicleModel || "Toyota HiAce"}</span>
-                              <span>•</span>
-                              <span className="font-mono font-bold text-slate-700 bg-slate-100 px-1 rounded">
-                                {group.driver.plateNumber || group.driver.vehiclePlat || "N 1234 XY"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {(group.driver.phoneNumber || group.driver.phone) && (
-                          <a
-                            href={`https://wa.me/${(group.driver.phoneNumber || group.driver.phone || "").replace(/[^0-9]/g, "")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-                            title="Chat WhatsApp Driver"
-                          >
-                            <Phone className="h-4 w-4" />
-                          </a>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/80 text-amber-800 text-xs">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0" />
-                          <span className="font-semibold">Belum ada driver yang ditugaskan</span>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => handleOpenDriverModal(group)}
-                          className="bg-amber-600 hover:bg-amber-700 text-white h-7 text-[11px] font-bold rounded-lg px-2.5"
+                    {/* Master Armada Physical Vehicle Box */}
+                    <div className="p-3 rounded-xl border border-slate-200/90 bg-slate-50/70 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                          <Car className="h-3.5 w-3.5 text-[#00677d]" />
+                          <span>Unit Armada</span>
+                        </span>
+                        <button
+                          onClick={() => handleOpenVehicleModal(group)}
+                          className="text-[11px] font-bold text-[#00677d] hover:underline"
                         >
-                          Tugaskan
-                        </Button>
+                          {assignedVehicle || vehicleTitle ? "Ganti" : "Pasang"}
+                        </button>
                       </div>
-                    )}
+
+                      {vehicleTitle ? (
+                        <div className="pt-0.5 space-y-0.5">
+                          <span className="font-bold text-xs text-slate-900 block truncate">
+                            {vehicleTitle}
+                          </span>
+                          <span className="font-mono font-extrabold text-[10px] text-[#00677d] bg-white px-1.5 py-0.2 rounded border border-slate-200 inline-block">
+                            {vehiclePlate || "NO-PLATE"}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-amber-700 italic flex items-center gap-1 py-1">
+                          <Car className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                          <span>Belum ada armada</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Accordion: Participants List */}
@@ -802,26 +886,12 @@ export default function AdminGroupsPage() {
                                         ({p.bookingCode})
                                       </span>
                                     </div>
-                                    <div className="text-[11px] text-slate-500 flex items-center gap-2">
-                                      <span>{p.phoneNumber || p.email}</span>
-                                      {p.nationality && (
-                                        <>
-                                          <span>•</span>
-                                          <span>{p.nationality}</span>
-                                        </>
-                                      )}
-                                    </div>
+                                    <p className="text-[10px] text-slate-500">{p.phoneNumber}</p>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge className={`${payBadge.className} text-[10px] font-semibold`}>
+                                  <div>
+                                    <Badge className={`${payBadge.className} text-[10px] px-2 py-0.5`}>
                                       {payBadge.label}
                                     </Badge>
-                                    <Link
-                                      href={`/admin/participants?search=${p.bookingCode}`}
-                                      className="text-[11px] font-bold text-[#00677d] hover:underline"
-                                    >
-                                      Kelola
-                                    </Link>
                                   </div>
                                 </div>
                               );
@@ -833,38 +903,10 @@ export default function AdminGroupsPage() {
                   </div>
                 </div>
 
-                {/* Card Bottom: Action Buttons */}
-                <div className="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenDriverModal(group)}
-                      className="text-xs font-semibold rounded-xl text-slate-700 hover:text-[#00677d] flex items-center gap-1.5"
-                    >
-                      <UserCheck className="h-3.5 w-3.5" />
-                      <span>Driver</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenEditModal(group)}
-                      className="text-xs font-semibold rounded-xl text-slate-700 hover:text-[#00677d] flex items-center gap-1.5"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      <span>Edit</span>
-                    </Button>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleOpenDeleteModal(group)}
-                    className="text-xs font-semibold rounded-xl text-rose-600 hover:bg-rose-50 hover:text-rose-700 border-rose-200 flex items-center gap-1.5"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>Hapus</span>
-                  </Button>
+                {/* Footer Meta */}
+                <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                  <span className="font-mono">ID: {group.id.slice(0, 8)}...</span>
+                  <span>Diperbarui: {formatDate(group.updatedAt)}</span>
                 </div>
               </Card>
             );
@@ -873,17 +915,17 @@ export default function AdminGroupsPage() {
       )}
 
       {/* ========================================================================= */}
-      {/* 1. Modal Buat Grup Baru (POST /api/admin/groups)                         */}
+      {/* 1. Modal Tambah Grup Armada Baru (POST /api/admin/groups)                 */}
       {/* ========================================================================= */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-lg rounded-2xl p-6 bg-white">
+        <DialogContent className="max-w-md rounded-2xl p-6 bg-white">
           <DialogHeader>
             <DialogTitle className="font-heading text-xl font-bold text-slate-900 flex items-center gap-2">
               <Plus className="h-5 w-5 text-[#00677d]" />
-              <span>Tambah Grup Armada Baru</span>
+              <span>Tambah Grup Rombongan Mobil</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Buat unit rombongan mobil baru di bawah jadwal trip tertentu.
+              Buat unit mobil baru untuk jadwal trip tertentu, serta tentukan driver dan armadanya.
             </DialogDescription>
           </DialogHeader>
 
@@ -895,18 +937,16 @@ export default function AdminGroupsPage() {
           )}
 
           <form onSubmit={handleCreateGroup} className="space-y-4 pt-2">
-            {/* Pilih Trip */}
+            {/* Trip Selector */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">
-                Pilih Jadwal Trip <span className="text-rose-500">*</span>
-              </label>
+              <label className="text-xs font-bold text-slate-700">Pilih Jadwal Trip *</label>
               <select
                 required
                 value={createTripId}
                 onChange={(e) => handleCreateTripChange(e.target.value)}
                 className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
               >
-                <option value="">-- Pilih Jadwal Trip --</option>
+                <option value="" disabled>-- Pilih Destinasi & Jadwal Trip --</option>
                 {trips.map((t) => (
                   <option key={t.id} value={t.id}>
                     {getDestinationTitle(t.destination)} — {formatDate(t.departureDate)}
@@ -915,23 +955,56 @@ export default function AdminGroupsPage() {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {/* Nomor Urut Grup */}
+            {/* Driver & Vehicle Selectors */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Nomor Urut Grup</label>
+                <label className="text-xs font-bold text-slate-700">Personil Driver (Opsional)</label>
+                <select
+                  value={createDriverId}
+                  onChange={(e) => setCreateDriverId(e.target.value)}
+                  className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+                >
+                  <option value="">-- Tanpa Driver --</option>
+                  {drivers.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.fullName || d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Master Armada (Opsional)</label>
+                <select
+                  value={createVehicleId}
+                  onChange={(e) => setCreateVehicleId(e.target.value)}
+                  className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+                >
+                  <option value="">-- Tanpa Armada --</option>
+                  {vehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.plateNumber || v.plate_number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Group Number & Max Pax */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Nomor Mobil</label>
                 <Input
                   type="number"
                   min={1}
-                  value={createGroupNumber || ""}
-                  onChange={(e) => setCreateGroupNumber(e.target.value ? Number(e.target.value) : undefined)}
-                  placeholder="Auto (1, 2, ...)"
+                  required
+                  value={createGroupNumber || 1}
+                  onChange={(e) => setCreateGroupNumber(Number(e.target.value))}
                   className="text-xs rounded-xl bg-slate-50 border-slate-200"
                 />
               </div>
-
-              {/* Kapasitas Pax */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Kapasitas Kursi (Pax)</label>
+                <label className="text-xs font-bold text-slate-700">Kapasitas Maksimal</label>
                 <Input
                   type="number"
                   min={1}
@@ -944,10 +1017,10 @@ export default function AdminGroupsPage() {
               </div>
             </div>
 
+            {/* Price per pax & Status */}
             <div className="grid grid-cols-2 gap-3">
-              {/* Harga per Pax */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Harga per Pax (IDR)</label>
+                <label className="text-xs font-bold text-slate-700">Harga per Pax (Rp)</label>
                 <Input
                   type="number"
                   min={0}
@@ -958,10 +1031,8 @@ export default function AdminGroupsPage() {
                   className="text-xs rounded-xl bg-slate-50 border-slate-200"
                 />
               </div>
-
-              {/* Status Awal */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Status Awal</label>
+                <label className="text-xs font-bold text-slate-700">Status Grup</label>
                 <select
                   value={createStatus}
                   onChange={(e) => setCreateStatus(e.target.value as GroupStatus)}
@@ -972,23 +1043,6 @@ export default function AdminGroupsPage() {
                   <option value="confirmed">Terkonfirmasi (Confirmed)</option>
                 </select>
               </div>
-            </div>
-
-            {/* Pilih Driver Opsional */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Tugaskan Sopir (Opsional)</label>
-              <select
-                value={createDriverId}
-                onChange={(e) => setCreateDriverId(e.target.value)}
-                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
-              >
-                <option value="">-- Belum Ditugaskan --</option>
-                {drivers.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.fullName || d.name} — {d.vehicleType || d.vehicleModel || "HiAce"} ({d.plateNumber || d.vehiclePlat || "Tanpa Plat"})
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
@@ -1003,7 +1057,7 @@ export default function AdminGroupsPage() {
               <Button
                 type="submit"
                 disabled={isSubmittingCreate}
-                className="bg-[#00677d] hover:bg-[#005264] text-white text-xs font-semibold rounded-xl flex items-center gap-2"
+                className="bg-[#00677d] hover:bg-[#005264] text-white text-xs font-semibold rounded-xl flex items-center gap-2 shadow-md shadow-[#00677d]/20"
               >
                 {isSubmittingCreate ? (
                   <>
@@ -1011,7 +1065,7 @@ export default function AdminGroupsPage() {
                     <span>Menyimpan...</span>
                   </>
                 ) : (
-                  <span>Simpan Grup Armada</span>
+                  <span>Buat Grup Mobil</span>
                 )}
               </Button>
             </div>
@@ -1027,10 +1081,10 @@ export default function AdminGroupsPage() {
           <DialogHeader>
             <DialogTitle className="font-heading text-xl font-bold text-slate-900 flex items-center gap-2">
               <Edit className="h-5 w-5 text-[#00677d]" />
-              <span>Edit Properti Grup Armada</span>
+              <span>Edit Properti Grup Mobil</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              {editingGroup?.name || `Grup Mobil #${editingGroup?.groupNumber}`} — {getDestinationTitle(editingGroup?.trip?.destination)}
+              Perbarui kapasitas, harga, status, driver, dan armada fisik grup ini.
             </DialogDescription>
           </DialogHeader>
 
@@ -1043,9 +1097,8 @@ export default function AdminGroupsPage() {
 
           <form onSubmit={handleUpdateGroup} className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-3">
-              {/* Nomor Urut */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Nomor Urut Grup</label>
+                <label className="text-xs font-bold text-slate-700">Nomor Mobil</label>
                 <Input
                   type="number"
                   min={1}
@@ -1055,8 +1108,55 @@ export default function AdminGroupsPage() {
                   className="text-xs rounded-xl bg-slate-50 border-slate-200"
                 />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Kapasitas Maksimal</label>
+                <Input
+                  type="number"
+                  min={editingGroup?.currentParticipants || 1}
+                  max={15}
+                  required
+                  value={editMaxPax}
+                  onChange={(e) => setEditMaxPax(Number(e.target.value))}
+                  className="text-xs rounded-xl bg-slate-50 border-slate-200"
+                />
+              </div>
+            </div>
 
-              {/* Status Grup */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Personil Driver</label>
+                <select
+                  value={editDriverId}
+                  onChange={(e) => setEditDriverId(e.target.value)}
+                  className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+                >
+                  <option value="">-- Tanpa Driver --</option>
+                  {drivers.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.fullName || d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700">Master Armada</label>
+                <select
+                  value={editVehicleId}
+                  onChange={(e) => setEditVehicleId(e.target.value)}
+                  className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+                >
+                  <option value="">-- Tanpa Armada --</option>
+                  {vehicles.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name} ({v.plateNumber || v.plate_number})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700">Status Grup</label>
                 <select
@@ -1073,29 +1173,8 @@ export default function AdminGroupsPage() {
                   <option value="cancelled">Dibatalkan (Cancelled)</option>
                 </select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {/* Kapasitas Maksimal */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Kapasitas Maksimal (Pax)</label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={15}
-                  required
-                  value={editMaxPax}
-                  onChange={(e) => setEditMaxPax(Number(e.target.value))}
-                  className="text-xs rounded-xl bg-slate-50 border-slate-200"
-                />
-                <span className="text-[10px] text-slate-400">
-                  Saat ini: {editingGroup?.currentParticipants || 0} pax terdaftar
-                </span>
-              </div>
-
-              {/* Harga per Pax */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Harga per Pax (IDR)</label>
+                <label className="text-xs font-bold text-slate-700">Harga per Pax (Rp)</label>
                 <Input
                   type="number"
                   min={0}
@@ -1143,11 +1222,11 @@ export default function AdminGroupsPage() {
         <DialogContent className="max-w-md rounded-2xl p-6 bg-white">
           <DialogHeader>
             <DialogTitle className="font-heading text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Car className="h-5 w-5 text-[#00677d]" />
-              <span>Penugasan Driver Armada</span>
+              <UserCheck className="h-5 w-5 text-[#00677d]" />
+              <span>Penugasan Driver Rombongan</span>
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Tugaskan, ubah sopir, atau copot driver untuk unit armada ini.
+              Tugaskan, ubah personil sopir, atau copot driver untuk grup mobil ini.
             </DialogDescription>
           </DialogHeader>
 
@@ -1159,7 +1238,6 @@ export default function AdminGroupsPage() {
           )}
 
           <form onSubmit={handleAssignDriver} className="space-y-4 pt-2">
-            {/* Info Armada Saat Ini */}
             <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1 text-xs">
               <div className="font-bold text-slate-900">
                 {groupForDriver?.name || `Grup Mobil #${groupForDriver?.groupNumber}`}
@@ -1172,7 +1250,6 @@ export default function AdminGroupsPage() {
               </div>
             </div>
 
-            {/* Dropdown Driver */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700">Pilih Driver</label>
               <select
@@ -1183,7 +1260,7 @@ export default function AdminGroupsPage() {
                 <option value="">-- Copot Driver / Tidak Ditugaskan --</option>
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.fullName || d.name} — {d.vehicleType || d.vehicleModel || "HiAce"} ({d.plateNumber || d.vehiclePlat || "Tanpa Plat"})
+                    {d.fullName || d.name} (SIM: {d.licenseNumber}) {d.vehicle?.name ? `[Armada: ${d.vehicle.name}]` : ""}
                   </option>
                 ))}
               </select>
@@ -1218,7 +1295,86 @@ export default function AdminGroupsPage() {
       </Dialog>
 
       {/* ========================================================================= */}
-      {/* 4. Modal Konfirmasi Hapus Grup (DELETE /api/admin/groups/:id)             */}
+      {/* 4. Modal Penugasan / Pemindahan Armada (PATCH /api/admin/groups/:id/vehicle)*/}
+      {/* ========================================================================= */}
+      <Dialog open={isVehicleModalOpen} onOpenChange={setIsVehicleModalOpen}>
+        <DialogContent className="max-w-md rounded-2xl p-6 bg-white">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl font-bold text-slate-900 flex items-center gap-2">
+              <Car className="h-5 w-5 text-[#00677d]" />
+              <span>Penugasan Master Armada Fisik</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Pasangkan unit kendaraan fisik dari master armada ke grup rombongan ini.
+            </DialogDescription>
+          </DialogHeader>
+
+          {vehicleModalError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-medium flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{vehicleModalError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAssignVehicle} className="space-y-4 pt-2">
+            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-1 text-xs">
+              <div className="font-bold text-slate-900">
+                {groupForVehicle?.name || `Grup Mobil #${groupForVehicle?.groupNumber}`}
+              </div>
+              <div className="text-slate-500">
+                Destinasi: {getDestinationTitle(groupForVehicle?.trip?.destination)}
+              </div>
+              <div className="text-slate-500">
+                Jadwal: {groupForVehicle?.trip?.departureDate ? formatDate(groupForVehicle.trip.departureDate) : "-"}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Pilih Unit Master Armada</label>
+              <select
+                value={selectedVehicleId}
+                onChange={(e) => setSelectedVehicleId(e.target.value)}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+              >
+                <option value="">-- Lepaskan Armada / Tidak Ada Mobil --</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} — Plat: {v.plateNumber || v.plate_number} ({v.transmission || "Manual"} / {v.capacity || 6} Kursi)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsVehicleModalOpen(false)}
+                className="text-xs rounded-xl font-semibold"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingVehicle}
+                className="bg-[#00677d] hover:bg-[#005264] text-white text-xs font-semibold rounded-xl flex items-center gap-2"
+              >
+                {isSubmittingVehicle ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  <span>Konfirmasi Pasang Armada</span>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* 5. Modal Konfirmasi Hapus Grup (DELETE /api/admin/groups/:id)             */}
       {/* ========================================================================= */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="max-w-md rounded-2xl p-6 bg-white">

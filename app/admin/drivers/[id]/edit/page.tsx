@@ -5,18 +5,20 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  Car,
+  UserCheck,
   CheckCircle2,
   AlertCircle,
   Save,
   Loader2,
   ShieldCheck,
+  Car,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
+import type { Vehicle, Driver } from "@/src/types";
 
 export default function EditDriverPage() {
   const router = useRouter();
@@ -31,27 +33,38 @@ export default function EditDriverPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
-  const [vehicleModel, setVehicleModel] = useState("Toyota HiAce Premio VIP (6-Seater)");
-  const [plateNumber, setPlateNumber] = useState("");
   const [experienceYears, setExperienceYears] = useState(5);
+  const [vehicleId, setVehicleId] = useState<string>("");
   const [isAvailable, setIsAvailable] = useState(true);
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
   useEffect(() => {
     let isMounted = true;
-    async function loadDriver() {
+    async function loadDriverData() {
       if (!driverId) return;
       setIsLoading(true);
       try {
-        const driver = await adminService.getDriverById(driverId);
-        if (driver && isMounted) {
-          setFullName(driver.fullName || driver.name || "");
-          setPhoneNumber(driver.phoneNumber || driver.phone || "");
-          setEmail(driver.email || driver.user?.email || "");
-          setLicenseNumber(driver.licenseNumber || "");
-          setVehicleModel(driver.vehicleModel || driver.vehicleType || "Toyota HiAce Premio VIP (6-Seater)");
-          setPlateNumber(driver.plateNumber || driver.vehiclePlat || "");
-          setExperienceYears(driver.experienceYears || 5);
-          setIsAvailable(driver.isAvailable !== undefined ? Boolean(driver.isAvailable) : driver.status === "available");
+        const [driver, vehiclesList] = await Promise.all([
+          adminService.getDriverById(driverId),
+          adminService.getVehicles(),
+        ]);
+
+        if (isMounted) {
+          setVehicles(vehiclesList);
+          if (driver) {
+            setFullName(driver.fullName || driver.name || "");
+            setPhoneNumber(driver.phoneNumber || driver.phone || "");
+            setEmail(driver.email || driver.user?.email || "");
+            setLicenseNumber(driver.licenseNumber || "");
+            setExperienceYears(driver.experienceYears || 5);
+            setVehicleId(driver.vehicleId || driver.vehicle?.id || "");
+            setIsAvailable(
+              driver.isAvailable !== undefined
+                ? Boolean(driver.isAvailable)
+                : driver.status === "available"
+            );
+          }
         }
       } catch {
         if (isMounted) {
@@ -62,7 +75,7 @@ export default function EditDriverPage() {
       }
     }
 
-    loadDriver();
+    loadDriverData();
     return () => {
       isMounted = false;
     };
@@ -70,7 +83,7 @@ export default function EditDriverPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !phoneNumber || !licenseNumber || !plateNumber) {
+    if (!fullName || !phoneNumber || !licenseNumber) {
       setFeedback({ type: "error", message: "Harap lengkapi semua kolom wajib (*)." });
       return;
     }
@@ -81,19 +94,21 @@ export default function EditDriverPage() {
       await adminService.updateDriver(driverId, {
         fullName,
         phoneNumber,
-        email: email || undefined,
+        email: email ? email.trim() : undefined,
         licenseNumber,
-        vehicleModel,
-        plateNumber: plateNumber.toUpperCase(),
         experienceYears: Number(experienceYears),
         isAvailable,
-        status: isAvailable ? "available" : "maintenance",
+        status: isAvailable ? "available" : "off_duty",
+        vehicleId: vehicleId ? vehicleId : undefined,
       });
 
-      setFeedback({ type: "success", message: "Data driver dan armada berhasil diperbarui!" });
+      // Synchronize assign vehicle to driver
+      await adminService.assignVehicleToDriver(driverId, vehicleId ? vehicleId : null);
+
+      setFeedback({ type: "success", message: "Data personil driver berhasil diperbarui!" });
       setTimeout(() => {
         router.push("/admin/drivers");
-      }, 1200);
+      }, 1000);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal memperbarui data driver.";
       setFeedback({ type: "error", message: msg });
@@ -124,14 +139,14 @@ export default function EditDriverPage() {
           </Button>
           <div>
             <h1 className="font-heading text-xl sm:text-2xl font-extrabold text-[#191c1e]">
-              Edit Driver & Armada
+              Edit Personil Driver
             </h1>
             <p className="text-xs text-slate-500">ID: {driverId}</p>
           </div>
         </div>
 
         <Badge variant="coral" className="text-xs font-bold px-3 py-1">
-          Armada VIP 6-Pax
+          Pengemudi Resmi
         </Badge>
       </div>
 
@@ -154,9 +169,10 @@ export default function EditDriverPage() {
 
       {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white space-y-4">
+        <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white rounded-2xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <h2 className="font-heading font-bold text-sm text-[#191c1e]">
+            <h2 className="font-heading font-bold text-sm text-[#191c1e] flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-[#00677d]" />
               Informasi Pengemudi
             </h2>
             <div className="flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full font-bold">
@@ -216,7 +232,7 @@ export default function EditDriverPage() {
                 placeholder="Contoh: SIM-A-99218201"
                 value={licenseNumber}
                 onChange={(e) => setLicenseNumber(e.target.value)}
-                className="text-xs"
+                className="text-xs font-mono"
               />
             </div>
 
@@ -235,69 +251,57 @@ export default function EditDriverPage() {
           </div>
         </Card>
 
-        {/* Card 2: Armada Kendaraan */}
-        <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white space-y-4">
+        {/* Section 2: Penugasan Unit Master Armada */}
+        <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white rounded-2xl space-y-4">
           <h2 className="font-heading font-bold text-sm text-[#191c1e] border-b border-slate-100 pb-2 flex items-center gap-2">
             <Car className="h-4 w-4 text-[#00677d]" />
-            Spesifikasi Armada Kendaraan
+            Penugasan Unit Master Armada Fisik
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Model Kendaraan / Armada *
+                Pilih Unit Armada Fisik
               </label>
-              <Input
-                required
-                placeholder="Toyota HiAce Premio VIP (6-Seater)"
-                value={vehicleModel}
-                onChange={(e) => setVehicleModel(e.target.value)}
-                className="text-xs"
-              />
+              <select
+                value={vehicleId}
+                onChange={(e) => setVehicleId(e.target.value)}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+              >
+                <option value="">-- Tidak Dipasangkan Armada (Standby / Cadangan) --</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} ({v.plateNumber || v.plate_number}) - {v.transmission || "Manual"}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Nomor Plat Polisi *
+            {/* Availability Status Toggle */}
+            <div className="pt-3 border-t border-slate-100 space-y-3">
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={isAvailable}
+                  onChange={(e) => setIsAvailable(e.target.checked)}
+                  className="h-4 w-4 accent-[#00677d] rounded"
+                />
+                <span>Status Ketersediaan: {isAvailable ? "Siap Bertugas (Available)" : "Sedang Cuti / Off"}</span>
               </label>
-              <Input
-                required
-                placeholder="Contoh: N 1234 VIP"
-                value={plateNumber}
-                onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
-                className="text-xs uppercase font-mono font-bold"
-              />
-            </div>
-          </div>
-
-          {/* Availability Status Toggle */}
-          <div className="pt-3 border-t border-slate-100 space-y-3">
-            <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700">
-              <input
-                type="checkbox"
-                checked={isAvailable}
-                onChange={(e) => setIsAvailable(e.target.checked)}
-                className="h-4 w-4 accent-[#00677d] rounded"
-              />
-              <span>Status Ketersediaan Armada: {isAvailable ? "Siap Bertugas (Available)" : "Sedang Perawatan / Off"}</span>
-            </label>
-
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-500">
-              Kapasitas armada otomatis dikunci pada <strong className="text-slate-800">Maksimal 6 Penumpang (VIP Comfort)</strong> sesuai standar Trip Sharing.
             </div>
           </div>
         </Card>
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-3 pt-2">
-          <Button asChild variant="outline" size="lg" className="rounded-xl">
+          <Button asChild variant="outline" size="lg" className="rounded-xl font-semibold">
             <Link href="/admin/drivers">Batal</Link>
           </Button>
           <Button
             type="submit"
             size="lg"
             disabled={isSubmitting}
-            className="rounded-xl gap-2 font-bold px-8 shadow-md"
+            className="rounded-xl gap-2 font-bold px-8 shadow-md bg-[#00677d] hover:bg-[#005264] text-white"
           >
             <Save className="h-4 w-4" />
             {isSubmitting ? "Menyimpan Perubahan..." : "Simpan Perubahan"}

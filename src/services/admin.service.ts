@@ -5,6 +5,9 @@ import type {
   MoveParticipantPayload,
   Destination,
   Driver,
+  Vehicle,
+  CreateVehiclePayload,
+  UpdateVehiclePayload,
   Article,
   AuditLog,
   Trip,
@@ -16,6 +19,68 @@ import type {
 } from "@/src/types";
 import { normalizeParticipant } from "@/src/lib/utils";
 
+export function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
+  const id = String(raw.id || "");
+  const name = String(raw.name || raw.title || "Toyota HiAce VIP");
+  const plateNumber = String(raw.plateNumber || raw.plate_number || raw.plate || "");
+  const vehicleType = String(raw.vehicleType || raw.vehicle_type || raw.type || "Minivan");
+  const capacity = Number(raw.capacity || raw.passengerCapacity || 6);
+  const transmission = typeof raw.transmission === "string" ? raw.transmission : "Manual";
+  const fuelType =
+    typeof raw.fuelType === "string"
+      ? raw.fuelType
+      : typeof raw.fuel_type === "string"
+      ? raw.fuel_type
+      : "Diesel";
+  const facility = Array.isArray(raw.facility)
+    ? (raw.facility as string[])
+    : Array.isArray(raw.facilities)
+    ? (raw.facilities as string[])
+    : ["AC", "Audio/Radio", "Reclining Seat", "USB Charger"];
+  const coverImage =
+    typeof raw.coverImage === "string"
+      ? raw.coverImage
+      : typeof raw.cover_image === "string"
+      ? raw.cover_image
+      : typeof raw.image === "string"
+      ? raw.image
+      : undefined;
+  const status = (raw.status as Vehicle["status"]) || "active";
+  const isAvailable =
+    raw.isAvailable !== undefined
+      ? Boolean(raw.isAvailable)
+      : raw.is_available !== undefined
+      ? Boolean(raw.is_available)
+      : status === "active";
+  const driverId = raw.driverId || raw.driver_id ? String(raw.driverId || raw.driver_id) : null;
+  const driver = raw.driver ? (raw.driver as Driver) : null;
+
+  return {
+    id,
+    name,
+    plateNumber,
+    plate_number: plateNumber,
+    vehicleType,
+    vehicle_type: vehicleType,
+    capacity,
+    transmission,
+    fuelType,
+    fuel_type: fuelType,
+    facility,
+    coverImage,
+    cover_image: coverImage,
+    status,
+    isAvailable,
+    is_available: isAvailable,
+    driverId,
+    driver_id: driverId,
+    driver,
+    createdAt: String(raw.createdAt || raw.created_at || new Date().toISOString()),
+    created_at: String(raw.createdAt || raw.created_at || new Date().toISOString()),
+    updatedAt: String(raw.updatedAt || raw.updated_at || new Date().toISOString()),
+    updated_at: String(raw.updatedAt || raw.updated_at || new Date().toISOString()),
+  };
+}
 
 export interface ManualParticipantPayload {
   destinationId?: string;
@@ -58,6 +123,8 @@ export function normalizeBookingGroup(raw: Record<string, unknown>, tripIdFallba
   const status = (raw.status as BookingGroup["status"]) || "open";
   const driverId = raw.driverId || raw.driver_id ? String(raw.driverId || raw.driver_id) : null;
   const driver = (raw.driver as Driver) || null;
+  const vehicleId = raw.vehicleId || raw.vehicle_id ? String(raw.vehicleId || raw.vehicle_id) : null;
+  const vehicle = raw.vehicle ? normalizeVehicle(raw.vehicle as Record<string, unknown>) : null;
   const name = typeof raw.name === "string" ? raw.name : undefined;
   const notes = typeof raw.notes === "string" ? raw.notes : undefined;
   const pricePerPerson =
@@ -81,6 +148,8 @@ export function normalizeBookingGroup(raw: Record<string, unknown>, tripIdFallba
     status,
     driverId,
     driver,
+    vehicleId,
+    vehicle,
     name,
     notes,
     participants,
@@ -775,6 +844,40 @@ export const adminService = {
     throw new Error("Gagal menugaskan driver ke grup armada.");
   },
 
+  async assignVehicleToGroup(
+    groupId: string,
+    vehicleId: string | null
+  ): Promise<{ success: boolean; message: string; data?: BookingGroup }> {
+    try {
+      const res = await apiClient.patch<BookingGroup>(
+        `/admin/groups/${groupId}/vehicle`,
+        { vehicleId }
+      );
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || (vehicleId ? "Armada berhasil dipasangkan ke grup" : "Armada berhasil dilepaskan dari grup"),
+          data: res.data,
+        };
+      }
+    } catch {
+      const altRes = await apiClient.post<BookingGroup>(
+        `/admin/groups/${groupId}/assign-vehicle`,
+        { vehicleId }
+      );
+      if (altRes.success) {
+        return {
+          success: true,
+          message: altRes.message || (vehicleId ? "Armada berhasil dipasangkan ke grup" : "Armada berhasil dilepaskan dari grup"),
+          data: altRes.data,
+        };
+      }
+      throw new Error(altRes.message || "Gagal memasangkan armada ke grup.");
+    }
+
+    throw new Error("Gagal memasangkan armada ke grup.");
+  },
+
   async deleteGroup(id: string): Promise<{ success: boolean; message: string }> {
     const res = await apiClient.delete<{ success: boolean; message: string }>(
       `/admin/groups/${id}`
@@ -936,6 +1039,33 @@ export const adminService = {
     return res.data;
   },
 
+  async assignVehicleToDriver(
+    driverId: string,
+    vehicleId: string | null
+  ): Promise<{ success: boolean; message: string; data?: Driver }> {
+    try {
+      const res = await apiClient.post<Driver>(`/admin/drivers/${driverId}/assign-vehicle`, { vehicleId });
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || (vehicleId ? "Armada berhasil dipasangkan ke driver" : "Armada berhasil dilepaskan dari driver"),
+          data: res.data,
+        };
+      }
+    } catch {
+      const altRes = await apiClient.patch<Driver>(`/admin/drivers/${driverId}/vehicle`, { vehicleId });
+      if (altRes.success) {
+        return {
+          success: true,
+          message: altRes.message || (vehicleId ? "Armada berhasil dipasangkan ke driver" : "Armada berhasil dilepaskan dari driver"),
+          data: altRes.data,
+        };
+      }
+      throw new Error(altRes.message || "Gagal memasangkan armada ke driver.");
+    }
+    throw new Error("Gagal memasangkan armada ke driver.");
+  },
+
   async deleteDriver(id: string): Promise<{ success: boolean; message: string }> {
     const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/drivers/${id}`);
     if (!res.success) {
@@ -945,6 +1075,155 @@ export const adminService = {
       success: true,
       message: res.message || "Driver berhasil dihapus",
     };
+  },
+
+  // ==========================================
+  // MASTER ARMADA / VEHICLES MANAGEMENT
+  // ==========================================
+  async getVehicles(params?: {
+    status?: string;
+    isAvailable?: boolean;
+    search?: string;
+  }): Promise<Vehicle[]> {
+    try {
+      const res = await apiClient.get<Record<string, unknown>[]>("/admin/vehicles", { params });
+      if (res.success && Array.isArray(res.data)) {
+        return res.data.map(normalizeVehicle);
+      }
+    } catch {
+      try {
+        const altRes = await apiClient.get<Record<string, unknown>[]>("/admin/armada", { params });
+        if (altRes.success && Array.isArray(altRes.data)) {
+          return altRes.data.map(normalizeVehicle);
+        }
+      } catch {
+        try {
+          const pubRes = await apiClient.get<Record<string, unknown>[]>("/vehicles", { params });
+          if (pubRes.success && Array.isArray(pubRes.data)) {
+            return pubRes.data.map(normalizeVehicle);
+          }
+        } catch {
+          // Empty
+        }
+      }
+    }
+    return [];
+  },
+
+  async getVehicleById(id: string): Promise<Vehicle | null> {
+    try {
+      const res = await apiClient.get<Record<string, unknown>>(`/admin/vehicles/${id}`);
+      if (res.success && res.data) {
+        return normalizeVehicle(res.data);
+      }
+    } catch {
+      try {
+        const altRes = await apiClient.get<Record<string, unknown>>(`/admin/armada/${id}`);
+        if (altRes.success && altRes.data) {
+          return normalizeVehicle(altRes.data);
+        }
+      } catch {
+        // Not found
+      }
+    }
+    return null;
+  },
+
+  async createVehicle(payload: CreateVehiclePayload): Promise<Vehicle> {
+    try {
+      const res = await apiClient.post<Record<string, unknown>>("/admin/vehicles", payload);
+      if (res.success && res.data) {
+        return normalizeVehicle(res.data);
+      }
+      if (!res.success && res.message) {
+        throw new Error(res.message);
+      }
+    } catch (err) {
+      try {
+        const altRes = await apiClient.post<Record<string, unknown>>("/admin/armada", payload);
+        if (altRes.success && altRes.data) {
+          return normalizeVehicle(altRes.data);
+        }
+        if (!altRes.success && altRes.message) {
+          throw new Error(altRes.message);
+        }
+      } catch (altErr) {
+        throw err instanceof Error ? err : altErr;
+      }
+      throw err;
+    }
+    throw new Error("Gagal menambahkan armada baru.");
+  },
+
+  async updateVehicle(id: string, payload: UpdateVehiclePayload): Promise<Vehicle> {
+    try {
+      const res = await apiClient.patch<Record<string, unknown>>(`/admin/vehicles/${id}`, payload);
+      if (res.success && res.data) {
+        return normalizeVehicle(res.data);
+      }
+    } catch {
+      try {
+        const putRes = await apiClient.put<Record<string, unknown>>(`/admin/vehicles/${id}`, payload);
+        if (putRes.success && putRes.data) {
+          return normalizeVehicle(putRes.data);
+        }
+      } catch {
+        const altRes = await apiClient.patch<Record<string, unknown>>(`/admin/armada/${id}`, payload);
+        if (altRes.success && altRes.data) {
+          return normalizeVehicle(altRes.data);
+        }
+      }
+    }
+    throw new Error("Gagal memperbarui data armada.");
+  },
+
+  async deleteVehicle(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/vehicles/${id}`);
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || "Armada berhasil dihapus",
+        };
+      }
+    } catch {
+      const altRes = await apiClient.delete<{ success: boolean; message: string }>(`/admin/armada/${id}`);
+      if (altRes.success) {
+        return {
+          success: true,
+          message: altRes.message || "Armada berhasil dihapus",
+        };
+      }
+      throw new Error(altRes.message || "Gagal menghapus armada.");
+    }
+    throw new Error("Gagal menghapus armada.");
+  },
+
+  async assignDriverToVehicle(
+    vehicleId: string,
+    driverId: string | null
+  ): Promise<{ success: boolean; message: string; data?: Vehicle }> {
+    try {
+      const res = await apiClient.post<Record<string, unknown>>(`/admin/vehicles/${vehicleId}/assign-driver`, { driverId });
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || (driverId ? "Driver berhasil dipasangkan ke armada" : "Driver berhasil dicopot dari armada"),
+          data: res.data ? normalizeVehicle(res.data) : undefined,
+        };
+      }
+    } catch {
+      const altRes = await apiClient.patch<Record<string, unknown>>(`/admin/vehicles/${vehicleId}/driver`, { driverId });
+      if (altRes.success) {
+        return {
+          success: true,
+          message: altRes.message || (driverId ? "Driver berhasil dipasangkan ke armada" : "Driver berhasil dicopot dari armada"),
+          data: altRes.data ? normalizeVehicle(altRes.data) : undefined,
+        };
+      }
+      throw new Error(altRes.message || "Gagal memasangkan driver ke armada.");
+    }
+    throw new Error("Gagal memasangkan driver ke armada.");
   },
 
   async getArticles(): Promise<Article[]> {

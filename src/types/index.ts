@@ -47,6 +47,34 @@ export interface Destination {
   updatedAt: string;
 }
 
+export type VehicleStatus = "active" | "maintenance" | "inactive";
+
+export interface Vehicle {
+  id: string;
+  name: string;
+  plateNumber: string;
+  plate_number?: string;
+  vehicleType: string;
+  vehicle_type?: string;
+  capacity: number; // 6
+  transmission?: string;
+  fuelType?: string;
+  fuel_type?: string;
+  facility?: string[];
+  coverImage?: string;
+  cover_image?: string;
+  status: VehicleStatus | string;
+  isAvailable?: boolean;
+  is_available?: boolean;
+  driverId?: string | null;
+  driver_id?: string | null;
+  driver?: Driver | null;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+}
+
 export interface BookingGroup {
   id: string;
   tripId: string;
@@ -60,6 +88,8 @@ export interface BookingGroup {
   status: GroupStatus;
   driverId?: string | null;
   driver?: Driver | null;
+  vehicleId?: string | null;
+  vehicle?: Vehicle | null;
   name?: string;
   notes?: string;
   participants?: Participant[];
@@ -128,7 +158,7 @@ export interface Participant {
   phoneNumber: string;
   phone_number?: string;
   nationality: string;
-  identityNumber?: string; // Optional (Deprecated)
+  identityNumber?: string;
   identity_number?: string;
   dateOfBirth?: string;
   date_of_birth?: string;
@@ -177,23 +207,33 @@ export interface Participant {
 export interface Driver {
   id: string;
   userId?: string;
+  user_id?: string;
   fullName: string;
   name?: string;
   phoneNumber: string;
   phone?: string;
   email?: string;
   licenseNumber: string;
-  vehicleModel: string;
-  vehicleType?: string;
-  plateNumber: string;
-  vehiclePlat?: string;
-  passengerCapacity: number; // 6
+  license_number?: string;
   experienceYears?: number;
-  isAvailable?: boolean;
-  status: DriverStatus;
+  experience_years?: number;
   rating: number;
-  totalTrips: number;
+  totalTrips?: number;
+  total_trips?: number;
+  isAvailable?: boolean;
+  is_available?: boolean;
+  status: DriverStatus;
+  vehicleId?: string | null;
+  vehicle_id?: string | null;
+  vehicle?: Vehicle | null;
+  // Legacy compatibility fields
+  vehicleModel?: string;
+  vehicleType?: string;
+  plateNumber?: string;
+  vehiclePlat?: string;
+  passengerCapacity?: number; // 6
   photoUrl?: string;
+  photo_url?: string;
   notes?: string;
   user?: {
     id?: string;
@@ -202,8 +242,10 @@ export interface Driver {
     email?: string;
     profileImageUrl?: string;
   };
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
 }
 
 export interface Payment {
@@ -358,7 +400,8 @@ export interface MoveParticipantPayload {
 
 export interface CreateBookingGroupPayload {
   tripId: string;
-  driverId?: string;
+  driverId?: string | null;
+  vehicleId?: string | null;
   groupNumber?: number;
   maxParticipants?: number;
   capacity?: number;
@@ -372,7 +415,40 @@ export interface UpdateBookingGroupPayload {
   status?: GroupStatus;
   pricePerPerson?: number;
   driverId?: string | null;
+  vehicleId?: string | null;
   groupNumber?: number;
+}
+
+export interface CreateVehiclePayload {
+  name: string;
+  plateNumber: string;
+  vehicleType?: string;
+  capacity?: number;
+  transmission?: string;
+  fuelType?: string;
+  facility?: string[];
+  coverImage?: string;
+  status?: VehicleStatus | string;
+  isAvailable?: boolean;
+  driverId?: string | null;
+}
+
+export interface UpdateVehiclePayload {
+  name?: string;
+  plateNumber?: string;
+  vehicleType?: string;
+  capacity?: number;
+  transmission?: string;
+  fuelType?: string;
+  facility?: string[];
+  coverImage?: string;
+  status?: VehicleStatus | string;
+  isAvailable?: boolean;
+  driverId?: string | null;
+}
+
+export interface AssignVehiclePayload {
+  vehicleId: string | null;
 }
 
 export interface AssignDriverPayload {

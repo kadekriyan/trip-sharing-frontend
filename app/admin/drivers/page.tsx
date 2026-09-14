@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Plus,
   Search,
@@ -10,13 +9,17 @@ import {
   Phone,
   ShieldCheck,
   UserCheck,
-  User,
+  UserX,
+  Car,
   Loader2,
   PackageOpen,
   Edit,
   Trash2,
   AlertTriangle,
   CheckCircle2,
+  Sparkles,
+  Users,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -30,50 +33,75 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
-import type { Driver } from "@/src/types";
+import type { Driver, Vehicle } from "@/src/types";
 
 export default function DriversAdminPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [availabilityFilter, setAvailabilityFilter] = useState("all");
+  const [vehicleFilter, setVehicleFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Assign Vehicle Modal State
+  const [assignTarget, setAssignTarget] = useState<Driver | null>(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [isAssigningVehicle, setIsAssigningVehicle] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<Driver | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  const reloadDrivers = async () => {
+  const loadData = async () => {
     setIsLoading(true);
     try {
-      const data = await adminService.getDrivers();
-      setDrivers(data);
+      const [driversData, vehiclesData] = await Promise.all([
+        adminService.getDrivers(),
+        adminService.getVehicles(),
+      ]);
+      setDrivers(driversData);
+      setVehicles(vehiclesData);
     } catch {
-      // Silently handled
+      // Handled silently
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    let isMounted = true;
-    async function fetchData() {
-      try {
-        const data = await adminService.getDrivers();
-        if (isMounted) {
-          setDrivers(data);
-        }
-      } catch {
-        // Silently handled
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    }
-
-    fetchData();
-    return () => {
-      isMounted = false;
-    };
+    loadData();
   }, []);
+
+  const handleOpenAssignModal = (driver: Driver) => {
+    setAssignTarget(driver);
+    setSelectedVehicleId(driver.vehicleId || driver.vehicle?.id || "");
+    setAssignError(null);
+  };
+
+  const handleAssignVehicleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignTarget) return;
+
+    setIsAssigningVehicle(true);
+    setAssignError(null);
+    try {
+      const vehicleIdToSet = selectedVehicleId ? selectedVehicleId : null;
+      const res = await adminService.assignVehicleToDriver(assignTarget.id, vehicleIdToSet);
+      setActionFeedback({
+        type: "success",
+        message: res.message || "Penugasan armada ke driver berhasil diperbarui!",
+      });
+      setAssignTarget(null);
+      await loadData();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Gagal memasangkan armada ke driver.";
+      setAssignError(msg);
+    } finally {
+      setIsAssigningVehicle(false);
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -84,7 +112,7 @@ export default function DriversAdminPage() {
       const res = await adminService.deleteDriver(deleteTarget.id);
       setActionFeedback({ type: "success", message: res.message || "Driver berhasil dihapus." });
       setDeleteTarget(null);
-      await reloadDrivers();
+      await loadData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal menghapus driver.";
       setActionFeedback({ type: "error", message: msg });
@@ -93,31 +121,74 @@ export default function DriversAdminPage() {
     }
   };
 
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setAvailabilityFilter("all");
+    setVehicleFilter("all");
+  };
+
   const filtered = Array.isArray(drivers)
     ? drivers.filter((d) => {
         if (!d) return false;
         const name = (d.fullName || d.name || "").toLowerCase();
-        const model = (d.vehicleModel || d.vehicleType || "").toLowerCase();
-        const plate = (d.plateNumber || d.vehiclePlat || "").toLowerCase();
-        const query = (searchQuery || "").toLowerCase();
-        return name.includes(query) || model.includes(query) || plate.includes(query);
+        const phone = (d.phoneNumber || d.phone || "").toLowerCase();
+        const license = (d.licenseNumber || "").toLowerCase();
+        const vehicleName = (d.vehicle?.name || d.vehicleModel || d.vehicleType || "").toLowerCase();
+        const plate = (d.vehicle?.plateNumber || d.plateNumber || d.vehiclePlat || "").toLowerCase();
+        const query = searchQuery.toLowerCase();
+
+        const matchSearch =
+          name.includes(query) ||
+          phone.includes(query) ||
+          license.includes(query) ||
+          vehicleName.includes(query) ||
+          plate.includes(query);
+
+        const isAvail = d.isAvailable !== undefined ? Boolean(d.isAvailable) : d.status === "available";
+        const matchAvail =
+          availabilityFilter === "all"
+            ? true
+            : availabilityFilter === "available"
+            ? isAvail
+            : !isAvail;
+
+        const hasVehicle = Boolean(d.vehicleId || d.vehicle || d.plateNumber || d.vehicleModel);
+        const matchVehicle =
+          vehicleFilter === "all"
+            ? true
+            : vehicleFilter === "assigned"
+            ? hasVehicle
+            : !hasVehicle;
+
+        return matchSearch && matchAvail && matchVehicle;
       })
     : [];
 
+  const totalDriversCount = drivers.length;
+  const readyDriversCount = drivers.filter(
+    (d) => (d.isAvailable !== undefined ? Boolean(d.isAvailable) : d.status === "available")
+  ).length;
+  const assignedVehicleCount = drivers.filter((d) => d.vehicleId || d.vehicle || d.plateNumber).length;
+  const unassignedVehicleCount = totalDriversCount - assignedVehicleCount;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
-          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#191c1e]">
-            Kelola Driver & Armada Kendaraan
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#00677d] uppercase tracking-wider mb-1">
+            <UserCheck className="h-4 w-4" />
+            <span>Manajemen Personil Pengemudi</span>
+          </div>
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-[#191c1e] tracking-tight">
+            Personil Mitra Driver
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Pantau ketersediaan pengemudi, armada HiAce VIP, lisensi berkendara, dan penugasan trip.
+            Kelola profil pengemudi, kontak WhatsApp, nomor SIM, rating kepuasan, dan pasangkan dengan master armada.
           </p>
         </div>
 
-        <Button asChild className="gap-2 shadow-sm rounded-xl">
+        <Button asChild className="gap-2 shadow-md shadow-[#00677d]/20 rounded-xl px-5 py-2.5 font-semibold bg-[#00677d] hover:bg-[#005264] text-white">
           <Link href="/admin/drivers/new">
             <Plus className="h-4 w-4" />
             Daftarkan Driver Baru
@@ -128,7 +199,7 @@ export default function DriversAdminPage() {
       {/* Global Feedback Banner */}
       {actionFeedback && (
         <div
-          className={`p-4 rounded-2xl flex items-start gap-3 border ${
+          className={`p-4 rounded-2xl flex items-start gap-3 border animate-in fade-in slide-in-from-top-2 ${
             actionFeedback.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
               : "bg-rose-50 border-rose-200 text-rose-800"
@@ -152,44 +223,152 @@ export default function DriversAdminPage() {
         </div>
       )}
 
-      {/* Filter and Search */}
-      <Card className="p-4 border border-slate-100 shadow-stitch-card bg-white">
-        <div className="relative">
-          <Search className="h-4 w-4 text-slate-400 absolute left-3 top-3" />
-          <Input
-            placeholder="Cari berdasarkan nama driver, jenis armada, atau plat nomor..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 text-xs bg-slate-50/50 border-slate-200 focus:bg-white transition-colors"
-          />
+      {/* Metrics Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase">Total Driver</span>
+            <div className="p-2 rounded-xl bg-teal-50 text-[#00677d]">
+              <Users className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="text-2xl md:text-3xl font-black text-slate-900 mt-2">{totalDriversCount}</div>
+          <span className="text-[11px] text-slate-500 font-medium">Mitra terdaftar</span>
+        </Card>
+
+        <Card className="p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase">Siap Bertugas</span>
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="text-2xl md:text-3xl font-black text-emerald-600 mt-2">{readyDriversCount}</div>
+          <span className="text-[11px] text-slate-500 font-medium">Status available</span>
+        </Card>
+
+        <Card className="p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase">Terpasang Armada</span>
+            <div className="p-2 rounded-xl bg-teal-50 text-[#00677d]">
+              <Car className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="text-2xl md:text-3xl font-black text-[#00677d] mt-2">{assignedVehicleCount}</div>
+          <span className="text-[11px] text-slate-500 font-medium">Memiliki unit mobil</span>
+        </Card>
+
+        <Card className="p-4 md:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase">Tanpa Unit Armada</span>
+            <div className={`p-2 rounded-xl ${unassignedVehicleCount > 0 ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-400"}`}>
+              <UserX className="h-5 w-5" />
+            </div>
+          </div>
+          <div className={`text-2xl md:text-3xl font-black mt-2 ${unassignedVehicleCount > 0 ? "text-amber-600" : "text-slate-700"}`}>
+            {unassignedVehicleCount} Personil
+          </div>
+          <span className="text-[11px] text-slate-500 font-medium">Driver stand-by</span>
+        </Card>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+            <UserCheck className="h-4 w-4 text-[#00677d]" />
+            <span>Filter & Pencarian Driver</span>
+          </div>
+          {(searchQuery || availabilityFilter !== "all" || vehicleFilter !== "all") && (
+            <button
+              onClick={handleResetFilters}
+              className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Reset Filter</span>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="h-4 w-4 text-slate-400 absolute left-3 top-3.5" />
+            <Input
+              placeholder="Cari driver, no HP, no SIM, atau plat armada..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 text-xs rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
+            />
+          </div>
+
+          <div>
+            <select
+              value={availabilityFilter}
+              onChange={(e) => setAvailabilityFilter(e.target.value)}
+              className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+            >
+              <option value="all">Semua Status Ketersediaan</option>
+              <option value="available">Siap Bertugas (Available)</option>
+              <option value="off">Off / Sedang Cuti</option>
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={vehicleFilter}
+              onChange={(e) => setVehicleFilter(e.target.value)}
+              className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+            >
+              <option value="all">Semua Kepemilikan Armada</option>
+              <option value="assigned">Sudah Terpasang Unit Mobil</option>
+              <option value="unassigned">Belum Terpasang Unit Mobil</option>
+            </select>
+          </div>
         </div>
       </Card>
 
       {/* Drivers Grid */}
-      <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white">
+      <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white rounded-2xl">
         {isLoading ? (
-          <div className="p-12 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-2">
-            <Loader2 className="h-6 w-6 text-[#00677d] animate-spin" />
-            <span>Memuat data driver...</span>
+          <div className="p-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-3">
+            <Loader2 className="h-8 w-8 text-[#00677d] animate-spin" />
+            <span className="font-semibold text-slate-600">Memuat data personil driver...</span>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center bg-slate-50/50 rounded-xl border border-slate-200 space-y-3">
-            <PackageOpen className="h-8 w-8 text-slate-400 mx-auto" />
-            <p className="text-xs font-semibold text-slate-600">Belum ada mitra driver terdaftar.</p>
-            <Button asChild size="sm" variant="outline">
+          <div className="p-12 text-center bg-slate-50/50 rounded-2xl border border-slate-200 space-y-3">
+            <PackageOpen className="h-10 w-10 text-slate-400 mx-auto" />
+            <h3 className="text-sm font-bold text-slate-700">Belum ada personil driver ditemukan</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {searchQuery || availabilityFilter !== "all" || vehicleFilter !== "all"
+                ? "Tidak ada data driver yang cocok dengan filter pencarian saat ini."
+                : "Daftarkan mitra pengemudi baru untuk mengoperasikan armada perjalanan."}
+            </p>
+            <Button asChild size="sm" className="bg-[#00677d] text-white rounded-xl">
               <Link href="/admin/drivers/new">Tambah Driver Pertama</Link>
             </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((driver) => {
-              const driverName = driver.fullName || driver.name || "Driver Armada";
-              const isAvailable = driver.isAvailable !== undefined ? Boolean(driver.isAvailable) : driver.status === "available";
+              const driverName = driver.fullName || driver.name || "Driver Mitra";
+              const isAvailable =
+                driver.isAvailable !== undefined
+                  ? Boolean(driver.isAvailable)
+                  : driver.status === "available";
+
+              const assignedVehicle = driver.vehicle;
+              const vehicleName =
+                assignedVehicle?.name || driver.vehicleModel || driver.vehicleType;
+              const vehiclePlate =
+                assignedVehicle?.plateNumber ||
+                assignedVehicle?.plate_number ||
+                driver.plateNumber ||
+                driver.vehiclePlat;
 
               return (
                 <Card
                   key={driver.id}
-                  className="p-5 border border-slate-100 shadow-stitch-card flex flex-col justify-between space-y-4"
+                  className="p-5 border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow rounded-2xl flex flex-col justify-between space-y-4 bg-white"
                 >
                   <div className="space-y-4">
                     <div className="flex items-start gap-3.5">
@@ -209,7 +388,9 @@ export default function DriversAdminPage() {
                         <div className="flex items-center gap-1 text-xs text-amber-500 font-semibold mt-0.5">
                           <Star className="h-3.5 w-3.5 fill-current" />
                           <span>{driver.rating || 5.0}</span>
-                          <span className="text-slate-400 font-normal">({driver.totalTrips || 0} Trip)</span>
+                          <span className="text-slate-400 font-normal">
+                            ({driver.totalTrips || 0} Trip Selesai)
+                          </span>
                         </div>
 
                         <a
@@ -219,35 +400,55 @@ export default function DriversAdminPage() {
                           className="inline-flex items-center gap-1 text-[11px] text-[#00677d] font-bold hover:underline mt-1"
                         >
                           <Phone className="h-3 w-3" />
-                          {driver.phoneNumber}
+                          {driver.phoneNumber || driver.phone || "No HP Kosong"}
                         </a>
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500">Armada Mobil:</span>
-                        <span className="font-bold text-slate-800">{driver.vehicleModel || driver.vehicleType}</span>
+                    {/* Assigned Vehicle Section */}
+                    <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-slate-500 uppercase tracking-wider">Armada Terpasang</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAssignModal(driver)}
+                          className="text-[11px] font-bold text-[#00677d] hover:underline flex items-center gap-1"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          {vehicleName ? "Ganti Armada" : "Pasang Armada"}
+                        </button>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500">Plat Nomor:</span>
-                        <span className="font-mono font-bold text-[#00677d]">{driver.plateNumber || driver.vehiclePlat}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-500">Kapasitas:</span>
-                        <span className="font-bold text-slate-800">{driver.passengerCapacity || 6} Kursi VIP</span>
-                      </div>
+
+                      {vehicleName ? (
+                        <div className="space-y-1 pt-0.5">
+                          <div className="flex items-center justify-between font-medium">
+                            <span className="text-slate-600">Model:</span>
+                            <span className="font-bold text-slate-900 truncate max-w-[150px]">{vehicleName}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-600">Plat Polisi:</span>
+                            <span className="font-mono font-extrabold text-[#00677d] bg-white px-2 py-0.5 rounded border border-slate-200">
+                              {vehiclePlate || "NO-PLATE"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-slate-400 py-1">
+                          <Car className="h-4 w-4 text-amber-500 shrink-0" />
+                          <span className="italic text-[11px]">Belum dipasangkan ke unit armada</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
                       <Badge
                         variant={isAvailable ? "default" : "secondary"}
-                        className="capitalize text-[10px]"
+                        className="capitalize text-[10px] px-2.5 py-0.5"
                       >
-                        {isAvailable ? "Siap Bertugas" : "Off / Perawatan"}
+                        {isAvailable ? "Siap Bertugas" : "Off / Cuti"}
                       </Badge>
 
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-slate-500 font-mono font-semibold">
                         SIM: {driver.licenseNumber}
                       </span>
                     </div>
@@ -285,7 +486,87 @@ export default function DriversAdminPage() {
         )}
       </Card>
 
-      {/* CONFIRMATION MODAL HAPUS DRIVER */}
+      {/* ========================================================================= */}
+      {/* MODAL PASANGKAN / GANTI ARMADA KE DRIVER                                  */}
+      {/* ========================================================================= */}
+      <Dialog open={Boolean(assignTarget)} onOpenChange={(open) => !open && setAssignTarget(null)}>
+        <DialogContent className="max-w-md bg-white p-6 rounded-3xl">
+          <DialogHeader className="space-y-2 text-left">
+            <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center text-[#00677d] mb-1">
+              <Car className="h-5 w-5" />
+            </div>
+            <DialogTitle className="font-heading font-extrabold text-lg text-slate-900">
+              Pasangkan Armada ke Driver
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 leading-relaxed">
+              Pilih unit kendaraan fisik dari master armada untuk pengemudi{" "}
+              <strong className="text-slate-800">
+                &ldquo;{assignTarget?.fullName || assignTarget?.name}&rdquo;
+              </strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          {assignError && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{assignError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAssignVehicleSubmit} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 block">Pilih Unit Master Armada</label>
+              <select
+                value={selectedVehicleId}
+                onChange={(e) => setSelectedVehicleId(e.target.value)}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+              >
+                <option value="">-- Lepaskan Armada (Tidak Ada Mobil) --</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name} ({v.plateNumber || v.plate_number}) {v.driverId && v.driverId !== assignTarget?.id ? `[Saat ini dibawa ${v.driver?.fullName || "Driver Lain"}]` : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-slate-400">
+                Data penugasan otomatis tersinkronisasi dua arah ke halaman Master Armada dan Grup Rombongan.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isAssigningVehicle}
+                onClick={() => setAssignTarget(null)}
+                className="rounded-xl"
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isAssigningVehicle}
+                className="bg-[#00677d] hover:bg-[#005264] text-white font-bold rounded-xl gap-1.5 shadow-sm"
+              >
+                {isAssigningVehicle ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <span>Konfirmasi Pasang Armada</span>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========================================================================= */}
+      {/* CONFIRMATION MODAL HAPUS DRIVER                                           */}
+      {/* ========================================================================= */}
       <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent className="max-w-md bg-white p-6 rounded-3xl">
           <DialogHeader className="space-y-2 text-left">
@@ -299,13 +580,12 @@ export default function DriversAdminPage() {
               Anda akan menghapus driver{" "}
               <strong className="text-slate-800">
                 &ldquo;{deleteTarget ? deleteTarget.fullName || deleteTarget.name : ""}&rdquo;
-              </strong>{" "}
-              dan armada terkait. Tindakan ini tidak dapat dibatalkan.
+              </strong>. Tindakan ini tidak dapat dibatalkan.
             </DialogDescription>
           </DialogHeader>
 
           <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-800 space-y-1 mt-2">
-            <span className="font-bold block flex items-center gap-1">
+            <span className="font-bold flex items-center gap-1">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
               Ketentuan Penugasan Trip:
             </span>

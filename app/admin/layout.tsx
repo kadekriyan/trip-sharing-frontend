@@ -9,6 +9,7 @@ import {
   Users,
   MapPin,
   Car,
+  UserCheck,
   FileText,
   Calendar,
   Layers,
@@ -31,7 +32,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Grup Armada", href: "/admin/groups", icon: Layers },
     { label: "Manajemen Peserta", href: "/admin/participants", icon: Users },
     { label: "Katalog Destinasi", href: "/admin/destinations", icon: MapPin },
-    { label: "Driver & Armada", href: "/admin/drivers", icon: Car },
+    { label: "Personil Driver", href: "/admin/drivers", icon: UserCheck },
+    { label: "Master Armada", href: "/admin/vehicles", icon: Car },
     { label: "CMS Artikel Blog", href: "/admin/blogs", icon: FileText },
   ];
 
