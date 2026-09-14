@@ -11,6 +11,7 @@ import {
   Sparkles,
   Loader2,
   Settings2,
+  Users,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -18,6 +19,15 @@ import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
 import type { Driver } from "@/src/types";
+
+const CAPACITY_PRESETS = [
+  { label: "6 VIP", value: 6 },
+  { label: "10 Pax", value: 10 },
+  { label: "14 Elf", value: 14 },
+  { label: "19 Coaster", value: 19 },
+  { label: "30 Med Bus", value: 30 },
+  { label: "50 Big Bus", value: 50 },
+];
 
 const DEFAULT_FACILITIES = [
   "AC Dingin Double Blower",
@@ -126,7 +136,9 @@ export default function NewVehiclePage() {
             Tambah Unit Armada Baru
           </h1>
         </div>
-        <Badge variant="azure">Kapasitas Standar: 6 Pax VIP</Badge>
+        <Badge variant="azure" className="text-xs font-bold px-3 py-1">
+          Kapasitas: {capacity} Kursi Penumpang
+        </Badge>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -176,6 +188,56 @@ export default function NewVehiclePage() {
                 onChange={(e) => setVehicleType(e.target.value)}
                 className="text-xs"
               />
+            </div>
+
+            {/* Input Kapasitas Kursi */}
+            <div className="space-y-1.5 sm:col-span-2 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-[#00677d]" />
+                  Jumlah Kursi / Kapasitas Penumpang (Seat) *
+                </label>
+                <span className="text-xs font-bold text-[#00677d] font-mono bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
+                  {capacity} Seat
+                </span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                <div className="w-full sm:w-1/3">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={60}
+                    required
+                    value={capacity}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setCapacity(isNaN(val) ? 1 : Math.max(1, Math.min(60, val)));
+                    }}
+                    className="text-xs font-bold font-mono"
+                    placeholder="1 - 60"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 flex-1">
+                  <span className="text-[11px] text-slate-500 font-medium mr-1">Preset Cepat:</span>
+                  {CAPACITY_PRESETS.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      onClick={() => setCapacity(preset.value)}
+                      className={`text-[11px] px-2.5 py-1 rounded-lg font-medium transition-all ${
+                        capacity === preset.value
+                          ? "bg-[#00677d] text-white font-bold shadow-sm"
+                          : "bg-white border border-slate-200 text-slate-600 hover:border-[#00677d] hover:text-[#00677d]"
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Tentukan jumlah kapasitas maksimal penumpang untuk unit armada ini (1 – 60 kursi).
+              </p>
             </div>
 
             <div className="space-y-1.5">
