@@ -16,7 +16,7 @@ import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { CountryCombobox } from "@/src/components/ui/country-combobox";
 import { adminService } from "@/src/services/admin.service";
-import { formatCurrency, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
+import { formatCurrency, getDestinationTitle, getDestinationPrice, sanitizePhoneNumber } from "@/src/lib/utils";
 import type { Destination, BookingGroup, Trip } from "@/src/types";
 
 export default function AddParticipantPage() {
@@ -149,7 +149,7 @@ export default function AddParticipantPage() {
       const res = await adminService.addParticipantManual({
         fullName,
         email,
-        phoneNumber,
+        phoneNumber: sanitizePhoneNumber(phoneNumber),
         nationality,
         gender,
         tripId: activeTripId || selectedDestination,

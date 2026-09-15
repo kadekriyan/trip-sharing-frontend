@@ -17,6 +17,7 @@ import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { CountryCombobox } from "@/src/components/ui/country-combobox";
 import { useAuth } from "@/src/context/auth-context";
+import { sanitizePhoneNumber } from "@/src/lib/utils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function RegisterPage() {
         fullName,
         email,
         password,
-        phoneNumber,
+        phoneNumber: sanitizePhoneNumber(phoneNumber),
         nationality,
       });
       router.push("/bookings");

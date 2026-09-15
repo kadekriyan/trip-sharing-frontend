@@ -48,6 +48,7 @@ import {
   formatDate,
   getImageUrl,
   parsePickupLocation,
+  sanitizePhoneNumber,
 } from "@/src/lib/utils";
 import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import { TripCalendarPicker } from "@/src/components/destination/trip-calendar-picker";
@@ -511,7 +512,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             bookingGroupId: selectedGroup || undefined,
             fullName: item.fullName.trim(),
             email: item.email?.trim() || primaryItem.email.trim(),
-            phoneNumber: item.phoneNumber.trim(),
+            phoneNumber: sanitizePhoneNumber(item.phoneNumber),
             nationality: item.nationality?.trim() || "Indonesia",
             dateOfBirth: item.dateOfBirth ? item.dateOfBirth.trim() : undefined,
             gender: (item.gender as "male" | "female" | "other") || undefined,

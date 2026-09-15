@@ -15,6 +15,18 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Membersihkan karakter pemisah seperti strip (-), spasi, tanda kurung dari nomor telepon
+ * Contoh: "0812-3456-7890" -> "081234567890", "+62 812-3456-7890" -> "+6281234567890"
+ */
+export function sanitizePhoneNumber(phone?: string | null): string {
+  if (!phone) return "";
+  const trimmed = phone.trim();
+  const hasPlus = trimmed.startsWith("+");
+  const digitsOnly = trimmed.replace(/\D/g, "");
+  return hasPlus ? `+${digitsOnly}` : digitsOnly;
+}
+
 export function formatCurrency(amount?: number | string | null): string {
   if (amount === undefined || amount === null) return "Rp 0";
   const numeric = typeof amount === "number" ? amount : Number(amount);
