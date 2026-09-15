@@ -55,6 +55,15 @@ import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import { TripCalendarPicker } from "@/src/components/destination/trip-calendar-picker";
 import { GooglePlacesAutocomplete } from "@/src/components/ui/google-places-autocomplete";
 import { CountryCombobox } from "@/src/components/ui/country-combobox";
+import {
+  hasCountryConflict,
+  findConflictingCountriesInGroup,
+  isGroupCompatibleWithTraveler,
+  isGroupCompatibleWithMultipleTravelers,
+  findBestCompatibleGroup,
+  checkInternalBookingConflicts,
+  canonicalizeCountry,
+} from "@/src/lib/country-conflict";
 import type { Destination, BookingGroup, Trip, Participant, BulkBookingPayload, CreateBookingPayload } from "@/src/types";
 
 export interface BookingItemState {
@@ -384,6 +393,34 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
   const basePrice = activeTrip?.pricePerPax || getDestinationPrice(destination);
   const totalAmount = basePrice * bookingItems.length;
 
+  // Evaluasi Konflik Geopolitik & Alokasi Armada Cerdas
+  const requestedNationalities = useMemo(() => {
+    return bookingItems.map((b) => b.nationality || "Indonesia");
+  }, [bookingItems]);
+
+  const internalBookingConflict = useMemo(() => {
+    return checkInternalBookingConflicts(requestedNationalities);
+  }, [requestedNationalities]);
+
+  const compatibleGroup = useMemo(() => {
+    if (!groups || groups.length === 0) return null;
+    return findBestCompatibleGroup(groups, requestedNationalities, bookingItems.length);
+  }, [groups, requestedNationalities, bookingItems.length]);
+
+  const currentDefaultGroup = groups[0] || null;
+  const currentDefaultGroupConflicts = useMemo(() => {
+    if (!currentDefaultGroup) return [];
+    const parts = currentDefaultGroup.participants || [];
+    const allFound = new Set<string>();
+    for (const nat of requestedNationalities) {
+      const confs = findConflictingCountriesInGroup(nat, parts);
+      confs.forEach((c) => allFound.add(c));
+    }
+    return Array.from(allFound);
+  }, [currentDefaultGroup, requestedNationalities]);
+
+  const isSmartSegregationActive = currentDefaultGroupConflicts.length > 0;
+
   const validateBookingForm = (): boolean => {
     const errors: Record<string, string> = {};
     let firstErrorRefKey: string | null = null;
@@ -503,6 +540,13 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       const targetTripId = selectedTripId || `trip-ondemand-${Date.now()}`;
       const primaryItem = bookingItems[0];
 
+      // Tentukan target bookingGroupId yang kompatibel (atau undefined untuk auto-assign armada baru bebas konflik)
+      const effectiveTargetGroupId = compatibleGroup
+        ? compatibleGroup.id
+        : isSmartSegregationActive
+        ? undefined
+        : selectedGroup || undefined;
+
       const bulkPayload: BulkBookingPayload = {
         captchaToken: activeToken || "dev-dummy-captcha-token",
         bookings: bookingItems.map((item, idx) => {
@@ -521,7 +565,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
           return {
             tripId: targetTripId,
             destinationId: destination.id,
-            bookingGroupId: selectedGroup || undefined,
+            bookingGroupId: effectiveTargetGroupId,
             fullName: item.fullName.trim(),
             email: item.email?.trim() || primaryItem.email.trim(),
             phoneNumber: sanitizePhoneNumber(item.phoneNumber),
@@ -834,33 +878,48 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
                   {/* Armada Group Status */}
                   {selectedDate && groups.length > 0 && (
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 mt-2">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2.5 mt-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-slate-700 flex items-center gap-1.5">
                           <Car className="h-3.5 w-3.5 text-[#00677d]" />
                           Alokasi Mobil Armada:
                         </span>
                         <span className="text-[11px] font-semibold text-teal-700">
-                          {groups[0]?.driver?.vehicleModel || "HiAce Commuter VIP (6 Kursi)"}
+                          {compatibleGroup
+                            ? `Mobil #${compatibleGroup.groupNumber || 1} (${compatibleGroup.driver?.vehicleModel || "HiAce VIP"})`
+                            : isSmartSegregationActive
+                            ? "Unit Armada Baru (Inisiator Grup)"
+                            : groups[0]?.driver?.vehicleModel || "HiAce Commuter VIP (6 Kursi)"}
                         </span>
                       </div>
+
+                      {/* Smart Segregation Info Banner */}
+                      {isSmartSegregationActive && !compatibleGroup && (
+                        <div className="p-2.5 rounded-xl bg-teal-50/90 border border-teal-200/80 text-[11px] text-teal-900 flex items-start gap-2 shadow-xs">
+                          <Info className="h-3.5 w-3.5 text-teal-600 shrink-0 mt-0.5" />
+                          <div className="leading-relaxed">
+                            <span className="font-bold">Alokasi Armada Baru Cerdas:</span> Rombongan Anda otomatis dialokasikan ke unit kendaraan baru untuk menjamin keharmonisan dan kenyamanan perjalanan bersama.
+                          </div>
+                        </div>
+                      )}
+
                       <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                         <div
                           className="bg-[#00677d] h-full transition-all duration-300"
                           style={{
                             width: `${calculateOccupancyPercent(
-                              groups[0]?.currentParticipants || 0,
-                              groups[0]?.capacity || 6
+                              compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0,
+                              compatibleGroup ? (compatibleGroup.capacity || 6) : 6
                             )}%`,
                           }}
                         />
                       </div>
                       <div className="flex justify-between text-[10px] text-slate-500 font-medium">
                         <span>
-                          Terisi: {groups[0]?.currentParticipants || 0} / {groups[0]?.capacity || 6} Kursi
+                          Terisi: {compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0} / {compatibleGroup ? (compatibleGroup.capacity || 6) : 6} Kursi
                         </span>
                         <span>
-                          {(groups[0]?.capacity || 6) - (groups[0]?.currentParticipants || 0)} Kursi Tersedia
+                          {(compatibleGroup ? (compatibleGroup.capacity || 6) : 6) - (compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0)} Kursi Tersedia
                         </span>
                       </div>
                     </div>
@@ -878,6 +937,22 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                       * Kolom wajib
                     </span>
                   </div>
+
+                  {/* Multi-Booking Internal Harmony Info */}
+                  {internalBookingConflict.hasConflict && (
+                    <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2">
+                      <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="leading-relaxed">
+                        <span className="font-bold">Catatan Harmonisasi Rombongan:</span> Rombongan Anda mendaftarkan peserta dengan kewarganegaraan{" "}
+                        {internalBookingConflict.conflicts.map((c, i) => (
+                          <span key={i} className="font-semibold underline">
+                            {c.countryA} &amp; {c.countryB}
+                          </span>
+                        ))}
+                        . Seluruh peserta ini tetap akan diproses bersama dalam satu transaksi pemesanan.
+                      </div>
+                    </div>
+                  )}
 
                   {/* CARDS LIST OF BOOKING ITEMS */}
                   <div className="space-y-4">

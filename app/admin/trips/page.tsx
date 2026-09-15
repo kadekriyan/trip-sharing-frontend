@@ -46,6 +46,7 @@ import {
   getTripStatusBadge,
   parsePickupLocation,
 } from "@/src/lib/utils";
+import { checkInternalBookingConflicts } from "@/src/lib/country-conflict";
 import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload, TripStatus, Participant, BookingGroup } from "@/src/types";
 
 export default function AdminTripsPage() {
@@ -836,25 +837,36 @@ export default function AdminTripsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                       {trip.groups.map((group) => {
                         const isGroupFull = group.currentParticipants >= (group.capacity || 6);
+                        const groupParts = (trip.participants || []).filter(
+                          (p) => (p.bookingGroupId || p.group?.id || p.bookingGroup?.id) === group.id
+                        );
+                        const groupNationalities = groupParts.map((p) => p.nationality || "Indonesia");
+                        const groupConflict = checkInternalBookingConflicts(groupNationalities);
+
                         return (
                           <div
                             key={group.id}
-                            className="p-3 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-between text-xs"
+                            className="p-3 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-between text-xs gap-2"
                           >
-                            <div className="space-y-0.5">
+                            <div className="space-y-0.5 min-w-0">
                               <span className="font-bold text-[#191c1e] flex items-center gap-1.5">
-                                <Users className="h-3.5 w-3.5 text-[#00677d]" />
+                                <Users className="h-3.5 w-3.5 text-[#00677d] shrink-0" />
                                 {group.name || `Grup Mobil #${group.groupNumber}`}
                               </span>
-                              <span className="text-[10px] text-slate-500 block">
+                              <span className="text-[10px] text-slate-500 block truncate">
                                 {group.driver
                                   ? `${group.driver.fullName} (${group.driver.plateNumber})`
                                   : "Driver belum ditugaskan"}
                               </span>
+                              {groupConflict.hasConflict && (
+                                <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block font-semibold mt-0.5">
+                                  ⚠️ Konflik: {groupConflict.conflicts[0].countryA} vs {groupConflict.conflicts[0].countryB}
+                                </span>
+                              )}
                             </div>
                             <Badge
                               variant={isGroupFull ? "destructive" : "secondary"}
-                              className="text-[10px] font-bold"
+                              className="text-[10px] font-bold shrink-0"
                             >
                               {group.currentParticipants} / {group.capacity || 6} Pax
                             </Badge>

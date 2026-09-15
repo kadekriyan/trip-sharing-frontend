@@ -34,6 +34,7 @@ import {
   getDestinationTitle,
   parsePickupLocation,
 } from "@/src/lib/utils";
+import { findConflictingCountriesInGroup } from "@/src/lib/country-conflict";
 import type { Participant, Trip, BookingGroup } from "@/src/types";
 
 export default function ParticipantsManagementPage() {
@@ -799,6 +800,31 @@ export default function ParticipantsManagementPage() {
                     </option>
                   </select>
                 </div>
+
+                {/* Nationality Conflict Warning for Admin */}
+                {(() => {
+                  const targetGroup = activeGroups.find((g) => g.id === targetGroupId);
+                  const targetGroupParts = targetGroup?.participants || [];
+                  const conflictingCountries = findConflictingCountriesInGroup(
+                    movingParticipant.nationality || "Indonesia",
+                    targetGroupParts
+                  );
+
+                  if (conflictingCountries.length === 0) return null;
+
+                  return (
+                    <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2 shadow-xs">
+                      <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="leading-relaxed">
+                        <span className="font-bold">Perhatian Geopolitik / Kewarganegaraan:</span> Grup mobil tujuan ini saat ini memiliki penumpang dari{" "}
+                        <span className="font-semibold underline">
+                          {conflictingCountries.join(", ")}
+                        </span>
+                        . Sebagai Administrator, Anda tetap memiliki wewenang penuh untuk memindahkan peserta ini jika diperlukan.
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Reason Input */}
                 <div className="space-y-1.5">
