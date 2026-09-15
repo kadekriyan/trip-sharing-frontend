@@ -540,12 +540,9 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       const targetTripId = selectedTripId || `trip-ondemand-${Date.now()}`;
       const primaryItem = bookingItems[0];
 
-      // Tentukan target bookingGroupId yang kompatibel (atau undefined untuk auto-assign armada baru bebas konflik)
-      const effectiveTargetGroupId = compatibleGroup
-        ? compatibleGroup.id
-        : isSmartSegregationActive
-        ? undefined
-        : selectedGroup || undefined;
+      // Pada alur pemesanan publik, jangan kirimkan bookingGroupId statis agar backend auto-assigner
+      // dapat mengevaluasi seluruh data peserta di database dan secara mutlak mengalokasikan armada yang bebas konflik atau membuka armada baru.
+      const effectiveTargetGroupId = undefined;
 
       const bulkPayload: BulkBookingPayload = {
         captchaToken: activeToken || "dev-dummy-captcha-token",

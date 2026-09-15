@@ -291,17 +291,18 @@ export function getConflictingCountries(country?: string | null): string[] {
  */
 export function findConflictingCountriesInGroup(
   travelerCountry: string | null | undefined,
-  groupParticipants: Array<{ nationality?: string | null }>
+  groupParticipants: Array<{ nationality?: string | null }> | Array<string | null | undefined>
 ): string[] {
   if (!travelerCountry || !groupParticipants || groupParticipants.length === 0) {
     return [];
   }
 
   const conflictingFound = new Set<string>();
-  for (const p of groupParticipants) {
-    if (!p.nationality) continue;
-    if (hasCountryConflict(travelerCountry, p.nationality)) {
-      conflictingFound.add(canonicalizeCountry(p.nationality));
+  for (const item of groupParticipants) {
+    const nat = typeof item === "string" ? item : item?.nationality;
+    if (!nat) continue;
+    if (hasCountryConflict(travelerCountry, nat)) {
+      conflictingFound.add(canonicalizeCountry(nat));
     }
   }
 
@@ -312,7 +313,7 @@ export function findConflictingCountriesInGroup(
  * Memeriksa apakah suatu grup armada kompatibel (bebas konflik) untuk seorang traveler
  */
 export function isGroupCompatibleWithTraveler(
-  groupParticipants: Array<{ nationality?: string | null }>,
+  groupParticipants: Array<{ nationality?: string | null }> | Array<string | null | undefined>,
   travelerCountry?: string | null
 ): boolean {
   if (!travelerCountry) return true;
@@ -324,7 +325,7 @@ export function isGroupCompatibleWithTraveler(
  * Memeriksa apakah suatu grup armada kompatibel dengan beberapa traveler (multi-booking)
  */
 export function isGroupCompatibleWithMultipleTravelers(
-  groupParticipants: Array<{ nationality?: string | null }>,
+  groupParticipants: Array<{ nationality?: string | null }> | Array<string | null | undefined>,
   travelerCountries: Array<string | null | undefined>
 ): boolean {
   for (const country of travelerCountries) {
@@ -346,6 +347,7 @@ export function findBestCompatibleGroup<
     currentParticipants?: number;
     status?: string;
     participants?: Array<{ nationality?: string | null }>;
+    nationalities?: string[];
   }
 >(
   groups: T[],
@@ -370,7 +372,10 @@ export function findBestCompatibleGroup<
     }
 
     // Cek kompatibilitas negara
-    const groupParts = group.participants || [];
+    const groupParts = (group.participants && group.participants.length > 0)
+      ? group.participants
+      : (group.nationalities || []).map((n) => ({ nationality: n }));
+
     if (isGroupCompatibleWithMultipleTravelers(groupParts, travelerCountries)) {
       return group;
     }
