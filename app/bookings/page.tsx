@@ -113,19 +113,19 @@ function MyBookingsContent() {
 
   const filteredBookings = Array.isArray(bookings)
     ? bookings.filter((b) => {
-        if (!b) return false;
-        if (activeTab === "paid" && b.paymentStatus !== "paid") return false;
-        if (activeTab === "pending" && b.paymentStatus !== "pending") return false;
-        if (searchQuery) {
-          const query = searchQuery.toLowerCase();
-          const code = (b.bookingCode || "").toLowerCase();
-          const name = (b.fullName || "").toLowerCase();
-          if (!code.includes(query) && !name.includes(query)) {
-            return false;
-          }
+      if (!b) return false;
+      if (activeTab === "paid" && b.paymentStatus !== "paid") return false;
+      if (activeTab === "pending" && b.paymentStatus !== "pending") return false;
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const code = (b.bookingCode || "").toLowerCase();
+        const name = (b.fullName || "").toLowerCase();
+        if (!code.includes(query) && !name.includes(query)) {
+          return false;
         }
-        return true;
-      })
+      }
+      return true;
+    })
     : [];
 
   return (
@@ -135,13 +135,13 @@ function MyBookingsContent() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#00677d] block mb-1">
-              Tickets & Booking History
+              Tiket & Riwayat Perjalanan
             </span>
             <h1 className="font-heading text-3xl sm:text-4xl font-extrabold text-[#191c1e]">
-              My Travel Bookings
+              Booking Perjalanan Saya
             </h1>
             <p className="text-sm text-slate-500 mt-1">
-              Track your 6-pax vehicle group status, pickup schedule, driver details, and official e-vouchers.
+              Pantau status grup mobil 6 pax, jadwal penjemputan, kontak driver, dan e-voucher resmi Anda.
             </p>
           </div>
 
@@ -150,14 +150,14 @@ function MyBookingsContent() {
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Search Code: TRV-XXXX..."
+                placeholder="Cari Kode: TRV-XXXX..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 h-9 text-xs bg-white border-slate-200 w-56"
               />
             </div>
             <Button type="submit" size="sm" className="h-9 font-bold">
-              Search
+              Cari
             </Button>
           </form>
         </div>
@@ -166,13 +166,13 @@ function MyBookingsContent() {
         {isHydrated && !isAuthenticated && (
           <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-amber-900">
-              <span className="font-bold block">You are not signed in as a traveler.</span>
-              <span>Sign in now to access your full booking history automatically, or search by booking code above.</span>
+              <span className="font-bold block">Anda belum masuk ke akun traveler.</span>
+              <span>Masuk sekarang untuk melihat seluruh riwayat tiket otomatis, atau cari tiket via kode booking di atas.</span>
             </div>
             <Button asChild size="sm" className="gap-1.5 shrink-0">
               <Link href="/login?redirect=/bookings">
                 <LogIn className="h-3.5 w-3.5" />
-                Sign In
+                Masuk ke Akun
               </Link>
             </Button>
           </div>
@@ -186,33 +186,30 @@ function MyBookingsContent() {
             <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
               <button
                 onClick={() => setActiveTab("all")}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  activeTab === "all"
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "all"
                     ? "bg-[#00677d] text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100"
-                }`}
+                  }`}
               >
-                All Bookings ({bookings.length})
+                Semua Tiket ({bookings.length})
               </button>
               <button
                 onClick={() => setActiveTab("paid")}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  activeTab === "paid"
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "paid"
                     ? "bg-[#00677d] text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100"
-                }`}
+                  }`}
               >
-                Confirmed & Paid ({bookings.filter((p) => p.paymentStatus === "paid").length})
+                Trip Lunas ({bookings.filter((p) => p.paymentStatus === "paid").length})
               </button>
               <button
                 onClick={() => setActiveTab("pending")}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  activeTab === "pending"
+                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "pending"
                     ? "bg-[#00677d] text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100"
-                }`}
+                  }`}
               >
-                Awaiting Payment ({bookings.filter((p) => p.paymentStatus === "pending").length})
+                Menunggu Pembayaran ({bookings.filter((p) => p.paymentStatus === "pending").length})
               </button>
             </div>
 
@@ -226,12 +223,12 @@ function MyBookingsContent() {
             ) : filteredBookings.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 space-y-3">
                 <Ticket className="h-10 w-10 text-slate-300 mx-auto" />
-                <h3 className="font-heading font-bold text-base text-slate-700">No Bookings Found</h3>
+                <h3 className="font-heading font-bold text-base text-slate-700">Belum Ada Riwayat Pemesanan</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  No travel bookings recorded yet. Start exploring tour destinations and make your first booking.
+                  Belum ada tiket perjalanan yang terdaftar pada sesi ini. Mulai eksplorasi destinasi dan buat booking pertama Anda.
                 </p>
                 <Button asChild className="mt-2" size="sm">
-                  <Link href="/destinations">Explore Tours Now</Link>
+                  <Link href="/destinations">Jelajahi Destinasi Sekarang</Link>
                 </Button>
               </div>
             ) : (
@@ -248,7 +245,7 @@ function MyBookingsContent() {
                   const destLocation =
                     booking.destination?.location ||
                     booking.trip?.destination?.location ||
-                    "Yogyakarta";
+                    "Indonesia";
                   const destSlug =
                     booking.destination?.slug ||
                     booking.trip?.destination?.slug ||
@@ -285,7 +282,7 @@ function MyBookingsContent() {
                             <div className="flex items-start justify-between gap-2">
                               <div>
                                 <span className="text-[11px] font-mono font-bold text-slate-400 block">
-                                  Code: {booking.bookingCode}
+                                  Kode: {booking.bookingCode}
                                 </span>
                                 <h3 className="font-heading font-bold text-lg text-[#191c1e]">
                                   {destTitle}
@@ -306,8 +303,8 @@ function MyBookingsContent() {
                               <div className="flex items-center gap-1.5">
                                 <Users className="h-3.5 w-3.5 text-[#00677d]" />
                                 <span>
-                                  Group #{booking.group?.groupNumber || 1} (
-                                  {booking.group?.currentParticipants || 1}/6 Filled)
+                                  Grup #{booking.group?.groupNumber || 1} (
+                                  {booking.group?.currentParticipants || 1}/6 Terisi)
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
@@ -325,7 +322,7 @@ function MyBookingsContent() {
                                 <MapPin className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
                                 <div className="min-w-0 flex-1">
                                   <span className="font-bold text-[#00677d] block text-[11px] uppercase tracking-wider">
-                                    Pickup Location:
+                                    Lokasi Penjemputan:
                                   </span>
                                   <span className="font-heading font-extrabold text-slate-800 text-xs block">
                                     {parsed.placeName}
@@ -337,7 +334,7 @@ function MyBookingsContent() {
                                   )}
                                   {booking.pickupNotes && (
                                     <span className="text-slate-500 italic block text-[10px] mt-1 bg-white/70 p-1.5 rounded-lg border border-teal-100">
-                                      Notes: {booking.pickupNotes}
+                                      Catatan: {booking.pickupNotes}
                                     </span>
                                   )}
                                 </div>
@@ -374,7 +371,7 @@ function MyBookingsContent() {
                           ) : (
                             <div className="rounded-xl bg-slate-50 p-2.5 text-xs text-slate-500 flex items-center gap-2">
                               <Car className="h-4 w-4 text-slate-400" />
-                              <span>Driver and vehicle details will be assigned 24 hours prior to departure.</span>
+                              <span>Driver & armada akan diumumkan H-1 sebelum keberangkatan.</span>
                             </div>
                           )}
 
@@ -383,7 +380,7 @@ function MyBookingsContent() {
                             <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
                               <span className="font-bold text-[#00677d] text-[11px] uppercase tracking-wider flex items-center gap-1.5">
                                 <UserIcon className="h-3.5 w-3.5 text-[#00677d]" />
-                                Passenger Info
+                                Data Penumpang
                               </span>
                               <span className="text-slate-500 text-[10px]">
                                 {booking.nationality || "Indonesia"}
@@ -392,11 +389,11 @@ function MyBookingsContent() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                               <div className="flex items-center gap-1.5">
-                                <span className="text-slate-400 text-[11px] min-w-[70px]">Name:</span>
+                                <span className="text-slate-400 text-[11px] min-w-[70px]">Nama:</span>
                                 <strong className="text-slate-800">{booking.fullName || "Guest Traveler"}</strong>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <span className="text-slate-400 text-[11px] min-w-[70px]">Phone:</span>
+                                <span className="text-slate-400 text-[11px] min-w-[70px]">No. Telepon:</span>
                                 <span className="text-slate-700 flex items-center gap-1">
                                   <Phone className="h-3 w-3 text-slate-400 shrink-0" />
                                   {booking.phoneNumber || "—"}
@@ -415,7 +412,7 @@ function MyBookingsContent() {
                           {/* Card Footer Actions */}
                           <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100">
                             <div className="text-xs text-slate-500">
-                              <span>Total Fare: <strong className="text-slate-800 font-heading font-extrabold">{formatCurrency(booking.totalAmount)}</strong></span>
+                              <span>Total Biaya: <strong className="text-slate-800 font-heading font-extrabold">{formatCurrency(booking.totalAmount)}</strong></span>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2">
@@ -423,7 +420,7 @@ function MyBookingsContent() {
                                 <>
                                   <Button asChild size="sm" className="bg-[#ff7f50] text-white">
                                     <Link href={`/destinations/${destSlug || "bromo-sunrise-safari"}`}>
-                                      Pay Now ({formatCurrency(booking.totalAmount)})
+                                      Bayar Sekarang ({formatCurrency(booking.totalAmount)})
                                     </Link>
                                   </Button>
                                   <Button
@@ -432,9 +429,9 @@ function MyBookingsContent() {
                                     disabled={simulatingId === booking.id}
                                     onClick={() => handleSimulatePayment(booking.id)}
                                     className="text-[11px] font-semibold border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                                    title="Simulate instant settlement without Midtrans gateway (Dev Sandbox)"
+                                    title="Simulasi pembayaran langsung tanpa gateway Midtrans (Sandbox/Dev)"
                                   >
-                                    {simulatingId === booking.id ? "Processing..." : "⚡ Settle Payment (Dev)"}
+                                    {simulatingId === booking.id ? "Memproses..." : "⚡ Simulasi Lunas (Dev)"}
                                   </Button>
                                 </>
                               ) : (
@@ -447,7 +444,7 @@ function MyBookingsContent() {
                                   >
                                     <Link href={`/bookings/${encodeURIComponent(booking.bookingCode || booking.id)}/invoice`}>
                                       <FileText className="h-3.5 w-3.5 text-[#00677d]" />
-                                      Official Invoice
+                                      Faktur Resmi
                                     </Link>
                                   </Button>
                                   <Button
@@ -457,7 +454,7 @@ function MyBookingsContent() {
                                     className="gap-1.5"
                                   >
                                     <Ticket className="h-3.5 w-3.5 text-[#00677d]" />
-                                    View E-Voucher
+                                    Lihat E-Voucher
                                   </Button>
                                 </>
                               )}
@@ -499,7 +496,7 @@ function MyBookingsContent() {
                     <h3 className="font-heading font-bold text-lg text-[#191c1e]">
                       Guest Traveler
                     </h3>
-                    <p className="text-xs text-slate-500">Not Signed In</p>
+                    <p className="text-xs text-slate-500">Belum Login</p>
                   </div>
                 </>
               )}
@@ -509,7 +506,7 @@ function MyBookingsContent() {
                   <span className="font-heading font-extrabold text-lg text-[#00677d] block">
                     {bookings.filter((b) => b.paymentStatus === "paid").length}
                   </span>
-                  <span className="text-[10px] text-slate-500">Completed Trips</span>
+                  <span className="text-[10px] text-slate-500">Trip Selesai</span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-xl">
                   <span className="font-heading font-extrabold text-lg text-[#ff7f50] block">
@@ -535,10 +532,10 @@ function MyBookingsContent() {
                 <h3 className="font-heading font-extrabold text-xl">
                   {getDestinationTitle(selectedVoucher.destination) !== "Paket Wisata"
                     ? getDestinationTitle(selectedVoucher.destination)
-                    : getDestinationTitle(selectedVoucher.trip?.destination) || "Sharing Tour Platform"}
+                    : getDestinationTitle(selectedVoucher.trip?.destination) || "Trip Sharing Platform"}
                 </h3>
                 <p className="text-xs text-slate-100">
-                  Show this QR code to the driver upon vehicle pickup.
+                  Tunjukkan kode QR ini kepada Driver saat penjemputan.
                 </p>
               </div>
 
@@ -561,41 +558,41 @@ function MyBookingsContent() {
 
                 <div className="space-y-2 text-xs text-left bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Passenger Name:</span>
+                    <span className="text-slate-500">Nama Penumpang:</span>
                     <span className="font-bold text-slate-800">{selectedVoucher.fullName || "Traveler"}</span>
                   </div>
                   {selectedVoucher.nationality && (
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Nationality:</span>
+                      <span className="text-slate-500">Kewarganegaraan:</span>
                       <span className="font-medium text-slate-800">{selectedVoucher.nationality}</span>
                     </div>
                   )}
                   {selectedVoucher.phoneNumber && (
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Phone / WhatsApp:</span>
+                      <span className="text-slate-500">No. Telepon / WA:</span>
                       <span className="font-medium text-slate-800">{selectedVoucher.phoneNumber}</span>
                     </div>
                   )}
                   {selectedVoucher.email && (
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Passenger Email:</span>
+                      <span className="text-slate-500">Email Penumpang:</span>
                       <span className="font-medium text-slate-800 truncate max-w-[210px] text-right">{selectedVoucher.email}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Trip Date:</span>
+                    <span className="text-slate-500">Tanggal Trip:</span>
                     <span className="font-bold text-[#00677d]">
                       {formatDate(selectedVoucher.departureDate || selectedVoucher.trip?.departureDate || selectedVoucher.createdAt)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Payment Status:</span>
-                    <span className="font-bold text-emerald-600 uppercase">Confirmed (Paid)</span>
+                    <span className="text-slate-500">Status Pembayaran:</span>
+                    <span className="font-bold text-emerald-600 uppercase">Lunas (Paid)</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Vehicle Group:</span>
+                    <span className="text-slate-500">Grup Mobil:</span>
                     <span className="font-bold text-[#00677d]">
-                      Group #{selectedVoucher.group?.groupNumber || 1} (Max 6 Pax)
+                      Grup #{selectedVoucher.group?.groupNumber || 1} (Maks 6 Pax)
                     </span>
                   </div>
                   {selectedVoucher.pickupLocation && (() => {
@@ -603,7 +600,7 @@ function MyBookingsContent() {
                     return (
                       <div className="border-t border-slate-200 pt-2 text-left space-y-1">
                         <div className="flex justify-between items-start">
-                          <span className="text-slate-500 text-xs">Pickup Base:</span>
+                          <span className="text-slate-500 text-xs">Lokasi Jemput:</span>
                           <span className="font-heading font-extrabold text-[#00677d] text-xs text-right ml-2 max-w-[210px]">
                             {parsed.placeName}
                           </span>
@@ -615,7 +612,7 @@ function MyBookingsContent() {
                         )}
                         {selectedVoucher.pickupNotes && (
                           <div className="text-[10px] text-slate-400 italic text-right">
-                            Notes: {selectedVoucher.pickupNotes}
+                            Catatan: {selectedVoucher.pickupNotes}
                           </div>
                         )}
                       </div>
@@ -623,7 +620,7 @@ function MyBookingsContent() {
                   })()}
                   {selectedVoucher.group?.driver && (
                     <div className="flex justify-between border-t border-slate-200 pt-1.5">
-                      <span className="text-slate-500">Fleet & Driver:</span>
+                      <span className="text-slate-500">Armada & Driver:</span>
                       <span className="font-semibold text-slate-800">
                         {selectedVoucher.group.driver.fullName} ({selectedVoucher.group.driver.vehicleModel})
                       </span>
@@ -637,7 +634,7 @@ function MyBookingsContent() {
                       const destTitle =
                         getDestinationTitle(selectedVoucher.destination) !== "Paket Wisata"
                           ? getDestinationTitle(selectedVoucher.destination)
-                          : getDestinationTitle(selectedVoucher.trip?.destination) || "Sharing Tour Platform";
+                          : getDestinationTitle(selectedVoucher.trip?.destination) || "Trip Sharing Platform";
                       printTicketVoucher({
                         bookingCode: selectedVoucher.bookingCode,
                         destinationTitle: destTitle,
@@ -656,7 +653,7 @@ function MyBookingsContent() {
                     }}
                     className="w-full justify-center text-xs font-bold"
                   >
-                    Print / Save E-Voucher (PDF)
+                    Cetak / Simpan E-Voucher (PDF)
                   </Button>
                   <Button
                     asChild
@@ -665,7 +662,7 @@ function MyBookingsContent() {
                   >
                     <Link href={`/bookings/${encodeURIComponent(selectedVoucher.bookingCode || selectedVoucher.id)}/invoice`}>
                       <FileText className="h-3.5 w-3.5" />
-                      View Official Invoice (Receipt)
+                      Lihat Faktur Resmi (Invoice)
                     </Link>
                   </Button>
                 </div>
@@ -685,7 +682,7 @@ export default function MyBookingsPage() {
         <div className="min-h-screen bg-[#f7f9fb] flex items-center justify-center p-12">
           <div className="text-center space-y-3">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#00677d] border-t-transparent mx-auto" />
-            <p className="text-xs text-slate-500">Loading bookings & e-vouchers...</p>
+            <p className="text-xs text-slate-500">Memuat tiket & e-voucher...</p>
           </div>
         </div>
       }

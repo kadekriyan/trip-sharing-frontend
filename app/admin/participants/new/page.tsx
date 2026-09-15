@@ -14,6 +14,7 @@ import {
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
+import { CountryCombobox } from "@/src/components/ui/country-combobox";
 import { adminService } from "@/src/services/admin.service";
 import { formatCurrency, getDestinationTitle, getDestinationPrice } from "@/src/lib/utils";
 import type { Destination, BookingGroup, Trip } from "@/src/types";
@@ -269,16 +270,10 @@ export default function AddParticipantPage() {
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Kewarganegaraan *
               </label>
-              <select
+              <CountryCombobox
                 value={nationality}
-                onChange={(e) => setNationality(e.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-800 focus:border-[#00677d] focus:outline-none"
-              >
-                <option value="Indonesia">Indonesia</option>
-                <option value="Malaysia">Malaysia</option>
-                <option value="Singapore">Singapore</option>
-                <option value="Other">Lainnya</option>
-              </select>
+                onChange={setNationality}
+              />
             </div>
 
             <div className="space-y-1.5">
