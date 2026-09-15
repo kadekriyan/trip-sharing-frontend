@@ -290,8 +290,8 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
         capacity: 6,
         currentParticipants: 0,
         status: "open",
-        name: "Grup Inisiator Tanggal Baru",
-        notes: "Grup Baru - Booking Anda akan membuka jadwal trip ini!",
+        name: "New Date Initiator Group",
+        notes: "New Group - Your booking will open this trip schedule!",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -303,7 +303,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
   const handleAddBooking = () => {
     const maxAllowed = 20;
     if (bookingItems.length >= maxAllowed) {
-      setErrorMessage(`Maksimal pemesanan dalam satu transaksi adalah ${maxAllowed} peserta.`);
+      setErrorMessage(`Maximum booking limit in a single transaction is ${maxAllowed} travelers.`);
       return;
     }
 
@@ -373,15 +373,15 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
         <PackageOpen className="h-16 w-16 text-slate-300 mb-4 animate-bounce" />
         <h2 className="text-xl font-heading font-extrabold text-slate-800">
-          Destinasi Tidak Ditemukan
+          Destination Not Found
         </h2>
         <p className="text-xs text-slate-500 mt-2 max-w-sm">
-          Destinasi wisata yang Anda cari mungkin telah dinonaktifkan atau tautan yang dimasukkan tidak tepat.
+          The travel destination you are looking for may have been deactivated or the link is invalid.
         </p>
         <Button asChild className="mt-6 font-bold text-xs bg-[#00677d]">
           <Link href="/destinations">
             <ArrowLeft className="h-4 w-4" />
-            Kembali ke Katalog Destinasi
+            Back to Destination Catalog
           </Link>
         </Button>
       </div>
@@ -429,28 +429,28 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
     const earliest = getEarliestBookingDate();
     const targetDate = (selectedDate || customDateInput || "").split("T")[0];
     if (!targetDate) {
-      errors.departureDate = "Silakan pilih tanggal keberangkatan trip pada Langkah 1.";
+      errors.departureDate = "Please select a trip departure date in Step 1.";
     } else if (targetDate < earliest.dateISO) {
       errors.departureDate = earliest.isAfterCutoff
-        ? `Batas pemesanan untuk trip besok telah ditutup (pukul 19:00 WIB). Silakan pilih tanggal minimal ${formatDate(earliest.dateISO)} (Lusa).`
-        : `Tanggal keberangkatan tidak boleh lebih awal dari ${formatDate(earliest.dateISO)}.`;
+        ? `Booking cutoff for tomorrow's trip is closed (19:00 WIB / UTC+7). Please select a date on or after ${formatDate(earliest.dateISO)}.`
+        : `Departure date cannot be earlier than ${formatDate(earliest.dateISO)}.`;
     }
 
     // Validate each booking item
     bookingItems.forEach((item, index) => {
-      const labelPrefix = bookingItems.length > 1 ? `Peserta #${index + 1}: ` : "";
+      const labelPrefix = bookingItems.length > 1 ? `Traveler #${index + 1}: ` : "";
 
       // Full Name (Min 2, Max 100, safe characters)
       const trimmedName = item.fullName.trim();
       const nameKey = `item_${index}_fullName`;
       if (!trimmedName) {
-        errors[nameKey] = `${labelPrefix}Nama lengkap wajib diisi.`;
+        errors[nameKey] = `${labelPrefix}Full name is required.`;
         if (!firstErrorRefKey) firstErrorRefKey = nameKey;
       } else if (trimmedName.length < 2 || trimmedName.length > 100) {
-        errors[nameKey] = `${labelPrefix}Nama lengkap harus antara 2 hingga 100 karakter.`;
+        errors[nameKey] = `${labelPrefix}Full name must be between 2 and 100 characters.`;
         if (!firstErrorRefKey) firstErrorRefKey = nameKey;
       } else if (!/^[a-zA-Z\s.'\-,]+$/u.test(trimmedName)) {
-        errors[nameKey] = `${labelPrefix}Nama lengkap hanya boleh berisi huruf, spasi, dan tanda baca nama.`;
+        errors[nameKey] = `${labelPrefix}Full name can only contain letters, spaces, and valid name punctuation.`;
         if (!firstErrorRefKey) firstErrorRefKey = nameKey;
       }
 
@@ -458,10 +458,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       const trimmedEmail = item.email.trim();
       const emailKey = `item_${index}_email`;
       if (index === 0 && !trimmedEmail) {
-        errors[emailKey] = "Alamat email pemesan utama wajib diisi.";
+        errors[emailKey] = "Primary traveler's email address is required.";
         if (!firstErrorRefKey) firstErrorRefKey = emailKey;
       } else if (trimmedEmail && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedEmail)) {
-        errors[emailKey] = `${labelPrefix}Format alamat email tidak valid (contoh: traveler@domain.com).`;
+        errors[emailKey] = `${labelPrefix}Invalid email address format (e.g. traveler@domain.com).`;
         if (!firstErrorRefKey) firstErrorRefKey = emailKey;
       }
 
@@ -470,13 +470,13 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       const cleanPhoneDigits = trimmedPhone.replace(/[\s\-()]/g, "");
       const phoneKey = `item_${index}_phoneNumber`;
       if (!trimmedPhone) {
-        errors[phoneKey] = `${labelPrefix}Nomor WhatsApp / telepon wajib diisi.`;
+        errors[phoneKey] = `${labelPrefix}WhatsApp / phone number is required.`;
         if (!firstErrorRefKey) firstErrorRefKey = phoneKey;
       } else if (/[a-zA-Z]/.test(trimmedPhone)) {
-        errors[phoneKey] = `${labelPrefix}Nomor telepon tidak boleh mengandung huruf alfabet.`;
+        errors[phoneKey] = `${labelPrefix}Phone number cannot contain alphabetic characters.`;
         if (!firstErrorRefKey) firstErrorRefKey = phoneKey;
       } else if (!/^\+?[0-9]{8,20}$/.test(cleanPhoneDigits)) {
-        errors[phoneKey] = `${labelPrefix}Nomor telepon harus terdiri dari 8 hingga 20 digit angka valid (contoh: 081234567890).`;
+        errors[phoneKey] = `${labelPrefix}Phone number must be between 8 and 20 valid digits (e.g. +6281234567890).`;
         if (!firstErrorRefKey) firstErrorRefKey = phoneKey;
       }
 
@@ -487,13 +487,13 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
         const minDate = new Date("1900-01-01");
         const dobKey = `item_${index}_dateOfBirth`;
         if (isNaN(birthDateObj.getTime()) || !/^\d{4}-\d{2}-\d{2}$/.test(item.dateOfBirth)) {
-          errors[dobKey] = `${labelPrefix}Format tanggal lahir tidak valid (YYYY-MM-DD).`;
+          errors[dobKey] = `${labelPrefix}Invalid date of birth format (YYYY-MM-DD).`;
           if (!firstErrorRefKey) firstErrorRefKey = dobKey;
         } else if (birthDateObj > today) {
-          errors[dobKey] = `${labelPrefix}Tanggal lahir tidak boleh melebihi hari ini.`;
+          errors[dobKey] = `${labelPrefix}Date of birth cannot be in the future.`;
           if (!firstErrorRefKey) firstErrorRefKey = dobKey;
         } else if (birthDateObj < minDate) {
-          errors[dobKey] = `${labelPrefix}Tanggal lahir tidak boleh lebih awal dari tahun 1900.`;
+          errors[dobKey] = `${labelPrefix}Date of birth cannot be earlier than year 1900.`;
           if (!firstErrorRefKey) firstErrorRefKey = dobKey;
         }
       }
@@ -506,7 +506,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       (process.env.NODE_ENV === "development" ? "dev-dummy-captcha-token" : null);
 
     if (!activeToken && process.env.NODE_ENV === "production" && recaptchaSiteKey) {
-      errors.captcha = "Harap selesaikan verifikasi reCAPTCHA terlebih dahulu.";
+      errors.captcha = "Please complete the reCAPTCHA verification.";
     }
 
     setFieldErrors(errors);
@@ -520,7 +520,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       setErrorMessage(
         errors.captcha ||
         errors.departureDate ||
-        "Terdapat data yang belum valid. Silakan periksa kolom input yang disorot merah."
+        "Some fields contain invalid data. Please review the highlighted fields in red."
       );
       return false;
     }
@@ -607,7 +607,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
         setIsPaymentModalOpen(true);
       }
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Gagal memproses pemesanan tiket.";
+      const errorMsg = err instanceof Error ? err.message : "Failed to process ticket booking.";
       setErrorMessage(errorMsg);
       recaptchaRef.current?.reset();
       setCaptchaToken(null);
@@ -670,8 +670,8 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
     destination.durationDays && destination.durationNights
       ? `${destination.durationDays}D / ${destination.durationNights}N`
       : destination.durationDays
-      ? `${destination.durationDays} Hari`
-      : "1 Hari";
+      ? `${destination.durationDays} Days`
+      : "1 Day";
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24 text-slate-900">
@@ -696,7 +696,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
           >
             <Link href="/destinations">
               <ArrowLeft className="h-4 w-4" />
-              Kembali ke Katalog
+              Back to Catalog
             </Link>
           </Button>
         </div>
@@ -727,17 +727,17 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               </span>
               <span className="flex items-center gap-1">
                 <Users className="h-3.5 w-3.5 text-emerald-400" />
-                Maks. 6 Pax per Armada
+                Max. 6 Pax per Fleet
               </span>
             </div>
           </div>
 
           <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl text-white md:text-right shrink-0">
-            <span className="text-[11px] text-slate-300 block">Harga per Orang:</span>
+            <span className="text-[11px] text-slate-300 block">Price per Person:</span>
             <span className="font-heading font-black text-2xl text-white">
               {formatCurrency(basePrice)}
             </span>
-            <span className="text-[10px] text-slate-300 block">/ pax (All-in Termasuk Armada)</span>
+            <span className="text-[10px] text-slate-300 block">/ pax (All-inclusive Fleet)</span>
           </div>
         </div>
       </div>
@@ -751,11 +751,11 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-4">
               <h2 className="text-lg font-heading font-extrabold text-slate-900 flex items-center gap-2">
                 <Info className="h-5 w-5 text-[#00677d]" />
-                Deskripsi & Pengalaman Wisata
+                Description & Travel Experience
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
                 {destination.description ||
-                  "Nikmati pengalaman menjelajahi destinasi spektakuler ini dengan konsep berbagi perjalanan (trip sharing). Hemat biaya, bertemu teman baru, dan nikmati kenyamanan armada berstandar VIP."}
+                  "Enjoy exploring this spectacular destination with our shared journey concept. Save costs, meet new fellow travelers, and enjoy the comfort of VIP standard vehicles."}
               </p>
 
               {destination.meetingPoint && (
@@ -763,7 +763,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                   <MapPin className="h-5 w-5 text-[#00677d] shrink-0 mt-0.5" />
                   <div>
                     <span className="text-xs font-bold text-slate-800 block">
-                      Titik Kumpul Utama (Meeting Point):
+                      Primary Meeting Point:
                     </span>
                     <span className="text-xs text-slate-600">{destination.meetingPoint}</span>
                   </div>
@@ -775,14 +775,14 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             {(inclusions.length > 0 || exclusions.length > 0) && (
               <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-5">
                 <h2 className="text-lg font-heading font-extrabold text-slate-900">
-                  Fasilitas & Layanan Paket
+                  Facilities & Package Inclusions
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {inclusions.length > 0 && (
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        Termasuk (Inclusions)
+                        Included (Inclusions)
                       </h3>
                       <ul className="space-y-2 text-xs text-slate-600">
                         {inclusions.map((item, idx) => (
@@ -799,7 +799,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     <div className="space-y-3">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
                         <XCircle className="h-4 w-4 text-rose-600" />
-                        Tidak Termasuk (Exclusions)
+                        Not Included (Exclusions)
                       </h3>
                       <ul className="space-y-2 text-xs text-slate-600">
                         {exclusions.map((item, idx) => (
@@ -821,13 +821,13 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-md space-y-6 sticky top-6">
               <div className="border-b border-slate-100 pb-4">
                 <Badge variant="azure" className="text-[10px] font-bold uppercase mb-1">
-                  Reservasi Tiket
+                  Ticket Reservation
                 </Badge>
                 <h2 className="text-xl font-heading font-extrabold text-slate-900">
-                  Form Pemesanan Trip
+                  Trip Booking Form
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Pilih tanggal keberangkatan dan lengkapi data pemesan untuk mengunci kursi.
+                  Select your departure date and complete traveler details to lock your seats.
                 </p>
               </div>
 
@@ -844,11 +844,11 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
                       <Calendar className="h-4 w-4" />
-                      Langkah 1: Tanggal Keberangkatan
+                      Step 1: Departure Date
                     </label>
                     {isCustomDateMode && (
                       <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-                        Inisiator Trip Baru
+                        New Trip Initiator
                       </span>
                     )}
                   </div>
@@ -879,14 +879,14 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-slate-700 flex items-center gap-1.5">
                           <Car className="h-3.5 w-3.5 text-[#00677d]" />
-                          Alokasi Mobil Armada:
+                          Vehicle Fleet Allocation:
                         </span>
                         <span className="text-[11px] font-semibold text-teal-700">
                           {compatibleGroup
-                            ? `Mobil #${compatibleGroup.groupNumber || 1} (${compatibleGroup.driver?.vehicleModel || "HiAce VIP"})`
+                            ? `Vehicle #${compatibleGroup.groupNumber || 1} (${compatibleGroup.driver?.vehicleModel || "HiAce VIP"})`
                             : isSmartSegregationActive
-                            ? "Unit Armada Baru (Inisiator Grup)"
-                            : groups[0]?.driver?.vehicleModel || "HiAce Commuter VIP (6 Kursi)"}
+                            ? "New Vehicle Fleet (Group Initiator)"
+                            : groups[0]?.driver?.vehicleModel || "HiAce Commuter VIP (6 Seats)"}
                         </span>
                       </div>
 
@@ -895,7 +895,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                         <div className="p-2.5 rounded-xl bg-teal-50/90 border border-teal-200/80 text-[11px] text-teal-900 flex items-start gap-2 shadow-xs">
                           <Info className="h-3.5 w-3.5 text-teal-600 shrink-0 mt-0.5" />
                           <div className="leading-relaxed">
-                            <span className="font-bold">Alokasi Armada Baru Cerdas:</span> Rombongan Anda otomatis dialokasikan ke unit kendaraan baru untuk menjamin keharmonisan dan kenyamanan perjalanan bersama.
+                            <span className="font-bold">Smart Fleet Allocation:</span> Your party is automatically allocated to a new vehicle fleet to ensure social harmony and group comfort.
                           </div>
                         </div>
                       )}
@@ -913,10 +913,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                       </div>
                       <div className="flex justify-between text-[10px] text-slate-500 font-medium">
                         <span>
-                          Terisi: {compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0} / {compatibleGroup ? (compatibleGroup.capacity || 6) : 6} Kursi
+                          Occupied: {compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0} / {compatibleGroup ? (compatibleGroup.capacity || 6) : 6} Seats
                         </span>
                         <span>
-                          {(compatibleGroup ? (compatibleGroup.capacity || 6) : 6) - (compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0)} Kursi Tersedia
+                          {(compatibleGroup ? (compatibleGroup.capacity || 6) : 6) - (compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0)} Seats Available
                         </span>
                       </div>
                     </div>
@@ -928,10 +928,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
                       <Users className="h-4 w-4" />
-                      Langkah 2: Data Peserta ({bookingItems.length} Peserta)
+                      Step 2: Traveler Details ({bookingItems.length} Traveler{bookingItems.length > 1 ? "s" : ""})
                     </label>
                     <span className="text-[10px] text-slate-400 font-medium">
-                      * Kolom wajib
+                      * Required fields
                     </span>
                   </div>
 
@@ -940,13 +940,13 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-[11px] text-amber-900 flex items-start gap-2">
                       <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                       <div className="leading-relaxed">
-                        <span className="font-bold">Catatan Harmonisasi Rombongan:</span> Rombongan Anda mendaftarkan peserta dengan kewarganegaraan{" "}
+                        <span className="font-bold">Group Harmony Note:</span> Your booking contains travelers with nationalities{" "}
                         {internalBookingConflict.conflicts.map((c, i) => (
                           <span key={i} className="font-semibold underline">
                             {c.countryA} &amp; {c.countryB}
                           </span>
                         ))}
-                        . Seluruh peserta ini tetap akan diproses bersama dalam satu transaksi pemesanan.
+                        . All travelers in this party will still be processed together in this single booking.
                       </div>
                     </div>
                   )}
@@ -976,7 +976,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                                 {index + 1}
                               </div>
                               <span className="text-xs font-extrabold text-slate-800">
-                                {isPrimary ? "Pemesan Utama (Peserta #1)" : `Peserta #${index + 1}`}
+                                {isPrimary ? "Primary Traveler (Traveler #1)" : `Traveler #${index + 1}`}
                               </span>
                               {isPrimary && (
                                 <Badge variant="azure" className="text-[9px] py-0 px-1.5">
@@ -990,10 +990,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                                 type="button"
                                 onClick={() => handleRemoveBooking(index)}
                                 className="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1 transition-colors p-1 rounded-md hover:bg-rose-50"
-                                title="Hapus peserta ini"
+                                title="Remove this traveler"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                                <span>Hapus</span>
+                                <span>Remove</span>
                               </button>
                             )}
                           </div>
@@ -1002,14 +1002,14 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                             {/* Full Name */}
                             <div className="space-y-1">
                               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                Nama Lengkap *
+                                Full Name *
                               </label>
                               <Input
                                 ref={(el) => {
                                   itemInputRefs.current[`item_${index}_fullName`] = el;
                                 }}
                                 required
-                                placeholder="Contoh: Rian Pratama"
+                                placeholder="e.g. John Doe"
                                 value={item.fullName}
                                 onChange={(e) => handleUpdateItem(index, "fullName", e.target.value)}
                                 className={`text-xs transition-colors ${
@@ -1030,7 +1030,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                               <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                  Email {isPrimary ? "*" : "(Opsional)"}
+                                  Email {isPrimary ? "*" : "(Optional)"}
                                 </label>
                                 <Input
                                   ref={(el) => {
@@ -1038,7 +1038,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                                   }}
                                   type="email"
                                   required={isPrimary}
-                                  placeholder={isPrimary ? "rian@example.com" : "Email peserta"}
+                                  placeholder={isPrimary ? "john@example.com" : "Traveler email"}
                                   value={item.email}
                                   onChange={(e) => handleUpdateItem(index, "email", e.target.value)}
                                   className={`text-xs transition-colors ${
@@ -1057,14 +1057,14 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
                               <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                  No. WhatsApp *
+                                  WhatsApp / Phone *
                                 </label>
                                 <Input
                                   ref={(el) => {
                                     itemInputRefs.current[`item_${index}_phoneNumber`] = el;
                                   }}
                                   required
-                                  placeholder="081234567890"
+                                  placeholder="+6281234567890"
                                   value={item.phoneNumber}
                                   onChange={(e) => handleUpdateItem(index, "phoneNumber", e.target.value)}
                                   className={`text-xs transition-colors ${
@@ -1087,10 +1087,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                               <div className="space-y-1">
                                 <div className="flex items-center justify-between">
                                   <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                    Tanggal Lahir
+                                    Date of Birth
                                   </label>
                                   <span className="text-[10px] text-slate-400 font-normal lowercase">
-                                    (asuransi)
+                                    (insurance)
                                   </span>
                                 </div>
                                 <Input
@@ -1118,7 +1118,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
                               <div className="space-y-1">
                                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                  Kewarganegaraan
+                                  Nationality
                                 </label>
                                 <CountryCombobox
                                   value={item.nationality}
@@ -1147,7 +1147,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                                     }}
                                     className="rounded border-slate-300 text-[#00677d] focus:ring-[#00677d] h-4 w-4"
                                   />
-                                  <span>Gunakan titik jemput yang sama dengan Pemesan Utama</span>
+                                  <span>Use same pickup location as Primary Traveler</span>
                                 </label>
                               )}
 
@@ -1155,7 +1155,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                                 <div className="space-y-2">
                                   <div className="space-y-1">
                                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                      Titik / Alamat Penjemputan
+                                      Pickup Location / Address
                                     </label>
                                     <GooglePlacesAutocomplete
                                       value={item.pickupLocation}
@@ -1168,17 +1168,17 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                                         handleUpdateItem(index, "pickupLatitude", sel.latitude);
                                         handleUpdateItem(index, "pickupLongitude", sel.longitude);
                                       }}
-                                      placeholder="Cari hotel, stasiun, bandara, atau alamat..."
+                                      placeholder="Search hotel, airport, station, or address..."
                                     />
                                   </div>
 
                                   <div className="space-y-1">
                                     <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                      Catatan Khusus Penjemputan (Opsional)
+                                      Special Pickup Notes (Optional)
                                     </label>
                                     <textarea
                                       rows={2}
-                                      placeholder="Misal: Tunggu di lobi timur, membawa koper."
+                                      placeholder="e.g. Wait at hotel main lobby, 1 large luggage."
                                       value={item.pickupNotes}
                                       onChange={(e) => handleUpdateItem(index, "pickupNotes", e.target.value)}
                                       className="w-full rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#00677d] focus:outline-none transition-colors resize-none"
@@ -1191,10 +1191,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                             {/* Health & Special Notes */}
                             <div className="space-y-1 pt-1">
                               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                                Catatan Khusus / Alergi (Opsional)
+                                Special Notes / Medical / Dietary (Optional)
                               </label>
                               <Input
-                                placeholder="Alergi makanan, asma, dsb."
+                                placeholder="Food allergies, asthma, motion sickness, etc."
                                 value={item.healthNotes}
                                 onChange={(e) => handleUpdateItem(index, "healthNotes", e.target.value)}
                                 className="text-xs bg-white border-slate-200"
@@ -1214,29 +1214,29 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     className="w-full py-5 border-dashed border-2 border-[#00677d]/40 text-[#00677d] hover:bg-[#00677d]/5 hover:border-[#00677d] font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm"
                   >
                     <UserPlus className="h-4 w-4" />
-                    <span>+ Tambah Booking / Peserta Lain (Peserta #{bookingItems.length + 1})</span>
+                    <span>+ Add Another Traveler (Traveler #{bookingItems.length + 1})</span>
                   </Button>
                 </div>
 
                 {/* STEP 3: PRICE BREAKDOWN & SUMMARY */}
                 <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-teal-50/40 border border-slate-200/80 space-y-2.5">
                   <div className="flex justify-between text-xs text-slate-600">
-                    <span>Tanggal Dipilih:</span>
+                    <span>Selected Date:</span>
                     <span className="font-bold text-[#00677d]">
-                      {selectedDate ? formatDate(selectedDate) : "Belum dipilih"}
+                      {selectedDate ? formatDate(selectedDate) : "Not selected"}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-600">
-                    <span>Harga Tiket per Orang:</span>
+                    <span>Ticket Price per Person:</span>
                     <span>{formatCurrency(basePrice)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-600">
-                    <span>Jumlah Peserta:</span>
+                    <span>Total Travelers:</span>
                     <span className="font-bold text-slate-800">{bookingItems.length} Pax</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold text-[#191c1e] pt-2.5 border-t border-slate-200">
                     <div>
-                      <span>Total Tagihan:</span>
+                      <span>Total Amount:</span>
                       <span className="text-[10px] text-slate-400 block font-normal">
                         ({bookingItems.length} x {formatCurrency(basePrice)})
                       </span>
@@ -1267,8 +1267,8 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                 >
                   <Lock className="h-4 w-4 mr-2" />
                   {isSubmitting
-                    ? "Memproses Pemesanan..."
-                    : `Lanjut ke Pembayaran (${formatCurrency(totalAmount)})`}
+                    ? "Processing Booking..."
+                    : `Proceed to Payment (${formatCurrency(totalAmount)})`}
                 </Button>
               </form>
             </div>
@@ -1285,18 +1285,18 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             </div>
             <div>
               <DialogTitle className="font-heading font-bold text-lg text-slate-900">
-                Konfirmasi Asuransi Perjalanan
+                Travel Insurance Confirmation
               </DialogTitle>
               <span className="text-[11px] font-semibold text-amber-700">
-                Perlindungan Keselamatan Trip
+                Trip Safety Coverage
               </span>
             </div>
           </div>
           <DialogDescription className="text-xs text-slate-600 leading-relaxed pt-2">
-            Terdapat data tanggal lahir peserta yang belum diisi. Tanggal lahir digunakan untuk penerbitan polis <strong>asuransi perjalanan</strong> resmi. Peserta tanpa tanggal lahir <strong>tidak mendapatkan perlindungan asuransi</strong> selama perjalanan.
+            Some travelers&apos; date of birth fields are unassigned. Date of birth is required for issuing official <strong>travel insurance</strong> policies. Travelers without date of birth <strong>will not be covered by insurance</strong> during the trip.
           </DialogDescription>
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900 mt-2 font-medium">
-            Apakah Anda yakin ingin tetap melanjutkan transaksi pemesanan ini?
+            Are you sure you want to proceed with this booking?
           </div>
           <div className="flex items-center justify-end gap-2.5 pt-4">
             <Button
@@ -1306,7 +1306,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               onClick={() => setIsInsuranceWarningOpen(false)}
               className="text-xs font-bold border-slate-300 text-slate-700 hover:bg-slate-100"
             >
-              Batal (Isi Tanggal Lahir)
+              Cancel (Enter Date of Birth)
             </Button>
             <Button
               type="button"
@@ -1317,7 +1317,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               }}
               className="text-xs font-bold bg-[#00677d] hover:bg-[#005264] text-white shadow-sm"
             >
-              Yakin, Lanjut ke Pembayaran
+              Yes, Proceed to Payment
             </Button>
           </div>
         </DialogContent>
@@ -1331,17 +1331,17 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               Midtrans Payment Gateway
             </Badge>
             <DialogTitle className="font-heading font-extrabold text-xl text-white">
-              Selesaikan Pembayaran
+              Complete Your Payment
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-100">
-              Pilih metode transaksi instan dan aman untuk mengunci kursi seluruh rombongan Anda.
+              Choose a secure instant payment method to guarantee seats for your entire party.
             </DialogDescription>
           </div>
 
           <div className="p-6 space-y-5">
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex justify-between items-center">
               <div>
-                <span className="text-[11px] text-slate-500 block">Total Tagihan:</span>
+                <span className="text-[11px] text-slate-500 block">Total Amount:</span>
                 <span className="font-heading font-extrabold text-xl text-[#00677d]">
                   {formatCurrency(totalAmount)}
                 </span>
@@ -1354,7 +1354,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             {/* Payment Method Selector */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Metode Pembayaran
+                Payment Method
               </label>
 
               <div className="grid grid-cols-1 gap-2">
@@ -1371,7 +1371,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     <QrCode className="h-4 w-4 text-[#00677d]" />
                     <span>QRIS (GoPay, OVO, ShopeePay, Dana, BCA)</span>
                   </div>
-                  <Badge variant="success" className="text-[9px]">Instan</Badge>
+                  <Badge variant="success" className="text-[9px]">Instant</Badge>
                 </button>
 
                 <button
@@ -1387,7 +1387,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     <Building2 className="h-4 w-4 text-[#00677d]" />
                     <span>BCA Virtual Account</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Otomatis</span>
+                  <span className="text-[11px] text-slate-400">Automatic</span>
                 </button>
 
                 <button
@@ -1401,7 +1401,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                 >
                   <div className="flex items-center gap-2.5">
                     <CreditCard className="h-4 w-4 text-[#00677d]" />
-                    <span>Kartu Kredit / Debit (Visa / Mastercard)</span>
+                    <span>Credit / Debit Card (Visa / Mastercard)</span>
                   </div>
                   <span className="text-[11px] text-slate-400">3D Secure</span>
                 </button>
@@ -1415,7 +1415,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                   <QrCode className="h-28 w-28 text-slate-800" />
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  Pindai QRIS di atas dengan aplikasi m-Banking atau e-Wallet favorit Anda.
+                  Scan the QRIS code above with your mobile banking or e-wallet application.
                 </p>
               </div>
             )}
@@ -1426,7 +1426,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               size="lg"
               className="w-full justify-center font-bold text-sm bg-emerald-600 hover:bg-emerald-700 shadow-md"
             >
-              {isProcessingPayment ? "Memverifikasi Transaksi..." : "Saya Sudah Membayar (Simulasi Sukses)"}
+              {isProcessingPayment ? "Verifying Transaction..." : "I Have Completed Payment (Simulate Success)"}
             </Button>
           </div>
         </DialogContent>
@@ -1440,10 +1440,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               <CheckCircle2 className="h-8 w-8 text-white" />
             </div>
             <DialogTitle className="font-heading font-extrabold text-xl sm:text-2xl text-white">
-              Pemesanan Berhasil!
+              Booking Successful!
             </DialogTitle>
             <DialogDescription className="text-xs text-emerald-100 max-w-sm mx-auto">
-              Pembayaran lunas untuk {createdParticipants.length || bookingItems.length} peserta. Kursi armada trip sharing resmi terkunci.
+              Payment confirmed for {createdParticipants.length || bookingItems.length} traveler(s). Your trip sharing vehicle seats are locked!
             </DialogDescription>
           </div>
 
@@ -1451,7 +1451,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             {/* List of Issued Booking Codes / Tickets */}
             <div className="space-y-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                Daftar Tiket & Kode Booking Resmi
+                Official Tickets &amp; Booking Codes
               </span>
 
               {(createdParticipants.length > 0 ? createdParticipants : [createdBooking]).filter(Boolean).map((participant, pIdx) => (
@@ -1464,7 +1464,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                       {participant?.fullName || bookingItems[pIdx]?.fullName || "Traveler"}
                     </span>
                     <span className="text-[10px] text-slate-400 block font-mono">
-                      Kode: <strong className="text-[#00677d] font-bold text-sm">{participant?.bookingCode || "TRV-SUCCESS"}</strong>
+                      Code: <strong className="text-[#00677d] font-bold text-sm">{participant?.bookingCode || "TRV-SUCCESS"}</strong>
                     </span>
                   </div>
 
@@ -1473,7 +1473,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                       type="button"
                       onClick={() => handleCopyCode(participant?.bookingCode || "TRV-SUCCESS", pIdx)}
                       className="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-[#00677d] transition-colors shadow-sm"
-                      title="Salin Kode"
+                      title="Copy Code"
                     >
                       {copiedIndex === pIdx ? (
                         <Check className="h-4 w-4 text-emerald-600" />
@@ -1505,7 +1505,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                       className="text-xs font-bold gap-1 px-2.5 bg-white border-slate-200 text-slate-700"
                     >
                       <Printer className="h-3.5 w-3.5" />
-                      <span>Cetak</span>
+                      <span>Print</span>
                     </Button>
                   </div>
                 </div>
@@ -1515,18 +1515,18 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             {/* Trip Details Summary */}
             <div className="space-y-2 text-xs pt-2 border-t border-slate-100">
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Destinasi:</span>
+                <span className="text-slate-500">Destination:</span>
                 <span className="font-bold text-slate-800">{getDestinationTitle(destination)}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-slate-100">
-                <span className="text-slate-500">Tanggal Berangkat:</span>
+                <span className="text-slate-500">Departure Date:</span>
                 <span className="font-bold text-[#00677d]">
                   {formatDate(selectedDate || customDateInput)}
                 </span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-slate-500">Status Pembayaran:</span>
-                <Badge variant="success" className="text-[10px] font-bold">LUNAS / PAID</Badge>
+                <span className="text-slate-500">Payment Status:</span>
+                <Badge variant="success" className="text-[10px] font-bold">PAID</Badge>
               </div>
             </div>
 
@@ -1542,7 +1542,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                 className="w-full font-bold text-xs gap-2 bg-[#00677d] hover:bg-[#005264] shadow-md"
               >
                 <Ticket className="h-4 w-4" />
-                Buka E-Voucher di Booking Saya
+                View E-Vouchers in My Bookings
               </Button>
 
               <Button
@@ -1555,7 +1555,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                 }}
                 className="w-full text-xs font-semibold text-slate-600"
               >
-                Kembali ke Katalog Destinasi
+                Back to Destination Catalog
               </Button>
             </div>
           </div>

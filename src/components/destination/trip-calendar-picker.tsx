@@ -300,7 +300,7 @@ export function TripCalendarPicker({
         <div className="flex items-start gap-2 p-2.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900">
           <Clock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
           <div className="leading-tight">
-            <strong>Batas Reservasi H-1 Ditutup:</strong> Pemesanan untuk besok ditutup pukul 19:00 WIB. Tanggal tercepat yang dapat dipilih adalah <strong>{earliestBooking.dateISO}</strong> (Lusa).
+            <strong>Next-Day Booking Cutoff Closed:</strong> Bookings for tomorrow close daily at 19:00 WIB (UTC+7). The earliest selectable departure date is <strong>{earliestBooking.dateISO}</strong> (Day after tomorrow).
           </div>
         </div>
       )}
