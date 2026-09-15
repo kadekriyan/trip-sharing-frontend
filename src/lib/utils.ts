@@ -27,6 +27,35 @@ export function sanitizePhoneNumber(phone?: string | null): string {
   return hasPlus ? `+${digitsOnly}` : digitsOnly;
 }
 
+/**
+ * Menghitung batas tanggal pemesanan paling awal berdasarkan batas waktu cutoff jam 19:00 WIB.
+ * - Jika jam saat ini < 19:00 -> tanggal paling awal yang bisa dipesan adalah Besok (H+1).
+ * - Jika jam saat ini >= 19:00 -> batas pemesanan H+1 telah ditutup, tanggal paling awal adalah Lusa (H+2).
+ */
+export function getEarliestBookingDate(now = new Date(), cutoffHour = 19): {
+  dateISO: string;
+  dateObj: Date;
+  isAfterCutoff: boolean;
+} {
+  const isAfterCutoff = now.getHours() >= cutoffHour;
+  const earliestDate = new Date(now);
+  earliestDate.setHours(0, 0, 0, 0);
+
+  const daysToAdd = isAfterCutoff ? 2 : 1;
+  earliestDate.setDate(earliestDate.getDate() + daysToAdd);
+
+  const year = earliestDate.getFullYear();
+  const month = String(earliestDate.getMonth() + 1).padStart(2, "0");
+  const day = String(earliestDate.getDate()).padStart(2, "0");
+  const dateISO = `${year}-${month}-${day}`;
+
+  return {
+    dateISO,
+    dateObj: earliestDate,
+    isAfterCutoff,
+  };
+}
+
 export function formatCurrency(amount?: number | string | null): string {
   if (amount === undefined || amount === null) return "Rp 0";
   const numeric = typeof amount === "number" ? amount : Number(amount);

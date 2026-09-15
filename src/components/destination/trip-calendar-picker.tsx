@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
+import { getEarliestBookingDate } from "@/src/lib/utils";
 import type { Trip } from "@/src/types";
 
 interface TripCalendarPickerProps {
@@ -39,14 +40,12 @@ const MONTH_NAMES_EN = [
   "December",
 ];
 
-const DAYS_HEADER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function padZero(num: number): string {
-  return num < 10 ? `0${num}` : `${num}`;
-}
+const DAYS_HEADER = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
 function formatDateToISO(year: number, month: number, day: number): string {
-  return `${year}-${padZero(month + 1)}-${padZero(day)}`;
+  const m = String(month + 1).padStart(2, "0");
+  const d = String(day).padStart(2, "0");
+  return `${year}-${m}-${d}`;
 }
 
 export function TripCalendarPicker({
@@ -58,13 +57,14 @@ export function TripCalendarPicker({
   className = "",
   onClose,
 }: TripCalendarPickerProps) {
-  // Parse initial selected date or default to current / minDate
+  // Hitung batas tanggal paling awal berdasarkan cutoff jam 19:00 WIB
+  const earliestBooking = useMemo(() => getEarliestBookingDate(), []);
   const today = useMemo(() => new Date(), []);
   const todayISO = useMemo(
     () => formatDateToISO(today.getFullYear(), today.getMonth(), today.getDate()),
     [today]
   );
-  const effectiveMinDate = minDate || todayISO;
+  const effectiveMinDate = minDate || earliestBooking.dateISO;
 
   const initialViewDate = useMemo(() => {
     if (selectedDate && /^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
@@ -293,10 +293,20 @@ export function TripCalendarPicker({
 
   return (
     <div
-      className={`bg-white rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden p-4 sm:p-5 transition-all ${className}`}
+      className={`bg-white rounded-3xl border border-slate-200/90 shadow-2xl overflow-hidden p-4 sm:p-5 transition-all space-y-3 ${className}`}
     >
+      {/* Cutoff Notice (After 19:00 WIB) */}
+      {earliestBooking.isAfterCutoff && (
+        <div className="flex items-start gap-2 p-2.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900">
+          <Clock className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <div className="leading-tight">
+            <strong>Batas Reservasi H-1 Ditutup:</strong> Pemesanan untuk besok ditutup pukul 19:00 WIB. Tanggal tercepat yang dapat dipilih adalah <strong>{earliestBooking.dateISO}</strong> (Lusa).
+          </div>
+        </div>
+      )}
+
       {/* Top Header with Navigation Arrows & Month Year Display */}
-      <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 mb-3.5">
+      <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
         <button
           type="button"
           onClick={handlePrevMonth}

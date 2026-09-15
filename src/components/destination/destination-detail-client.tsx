@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -49,6 +49,7 @@ import {
   getImageUrl,
   parsePickupLocation,
   sanitizePhoneNumber,
+  getEarliestBookingDate,
 } from "@/src/lib/utils";
 import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import { TripCalendarPicker } from "@/src/components/destination/trip-calendar-picker";
@@ -139,10 +140,9 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
-  // Min date for custom date picker (Tomorrow)
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minCustomDate = tomorrow.toISOString().split("T")[0];
+  // Min date for booking based on 19:00 WIB cutoff
+  const earliestBooking = useMemo(() => getEarliestBookingDate(), []);
+  const minCustomDate = earliestBooking.dateISO;
 
   useEffect(() => {
     let isMounted = true;
@@ -159,8 +159,14 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
         setTrips(loadedTrips);
 
-        if (loadedTrips.length > 0) {
-          const firstTrip = loadedTrips[0];
+        // Filter trips that are strictly >= minCustomDate (respecting 19:00 WIB cutoff)
+        const validTrips = loadedTrips.filter((t) => {
+          if (!t.departureDate) return false;
+          return t.departureDate.split("T")[0] >= minCustomDate;
+        });
+
+        if (validTrips.length > 0) {
+          const firstTrip = validTrips[0];
           setSelectedTripId(firstTrip.id);
           setSelectedDate(firstTrip.departureDate);
           setIsCustomDateMode(false);
@@ -187,7 +193,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             setSelectedGroup(tripGroups[0].id);
           }
         } else {
-          // No existing trips scheduled yet, switch to initiator mode
+          // No existing valid trips scheduled yet, switch to initiator mode starting at earliest valid date
           setIsCustomDateMode(true);
           setCustomDateInput(minCustomDate);
           setSelectedDate(minCustomDate);
@@ -382,9 +388,15 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
     const errors: Record<string, string> = {};
     let firstErrorRefKey: string | null = null;
 
-    // Validate Departure Date
-    if (!selectedDate && !customDateInput) {
+    // Validate Departure Date based on cutoff 19:00 WIB
+    const earliest = getEarliestBookingDate();
+    const targetDate = (selectedDate || customDateInput || "").split("T")[0];
+    if (!targetDate) {
       errors.departureDate = "Silakan pilih tanggal keberangkatan trip pada Langkah 1.";
+    } else if (targetDate < earliest.dateISO) {
+      errors.departureDate = earliest.isAfterCutoff
+        ? `Batas pemesanan untuk trip besok telah ditutup (pukul 19:00 WIB). Silakan pilih tanggal minimal ${formatDate(earliest.dateISO)} (Lusa).`
+        : `Tanggal keberangkatan tidak boleh lebih awal dari ${formatDate(earliest.dateISO)}.`;
     }
 
     // Validate each booking item
