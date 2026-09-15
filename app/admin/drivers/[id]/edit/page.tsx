@@ -12,13 +12,14 @@ import {
   Loader2,
   ShieldCheck,
   Car,
+  Compass,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
-import type { Vehicle, Driver } from "@/src/types";
+import type { Vehicle, Driver, Area } from "@/src/types";
 
 export default function EditDriverPage() {
   const router = useRouter();
@@ -34,11 +35,13 @@ export default function EditDriverPage() {
   const [email, setEmail] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [experienceYears, setExperienceYears] = useState(5);
+  const [areaId, setAreaId] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [status, setStatus] = useState<"active" | "on_duty" | "off_duty" | "inactive">("active");
   const [isAvailable, setIsAvailable] = useState(true);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -46,19 +49,22 @@ export default function EditDriverPage() {
       if (!driverId) return;
       setIsLoading(true);
       try {
-        const [driver, vehiclesList] = await Promise.all([
+        const [driver, vehiclesList, areasList] = await Promise.all([
           adminService.getDriverById(driverId),
           adminService.getVehicles(),
+          adminService.getAreas(),
         ]);
 
         if (isMounted) {
           setVehicles(vehiclesList);
+          setAreas(areasList);
           if (driver) {
             setFullName(driver.fullName || driver.name || "");
             setPhoneNumber(driver.phoneNumber || driver.phone || "");
             setEmail(driver.email || driver.user?.email || "");
             setLicenseNumber(driver.licenseNumber || "");
             setExperienceYears(driver.experienceYears || 5);
+            setAreaId(driver.areaId || driver.area?.id || "");
             setVehicleId(driver.vehicleId || driver.vehicle?.id || "");
             let currentStatus: "active" | "on_duty" | "off_duty" | "inactive" = "active";
             if (
@@ -108,6 +114,7 @@ export default function EditDriverPage() {
         email: email ? email.trim() : undefined,
         licenseNumber,
         experienceYears: Number(experienceYears),
+        areaId: areaId ? areaId : null,
         isAvailable: status === "active",
         status: status,
         vehicleId: vehicleId ? vehicleId : null,
@@ -270,6 +277,29 @@ export default function EditDriverPage() {
           </h2>
 
           <div className="space-y-4">
+            {/* Operational Area Select */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block flex items-center gap-1.5">
+                <Compass className="h-3.5 w-3.5 text-[#00677d]" />
+                Wilayah Operasional (Area)
+              </label>
+              <select
+                value={areaId}
+                onChange={(e) => setAreaId(e.target.value)}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d] font-medium"
+              >
+                <option value="">-- Semua Area / Belum Ditugaskan --</option>
+                {areas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.city || "Kota"} - {a.province || "Provinsi"})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400">
+                Driver akan dikelompokkan ke dalam wilayah operasional ini untuk mempermudah filter penugasan.
+              </p>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Pilih Unit Armada Fisik

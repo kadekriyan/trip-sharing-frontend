@@ -14,13 +14,14 @@ import {
   Fuel,
   Settings2,
   Users,
+  Compass,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
-import type { Driver, Vehicle } from "@/src/types";
+import type { Driver, Vehicle, Area } from "@/src/types";
 
 const CAPACITY_PRESETS = [
   { label: "6 VIP", value: 6 },
@@ -60,9 +61,11 @@ export default function EditVehiclePage() {
   const [coverImage, setCoverImage] = useState("");
   const [facilities, setFacilities] = useState<string[]>([]);
   const [status, setStatus] = useState<"active" | "maintenance" | "inactive">("active");
+  const [areaId, setAreaId] = useState<string>("");
   const [driverId, setDriverId] = useState<string>("");
 
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -70,13 +73,15 @@ export default function EditVehiclePage() {
       if (!vehicleId) return;
       setIsLoading(true);
       try {
-        const [vehicle, driversList] = await Promise.all([
+        const [vehicle, driversList, areasList] = await Promise.all([
           adminService.getVehicleById(vehicleId),
           adminService.getDrivers(),
+          adminService.getAreas(),
         ]);
 
         if (isMounted) {
           setDrivers(driversList);
+          setAreas(areasList);
           if (vehicle) {
             setName(vehicle.name || "");
             setPlateNumber(vehicle.plateNumber || vehicle.plate_number || "");
@@ -87,6 +92,7 @@ export default function EditVehiclePage() {
             setCoverImage(vehicle.coverImage || vehicle.cover_image || "");
             setFacilities(Array.isArray(vehicle.facility) ? vehicle.facility : []);
             setStatus((vehicle.status as "active" | "maintenance" | "inactive") || "active");
+            setAreaId(vehicle.areaId || vehicle.area?.id || "");
             setDriverId(vehicle.driverId || vehicle.driver?.id || "");
           }
         }
@@ -134,6 +140,7 @@ export default function EditVehiclePage() {
         coverImage: coverImage.trim() || undefined,
         status,
         isAvailable: status === "active",
+        areaId: areaId ? areaId : null,
         driverId: driverId ? driverId : null,
       });
 
@@ -388,7 +395,27 @@ export default function EditVehiclePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-slate-100">
+            {/* Operational Area Selection */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block flex items-center gap-1.5">
+                <Compass className="h-3.5 w-3.5 text-[#00677d]" />
+                Wilayah Operasional
+              </label>
+              <select
+                value={areaId}
+                onChange={(e) => setAreaId(e.target.value)}
+                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d] font-medium"
+              >
+                <option value="">-- Semua Area / Bebas --</option>
+                {areas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.city || "Kota"})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Driver Ditugaskan

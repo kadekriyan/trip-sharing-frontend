@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Plus,
   Search,
@@ -11,6 +12,7 @@ import {
   UserCheck,
   UserX,
   Car,
+  Compass,
   Loader2,
   PackageOpen,
   Edit,
@@ -33,14 +35,19 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
-import type { Driver, Vehicle } from "@/src/types";
+import type { Driver, Vehicle, Area } from "@/src/types";
 
-export default function DriversAdminPage() {
+function DriversAdminContent() {
+  const searchParams = useSearchParams();
+  const initialAreaParam = searchParams.get("areaId") || searchParams.get("area") || "all";
+
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
   const [vehicleFilter, setVehicleFilter] = useState("all");
+  const [areaFilter, setAreaFilter] = useState(initialAreaParam);
   const [isLoading, setIsLoading] = useState(true);
 
   // Assign Vehicle Modal State
@@ -57,12 +64,14 @@ export default function DriversAdminPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [driversData, vehiclesData] = await Promise.all([
+      const [driversData, vehiclesData, areasData] = await Promise.all([
         adminService.getDrivers(),
         adminService.getVehicles(),
+        adminService.getAreas(),
       ]);
       setDrivers(driversData);
       setVehicles(vehiclesData);
+      setAreas(areasData);
     } catch {
       // Handled silently
     } finally {
@@ -125,54 +134,66 @@ export default function DriversAdminPage() {
     setSearchQuery("");
     setAvailabilityFilter("all");
     setVehicleFilter("all");
+    setAreaFilter("all");
   };
 
-  const filtered = Array.isArray(drivers)
-    ? drivers.filter((d) => {
-        if (!d) return false;
-        const name = (d.fullName || d.name || "").toLowerCase();
-        const phone = (d.phoneNumber || d.phone || "").toLowerCase();
-        const license = (d.licenseNumber || "").toLowerCase();
-        const vehicleName = (d.vehicle?.name || d.vehicleModel || d.vehicleType || "").toLowerCase();
-        const plate = (d.vehicle?.plateNumber || d.plateNumber || d.vehiclePlat || "").toLowerCase();
-        const query = searchQuery.toLowerCase();
+  const filtered = useMemo(() => {
+    if (!Array.isArray(drivers)) return [];
+    return drivers.filter((d) => {
+      if (!d) return false;
+      const name = (d.fullName || d.name || "").toLowerCase();
+      const phone = (d.phoneNumber || d.phone || "").toLowerCase();
+      const license = (d.licenseNumber || "").toLowerCase();
+      const vehicleName = (d.vehicle?.name || d.vehicleModel || d.vehicleType || "").toLowerCase();
+      const plate = (d.vehicle?.plateNumber || d.plateNumber || d.vehiclePlat || "").toLowerCase();
+      const areaName = (d.area?.name || "").toLowerCase();
+      const query = searchQuery.toLowerCase();
 
-        const matchSearch =
-          name.includes(query) ||
-          phone.includes(query) ||
-          license.includes(query) ||
-          vehicleName.includes(query) ||
-          plate.includes(query);
+      const matchSearch =
+        name.includes(query) ||
+        phone.includes(query) ||
+        license.includes(query) ||
+        vehicleName.includes(query) ||
+        plate.includes(query) ||
+        areaName.includes(query);
 
-        const isAvail =
-          d.isAvailable !== undefined
-            ? Boolean(d.isAvailable)
-            : d.status === "active" || d.status === "available";
+      const isAvail =
+        d.isAvailable !== undefined
+          ? Boolean(d.isAvailable)
+          : d.status === "active" || d.status === "available";
 
-        const matchAvail =
-          availabilityFilter === "all"
-            ? true
-            : availabilityFilter === "active" || availabilityFilter === "available"
-            ? isAvail
-            : availabilityFilter === "on_duty"
-            ? d.status === "on_duty"
-            : availabilityFilter === "off_duty" || availabilityFilter === "off"
-            ? d.status === "off_duty" || !isAvail
-            : availabilityFilter === "inactive"
-            ? d.status === "inactive"
-            : true;
+      const matchAvail =
+        availabilityFilter === "all"
+          ? true
+          : availabilityFilter === "active" || availabilityFilter === "available"
+          ? isAvail
+          : availabilityFilter === "on_duty"
+          ? d.status === "on_duty"
+          : availabilityFilter === "off_duty" || availabilityFilter === "off"
+          ? d.status === "off_duty" || !isAvail
+          : availabilityFilter === "inactive"
+          ? d.status === "inactive"
+          : true;
 
-        const hasVehicle = Boolean(d.vehicleId || d.vehicle || d.plateNumber || d.vehicleModel);
-        const matchVehicle =
-          vehicleFilter === "all"
-            ? true
-            : vehicleFilter === "assigned"
-            ? hasVehicle
-            : !hasVehicle;
+      const hasVehicle = Boolean(d.vehicleId || d.vehicle || d.plateNumber || d.vehicleModel);
+      const matchVehicle =
+        vehicleFilter === "all"
+          ? true
+          : vehicleFilter === "assigned"
+          ? hasVehicle
+          : !hasVehicle;
 
-        return matchSearch && matchAvail && matchVehicle;
-      })
-    : [];
+      const matchArea =
+        areaFilter === "all"
+          ? true
+          : d.areaId === areaFilter ||
+            d.area_id === areaFilter ||
+            d.area?.id === areaFilter ||
+            d.area?.slug === areaFilter;
+
+      return matchSearch && matchAvail && matchVehicle && matchArea;
+    });
+  }, [drivers, searchQuery, availabilityFilter, vehicleFilter, areaFilter]);
 
   const totalDriversCount = drivers.length;
   const readyDriversCount = drivers.filter((d) =>
@@ -291,7 +312,7 @@ export default function DriversAdminPage() {
             <UserCheck className="h-4 w-4 text-[#00677d]" />
             <span>Filter & Pencarian Driver</span>
           </div>
-          {(searchQuery || availabilityFilter !== "all" || vehicleFilter !== "all") && (
+          {(searchQuery || availabilityFilter !== "all" || vehicleFilter !== "all" || areaFilter !== "all") && (
             <button
               onClick={handleResetFilters}
               className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
@@ -302,15 +323,30 @@ export default function DriversAdminPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="relative">
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-3.5" />
             <Input
-              placeholder="Cari driver, no HP, no SIM, atau plat armada..."
+              placeholder="Cari driver, no HP, no SIM, atau plat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 text-xs rounded-xl bg-slate-50 border-slate-200 focus:bg-white transition-colors"
             />
+          </div>
+
+          <div>
+            <select
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value)}
+              className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#00677d] font-medium"
+            >
+              <option value="all">Semua Wilayah Operasional</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name} ({area.city || "Kota"})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -353,7 +389,7 @@ export default function DriversAdminPage() {
             <PackageOpen className="h-10 w-10 text-slate-400 mx-auto" />
             <h3 className="text-sm font-bold text-slate-700">Belum ada personil driver ditemukan</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              {searchQuery || availabilityFilter !== "all" || vehicleFilter !== "all"
+              {searchQuery || availabilityFilter !== "all" || vehicleFilter !== "all" || areaFilter !== "all"
                 ? "Tidak ada data driver yang cocok dengan filter pencarian saat ini."
                 : "Daftarkan mitra pengemudi baru untuk mengoperasikan armada perjalanan."}
             </p>
@@ -417,6 +453,15 @@ export default function DriversAdminPage() {
                           {driver.phoneNumber || driver.phone || "No HP Kosong"}
                         </a>
                       </div>
+                    </div>
+
+                    {/* Area Info Badge */}
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
+                      <Compass className="h-3.5 w-3.5 text-[#00677d] shrink-0" />
+                      <span className="font-semibold text-slate-700">Area:</span>
+                      <span className="truncate">
+                        {driver.area?.name || (driver.areaId ? `Area ID: ${driver.areaId.slice(0, 8)}...` : "Semua / Belum Ditugaskan")}
+                      </span>
                     </div>
 
                     {/* Assigned Vehicle Section */}
@@ -666,3 +711,19 @@ export default function DriversAdminPage() {
     </div>
   );
 }
+
+export default function DriversAdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center py-24 text-slate-400 space-y-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#00677d]" />
+          <p className="text-xs font-semibold">Memuat halaman driver...</p>
+        </div>
+      }
+    >
+      <DriversAdminContent />
+    </Suspense>
+  );
+}
+

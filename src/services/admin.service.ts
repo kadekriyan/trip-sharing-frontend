@@ -8,6 +8,9 @@ import type {
   Vehicle,
   CreateVehiclePayload,
   UpdateVehiclePayload,
+  Area,
+  CreateAreaPayload,
+  UpdateAreaPayload,
   Article,
   AuditLog,
   Trip,
@@ -18,6 +21,50 @@ import type {
   UpdateBookingGroupPayload,
 } from "@/src/types";
 import { normalizeParticipant } from "@/src/lib/utils";
+
+export function normalizeArea(raw: Record<string, unknown>): Area {
+  const id = String(raw.id || "");
+  const name = String(raw.name || "");
+  const slug = String(raw.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-"));
+  const city = typeof raw.city === "string" ? raw.city : undefined;
+  const province = typeof raw.province === "string" ? raw.province : undefined;
+  const description = typeof raw.description === "string" ? raw.description : undefined;
+  const isActive =
+    raw.isActive !== undefined
+      ? Boolean(raw.isActive)
+      : raw.is_active !== undefined
+      ? Boolean(raw.is_active)
+      : true;
+  const driversCount =
+    typeof raw.driversCount === "number"
+      ? raw.driversCount
+      : typeof raw.drivers_count === "number"
+      ? raw.drivers_count
+      : 0;
+  const vehiclesCount =
+    typeof raw.vehiclesCount === "number"
+      ? raw.vehiclesCount
+      : typeof raw.vehicles_count === "number"
+      ? raw.vehicles_count
+      : 0;
+
+  return {
+    id,
+    name,
+    slug,
+    city,
+    province,
+    description,
+    isActive,
+    is_active: isActive,
+    driversCount,
+    vehiclesCount,
+    createdAt: String(raw.createdAt || raw.created_at || new Date().toISOString()),
+    created_at: String(raw.createdAt || raw.created_at || new Date().toISOString()),
+    updatedAt: String(raw.updatedAt || raw.updated_at || new Date().toISOString()),
+    updated_at: String(raw.updatedAt || raw.updated_at || new Date().toISOString()),
+  };
+}
 
 export function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
   const id = String(raw.id || "");
@@ -52,6 +99,8 @@ export function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
       : raw.is_available !== undefined
       ? Boolean(raw.is_available)
       : status === "active";
+  const areaId = raw.areaId || raw.area_id ? String(raw.areaId || raw.area_id) : null;
+  const area = raw.area ? normalizeArea(raw.area as Record<string, unknown>) : null;
   const driverId = raw.driverId || raw.driver_id ? String(raw.driverId || raw.driver_id) : null;
   const driver = raw.driver ? (raw.driver as Driver) : null;
 
@@ -72,6 +121,9 @@ export function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
     status,
     isAvailable,
     is_available: isAvailable,
+    areaId,
+    area_id: areaId,
+    area,
     driverId,
     driver_id: driverId,
     driver,
@@ -1096,14 +1148,153 @@ export const adminService = {
     };
   },
 
-  async getDrivers(): Promise<Driver[]> {
+  // ==========================================
+  // WILAYAH OPERASIONAL / AREAS MANAGEMENT
+  // ==========================================
+  async getAreas(params?: {
+    isActive?: boolean;
+    is_active?: boolean;
+    city?: string;
+    province?: string;
+    search?: string;
+  }): Promise<Area[]> {
     try {
-      const res = await apiClient.get<Driver[]>("/admin/drivers");
+      const res = await apiClient.get<Record<string, unknown>[]>("/admin/areas", { params });
+      if (res.success && Array.isArray(res.data)) {
+        return res.data.map(normalizeArea);
+      }
+    } catch {
+      try {
+        const altRes = await apiClient.get<Record<string, unknown>[]>("/areas", { params });
+        if (altRes.success && Array.isArray(altRes.data)) {
+          return altRes.data.map(normalizeArea);
+        }
+      } catch {
+        // Empty
+      }
+    }
+    return [];
+  },
+
+  async getAreaById(id: string): Promise<Area | null> {
+    try {
+      const res = await apiClient.get<Record<string, unknown>>(`/admin/areas/${id}`);
+      if (res.success && res.data) {
+        return normalizeArea(res.data);
+      }
+    } catch {
+      try {
+        const altRes = await apiClient.get<Record<string, unknown>>(`/areas/${id}`);
+        if (altRes.success && altRes.data) {
+          return normalizeArea(altRes.data);
+        }
+      } catch {
+        // Not found
+      }
+    }
+    return null;
+  },
+
+  async createArea(payload: CreateAreaPayload | Partial<Area>): Promise<Area> {
+    try {
+      const res = await apiClient.post<Record<string, unknown>>("/admin/areas", payload);
+      if (res.success && res.data) {
+        return normalizeArea(res.data);
+      }
+      if (!res.success && res.message) {
+        throw new Error(res.message);
+      }
+    } catch (err) {
+      try {
+        const altRes = await apiClient.post<Record<string, unknown>>("/areas", payload);
+        if (altRes.success && altRes.data) {
+          return normalizeArea(altRes.data);
+        }
+        if (!altRes.success && altRes.message) {
+          throw new Error(altRes.message);
+        }
+      } catch (altErr) {
+        throw err instanceof Error ? err : altErr;
+      }
+      throw err;
+    }
+    throw new Error("Gagal menambahkan wilayah operasional baru.");
+  },
+
+  async updateArea(id: string, payload: UpdateAreaPayload | Partial<Area>): Promise<Area> {
+    try {
+      const res = await apiClient.patch<Record<string, unknown>>(`/admin/areas/${id}`, payload);
+      if (res.success && res.data) {
+        return normalizeArea(res.data);
+      }
+    } catch {
+      try {
+        const putRes = await apiClient.put<Record<string, unknown>>(`/admin/areas/${id}`, payload);
+        if (putRes.success && putRes.data) {
+          return normalizeArea(putRes.data);
+        }
+      } catch {
+        try {
+          const altRes = await apiClient.patch<Record<string, unknown>>(`/areas/${id}`, payload);
+          if (altRes.success && altRes.data) {
+            return normalizeArea(altRes.data);
+          }
+        } catch {
+          // Failed
+        }
+      }
+    }
+    throw new Error("Gagal memperbarui data wilayah operasional.");
+  },
+
+  async deleteArea(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await apiClient.delete<{ success: boolean; message: string }>(`/admin/areas/${id}`);
+      if (res.success) {
+        return {
+          success: true,
+          message: res.message || "Wilayah operasional berhasil dihapus",
+        };
+      }
+    } catch {
+      try {
+        const altRes = await apiClient.delete<{ success: boolean; message: string }>(`/areas/${id}`);
+        if (altRes.success) {
+          return {
+            success: true,
+            message: altRes.message || "Wilayah operasional berhasil dihapus",
+          };
+        }
+      } catch {
+        // Failed
+      }
+      throw new Error("Gagal menghapus wilayah operasional.");
+    }
+    throw new Error("Gagal menghapus wilayah operasional.");
+  },
+
+  async getDrivers(params?: {
+    areaId?: string;
+    area?: string;
+    status?: string;
+    isAvailable?: boolean;
+    is_available?: boolean;
+    search?: string;
+  }): Promise<Driver[]> {
+    try {
+      const res = await apiClient.get<Driver[]>("/admin/drivers", { params });
       if (res.success && Array.isArray(res.data)) {
         return res.data;
       }
     } catch {
-      // Empty
+      try {
+        const altRes = await apiClient.get<Driver[]>("/drivers", { params });
+        if (altRes.success && Array.isArray(altRes.data)) {
+          return altRes.data;
+        }
+      } catch {
+        // Empty
+      }
     }
     return [];
   },
@@ -1178,8 +1369,11 @@ export const adminService = {
   // MASTER ARMADA / VEHICLES MANAGEMENT
   // ==========================================
   async getVehicles(params?: {
+    areaId?: string;
+    area?: string;
     status?: string;
     isAvailable?: boolean;
+    vehicleType?: string;
     search?: string;
   }): Promise<Vehicle[]> {
     try {

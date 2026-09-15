@@ -51,6 +51,41 @@ export interface Destination {
   updatedAt: string;
 }
 
+export interface Area {
+  id: string;
+  name: string;
+  slug: string;
+  city?: string;
+  province?: string;
+  description?: string;
+  isActive?: boolean;
+  is_active?: boolean;
+  driversCount?: number;
+  vehiclesCount?: number;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+}
+
+export interface CreateAreaPayload {
+  name: string;
+  slug?: string;
+  city?: string;
+  province?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface UpdateAreaPayload {
+  name?: string;
+  slug?: string;
+  city?: string;
+  province?: string;
+  description?: string;
+  isActive?: boolean;
+}
+
 export type VehicleStatus = "active" | "maintenance" | "inactive";
 
 export interface Vehicle {
@@ -70,6 +105,9 @@ export interface Vehicle {
   status: VehicleStatus | string;
   isAvailable?: boolean;
   is_available?: boolean;
+  areaId?: string | null;
+  area_id?: string | null;
+  area?: Area | null;
   driverId?: string | null;
   driver_id?: string | null;
   driver?: Driver | null;
@@ -227,6 +265,9 @@ export interface Driver {
   isAvailable?: boolean;
   is_available?: boolean;
   status: DriverStatus;
+  areaId?: string | null;
+  area_id?: string | null;
+  area?: Area | null;
   vehicleId?: string | null;
   vehicle_id?: string | null;
   vehicle?: Vehicle | null;
@@ -453,6 +494,7 @@ export interface CreateVehiclePayload {
   coverImage?: string;
   status?: VehicleStatus | string;
   isAvailable?: boolean;
+  areaId?: string | null;
   driverId?: string | null;
 }
 
@@ -467,6 +509,7 @@ export interface UpdateVehiclePayload {
   coverImage?: string;
   status?: VehicleStatus | string;
   isAvailable?: boolean;
+  areaId?: string | null;
   driverId?: string | null;
 }
 
