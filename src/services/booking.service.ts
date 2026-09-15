@@ -1,6 +1,8 @@
 import { apiClient } from "@/src/lib/api-client";
 import type {
   CreateBookingPayload,
+  BulkBookingPayload,
+  BulkBookingResponse,
   Participant,
   Payment,
   BookingGroup,
@@ -48,6 +50,32 @@ export const bookingService = {
       return res.data;
     }
     throw new Error(res.message || "Gagal membuat pesanan booking. Silakan coba lagi.");
+  },
+
+  async createBulkBooking(payload: BulkBookingPayload): Promise<BulkBookingResponse> {
+    try {
+      const res = await apiClient.post<BulkBookingResponse>("/bookings/bulk", payload);
+      if (res.success && res.data) {
+        if (Array.isArray(res.data.participants)) {
+          res.data.participants = res.data.participants.map(normalizeParticipant);
+        }
+        return res.data;
+      }
+      throw new Error(res.message || "Gagal membuat pesanan rombongan.");
+    } catch (err: unknown) {
+      const errorObj = err as { status?: number; message?: string };
+      // Fallback to /bookings/batch if /bookings/bulk returns 404
+      if (errorObj?.status === 404 || errorObj?.message?.includes("404")) {
+        const altRes = await apiClient.post<BulkBookingResponse>("/bookings/batch", payload);
+        if (altRes.success && altRes.data) {
+          if (Array.isArray(altRes.data.participants)) {
+            altRes.data.participants = altRes.data.participants.map(normalizeParticipant);
+          }
+          return altRes.data;
+        }
+      }
+      throw err;
+    }
   },
 
   async getSnapToken(

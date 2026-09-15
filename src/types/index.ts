@@ -358,6 +358,25 @@ export interface CreateBookingPayload {
   departureDate?: string;
 }
 
+export type BulkBookingItemPayload = Omit<CreateBookingPayload, "captchaToken">;
+
+export interface BulkBookingPayload {
+  captchaToken?: string;
+  bookings: BulkBookingItemPayload[];
+}
+
+export interface BulkBookingResponse {
+  bulkBookingId?: string;
+  totalAmount: number;
+  paymentStatus: string;
+  participants: Participant[];
+  payment?: Payment & {
+    snapToken?: string;
+    redirectUrl?: string;
+    orderId?: string;
+  };
+}
+
 export interface CreateTripPayload {
   destinationId: string;
   destination_id?: string;
