@@ -30,7 +30,7 @@ export default function NewDestinationPage() {
   const [location, setLocation] = useState("");
   const [durationDays, setDurationDays] = useState(2);
   const [durationNights, setDurationNights] = useState(1);
-  const [pricePerPax, setPricePerPax] = useState(850000);
+  const [pricePerPax, setPricePerPax] = useState<number | string>("");
   const [coverImage, setCoverImage] = useState(
     "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800"
   );
@@ -257,9 +257,9 @@ export default function NewDestinationPage() {
               <Input
                 required
                 type="number"
-                placeholder="850000"
+                placeholder="Contoh: 750000"
                 value={pricePerPax}
-                onChange={(e) => setPricePerPax(Number(e.target.value))}
+                onChange={(e) => setPricePerPax(e.target.value === "" ? "" : Number(e.target.value))}
               />
             </div>
 

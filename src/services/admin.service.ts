@@ -239,14 +239,20 @@ export function normalizeTrip(raw: Record<string, unknown>): Trip {
       : typeof raw.current_participants === "number"
       ? raw.current_participants
       : 0;
+  const rawDest = (raw.destination || raw.dest) as Record<string, unknown> | undefined;
+  const destPrice = rawDest
+    ? Number(rawDest.pricePerPax ?? rawDest.price ?? rawDest.basePrice ?? rawDest.price_per_pax ?? 0)
+    : 0;
   const pricePerPax =
-    typeof raw.pricePerPax === "number"
+    typeof raw.pricePerPax === "number" && raw.pricePerPax > 0
       ? raw.pricePerPax
-      : typeof raw.price_per_pax === "number"
+      : typeof raw.price_per_pax === "number" && raw.price_per_pax > 0
       ? raw.price_per_pax
-      : typeof raw.price === "number"
+      : typeof raw.price === "number" && raw.price > 0
       ? raw.price
-      : 850000;
+      : destPrice > 0
+      ? destPrice
+      : 0;
   const guideId = (raw.guideId || raw.guide_id) ? String(raw.guideId || raw.guide_id) : null;
   const status = (raw.status as Trip["status"]) || "planning";
   const notes = typeof raw.notes === "string" ? raw.notes : undefined;

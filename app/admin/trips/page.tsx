@@ -257,7 +257,8 @@ export default function AdminTripsPage() {
     setFormDestinationId(destId);
     const dest = destinations.find((d) => d.id === destId);
     if (dest) {
-      setFormPricePerPax(dest.pricePerPax || dest.basePrice || 850000);
+      const destPrice = dest.pricePerPax || dest.basePrice || dest.price || 0;
+      setFormPricePerPax(destPrice);
     }
   };
 
@@ -267,10 +268,11 @@ export default function AdminTripsPage() {
     if (destinations.length > 0) {
       const firstDest = destinations[0];
       setFormDestinationId(firstDest.id);
-      setFormPricePerPax(firstDest.pricePerPax || firstDest.basePrice || 850000);
+      const destPrice = firstDest.pricePerPax || firstDest.basePrice || firstDest.price || 0;
+      setFormPricePerPax(destPrice);
     } else {
       setFormDestinationId("");
-      setFormPricePerPax(850000);
+      setFormPricePerPax(0);
     }
 
     // Default dates: 2 days ahead at 07:00 to 4 days ahead at 17:00
@@ -326,6 +328,10 @@ export default function AdminTripsPage() {
 
     setIsSubmitting(true);
     try {
+      const selectedDest = destinations.find((d) => d.id === formDestinationId);
+      const destPrice = selectedDest?.pricePerPax || selectedDest?.basePrice || selectedDest?.price || 0;
+      const effectivePrice = Number(formPricePerPax) > 0 ? Number(formPricePerPax) : destPrice;
+
       const payload: CreateTripPayload = {
         destinationId: formDestinationId,
         destination_id: formDestinationId,
@@ -333,7 +339,7 @@ export default function AdminTripsPage() {
         departure_date: departDateObj.toISOString(),
         returnDate: returnDateObj.toISOString(),
         return_date: returnDateObj.toISOString(),
-        pricePerPax: Number(formPricePerPax) || 850000,
+        pricePerPax: effectivePrice,
         maxParticipants: Number(formMaxParticipants) || 6,
         max_participants: Number(formMaxParticipants) || 6,
         maxGroups: Number(formMaxGroups) || Math.ceil((Number(formMaxParticipants) || 6) / 6),

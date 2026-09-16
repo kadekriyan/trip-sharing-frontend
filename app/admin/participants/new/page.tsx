@@ -125,7 +125,7 @@ export default function AddParticipantPage() {
   }, [selectedDestination, destinations, allTrips]);
 
   const destination = destinations.find((d) => d.id === selectedDestination) || destinations[0];
-  const price = destination ? getDestinationPrice(destination) : 850000;
+  const price = destination ? getDestinationPrice(destination) : 0;
   const totalAmount = price;
 
   const handleSubmit = async (e: React.FormEvent) => {

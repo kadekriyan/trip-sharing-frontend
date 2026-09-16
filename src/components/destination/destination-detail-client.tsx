@@ -389,8 +389,11 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
   }
 
   // Active trip & Pricing Calculation
+  const destinationPrice = getDestinationPrice(destination);
   const activeTrip = trips.find((t) => t.id === selectedTripId);
-  const basePrice = activeTrip?.pricePerPax || getDestinationPrice(destination);
+  const basePrice = (activeTrip?.pricePerPax && activeTrip.pricePerPax > 0)
+    ? activeTrip.pricePerPax
+    : destinationPrice;
   const totalAmount = basePrice * bookingItems.length;
 
   // Evaluasi Konflik Geopolitik & Alokasi Armada Cerdas

@@ -370,7 +370,8 @@ export function normalizeParticipant(rawRecord: unknown): Participant {
       ""
   );
   const nationality = String(raw.nationality || user?.nationality || customer?.nationality || participantObj?.nationality || "Indonesia");
-  const totalAmount = Number(raw.totalAmount ?? raw.total_amount ?? raw.amount ?? raw.price ?? 850000);
+  const fallbackPrice = rawTrip?.pricePerPax ?? getDestinationPrice(rawDest);
+  const totalAmount = Number(raw.totalAmount ?? raw.total_amount ?? raw.amount ?? raw.price ?? fallbackPrice);
   const paymentStatus = (raw.paymentStatus || raw.payment_status || "pending") as PaymentStatus;
   const checkInStatus = (raw.checkInStatus || raw.check_in_status || "pending") as CheckInStatus;
 

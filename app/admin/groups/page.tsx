@@ -46,6 +46,7 @@ import {
   formatDate,
   calculateOccupancyPercent,
   getDestinationTitle,
+  getDestinationPrice,
   getPaymentBadge,
 } from "@/src/lib/utils";
 import type {
@@ -178,7 +179,7 @@ export default function AdminGroupsPage() {
     setCreateDriverId("");
     setCreateVehicleId("");
     setCreateMaxPax(6);
-    setCreatePricePerPax(firstTrip?.pricePerPax || 850000);
+    setCreatePricePerPax(firstTrip?.pricePerPax || (firstTrip?.destination ? getDestinationPrice(firstTrip.destination) : 0));
     setCreateStatus("open");
     setCreateGroupNumber((firstTrip?.groups?.length || 0) + 1);
     setCreateError(null);
@@ -670,7 +671,7 @@ export default function AdminGroupsPage() {
             const currentPax = group.currentParticipants || group.participants?.length || 0;
             const maxPax = group.capacity || group.maxParticipants || 6;
             const percent = calculateOccupancyPercent(currentPax, maxPax);
-            const price = group.pricePerPerson || group.trip?.pricePerPax || 850000;
+            const price = group.pricePerPerson || group.trip?.pricePerPax || (dest ? getDestinationPrice(dest) : 0);
             const totalRevenue = price * currentPax;
             const isExpanded = expandedParticipants[group.id] || false;
             const participantsList = group.participants || [];

@@ -39,7 +39,7 @@ export default function EditDestinationPage() {
   const [location, setLocation] = useState("");
   const [durationDays, setDurationDays] = useState(2);
   const [durationNights, setDurationNights] = useState(1);
-  const [pricePerPax, setPricePerPax] = useState(850000);
+  const [pricePerPax, setPricePerPax] = useState<number | string>(0);
   const [coverImage, setCoverImage] = useState("");
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [meetingPoint, setMeetingPoint] = useState("");
@@ -68,7 +68,7 @@ export default function EditDestinationPage() {
           setLocation(dest.location || "");
           setDurationDays(dest.durationDays || 2);
           setDurationNights(dest.durationNights || 1);
-          setPricePerPax(getDestinationPrice(dest) || 850000);
+          setPricePerPax(getDestinationPrice(dest) || 0);
           setCoverImage(dest.coverImage || dest.image || dest.imageUrl || "");
           const rawDest = dest as unknown as Record<string, unknown>;
           const gallery = (dest.galleryImages || rawDest.gallery || rawDest.images || []) as string[];
