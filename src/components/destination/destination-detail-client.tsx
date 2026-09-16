@@ -1325,12 +1325,12 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
       {/* MIDTRANS SNAP PAYMENT SIMULATION MODAL */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="max-w-md p-0 overflow-hidden bg-white">
-          <div className="bg-[#00677d] p-5 text-white">
+        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-md p-0 overflow-hidden bg-white max-h-[90dvh] flex flex-col rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xl [&>button]:text-white/80 [&>button]:hover:text-white">
+          <div className="bg-[#00677d] p-4 sm:p-5 text-white shrink-0">
             <Badge variant="coral" className="text-[10px] font-bold uppercase mb-1">
               Midtrans Payment Gateway
             </Badge>
-            <DialogTitle className="font-heading font-extrabold text-xl text-white">
+            <DialogTitle className="font-heading font-extrabold text-lg sm:text-xl text-white">
               Complete Your Payment
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-100">
@@ -1338,83 +1338,83 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             </DialogDescription>
           </div>
 
-          <div className="p-6 space-y-5">
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+          <div className="p-4 sm:p-6 space-y-3.5 sm:space-y-5 overflow-y-auto flex-1 overscroll-contain">
+            <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 flex justify-between items-center">
               <div>
-                <span className="text-[11px] text-slate-500 block">Total Amount:</span>
-                <span className="font-heading font-extrabold text-xl text-[#00677d]">
+                <span className="text-[10px] sm:text-[11px] text-slate-500 block">Total Amount:</span>
+                <span className="font-heading font-extrabold text-lg sm:text-xl text-[#00677d]">
                   {formatCurrency(totalAmount)}
                 </span>
               </div>
-              <span className="text-xs font-bold text-slate-700 bg-white px-3 py-1 rounded-xl border border-slate-200">
+              <span className="text-[11px] sm:text-xs font-bold text-slate-700 bg-white px-2.5 sm:px-3 py-1 rounded-lg sm:rounded-xl border border-slate-200">
                 {createdParticipants.length || bookingItems.length} Pax (VIP)
               </span>
             </div>
 
             {/* Payment Method Selector */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+            <div className="space-y-1.5 sm:space-y-2">
+              <label className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Payment Method
               </label>
 
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("qris")}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${
+                  className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border text-xs font-bold transition-all ${
                     paymentMethod === "qris"
                       ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d]"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <QrCode className="h-4 w-4 text-[#00677d]" />
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <QrCode className="h-4 w-4 shrink-0 text-[#00677d]" />
                     <span>QRIS (GoPay, OVO, ShopeePay, Dana, BCA)</span>
                   </div>
-                  <Badge variant="success" className="text-[9px]">Instant</Badge>
+                  <Badge variant="success" className="text-[9px] shrink-0">Instant</Badge>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("bca_va")}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${
+                  className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border text-xs font-bold transition-all ${
                     paymentMethod === "bca_va"
                       ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d]"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <Building2 className="h-4 w-4 text-[#00677d]" />
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <Building2 className="h-4 w-4 shrink-0 text-[#00677d]" />
                     <span>BCA Virtual Account</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">Automatic</span>
+                  <span className="text-[10px] sm:text-[11px] text-slate-400 shrink-0">Automatic</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setPaymentMethod("credit_card")}
-                  className={`flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${
+                  className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border text-xs font-bold transition-all ${
                     paymentMethod === "credit_card"
                       ? "border-[#00677d] bg-[#00677d]/5 text-[#00677d]"
                       : "border-slate-200 text-slate-700"
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <CreditCard className="h-4 w-4 text-[#00677d]" />
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <CreditCard className="h-4 w-4 shrink-0 text-[#00677d]" />
                     <span>Credit / Debit Card (Visa / Mastercard)</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">3D Secure</span>
+                  <span className="text-[10px] sm:text-[11px] text-slate-400 shrink-0">3D Secure</span>
                 </button>
               </div>
             </div>
 
             {/* Simulated QR Code or Instructions */}
             {paymentMethod === "qris" && (
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
-                <div className="h-32 w-32 mx-auto bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-center shadow-sm">
-                  <QrCode className="h-28 w-28 text-slate-800" />
+              <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2 sm:space-y-3">
+                <div className="h-24 w-24 sm:h-32 sm:w-32 mx-auto bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-center shadow-sm">
+                  <QrCode className="h-20 w-20 sm:h-28 sm:w-28 text-slate-800" />
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[10px] sm:text-[11px] text-slate-500">
                   Scan the QRIS code above with your mobile banking or e-wallet application.
                 </p>
               </div>
@@ -1424,7 +1424,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               onClick={handleConfirmPayment}
               disabled={isProcessingPayment}
               size="lg"
-              className="w-full justify-center font-bold text-sm bg-emerald-600 hover:bg-emerald-700 shadow-md"
+              className="w-full justify-center font-bold text-xs sm:text-sm py-2.5 sm:py-3 h-auto sm:h-11 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md rounded-xl"
             >
               {isProcessingPayment ? "Verifying Transaction..." : "I Have Completed Payment (Simulate Success)"}
             </Button>
