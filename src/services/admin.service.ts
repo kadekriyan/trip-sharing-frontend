@@ -19,8 +19,11 @@ import type {
   UpdateTripPayload,
   CreateBookingGroupPayload,
   UpdateBookingGroupPayload,
+  GlobalSeoSettings,
+  UpdateSeoSettingsPayload,
 } from "@/src/types";
 import { normalizeParticipant } from "@/src/lib/utils";
+import { DEFAULT_SEO_SETTINGS } from "@/src/services/seo.service";
 
 export function normalizeArea(raw: Record<string, unknown>): Area {
   const id = String(raw.id || "");
@@ -1649,5 +1652,31 @@ export const adminService = {
       // Empty
     }
     return [];
+  },
+
+  async getAdminSeoSettings(): Promise<GlobalSeoSettings> {
+    try {
+      const res = await apiClient.get<GlobalSeoSettings>("/admin/settings/seo");
+      if (res.success && res.data) {
+        return {
+          ...DEFAULT_SEO_SETTINGS,
+          ...res.data,
+          keywords: Array.isArray(res.data.keywords) && res.data.keywords.length > 0
+            ? res.data.keywords
+            : DEFAULT_SEO_SETTINGS.keywords,
+        };
+      }
+    } catch {
+      // Fallback
+    }
+    return DEFAULT_SEO_SETTINGS;
+  },
+
+  async updateAdminSeoSettings(payload: UpdateSeoSettingsPayload): Promise<GlobalSeoSettings> {
+    const res = await apiClient.put<GlobalSeoSettings>("/admin/settings/seo", payload);
+    if (!res.success || !res.data) {
+      throw new Error(res.message || "Gagal memperbarui pengaturan SEO");
+    }
+    return res.data;
   },
 };

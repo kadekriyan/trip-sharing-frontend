@@ -5,6 +5,8 @@ import { Navbar } from "@/src/components/layout/Navbar";
 import { Footer } from "@/src/components/layout/Footer";
 import { AuthProvider } from "@/src/context/auth-context";
 
+import { seoService } from "@/src/services/seo.service";
+
 const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
@@ -28,95 +30,121 @@ export const viewport: Viewport = {
   themeColor: "#00677d",
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "Share Tour Jogja — Open Trip & Yogyakarta Sharing Tours",
-    template: "%s | Share Tour Jogja",
-  },
-  description:
-    "Open trip and sharing tour platform in Yogyakarta & Indonesia. Join small-group travel tours, save up to 60% with cost-sharing, and make new friends.",
-  keywords: [
-    "Share Tour Jogja",
-    "Open Trip Jogja",
-    "Sharing Tour Yogyakarta",
-    "Trip Sharing Jogja",
-    "Yogyakarta Sharing Tours",
-    "Bromo Sunrise Safari",
-    "Komodo Phinisi",
-    "Bali Nusa Penida",
-    "Small Group Travel Indonesia",
-    "Budget Travel Yogyakarta",
-  ],
-  authors: [{ name: "Share Tour Jogja Team" }],
-  creator: "Share Tour Jogja",
-  publisher: "Share Tour Jogja",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  openGraph: {
-    title: "Share Tour Jogja — Open Trip & Yogyakarta Sharing Tours",
-    description:
-      "Join small-group travel tours across Yogyakarta and Indonesia. Save up to 60% with transparent cost-sharing and verified local drivers.",
-    url: siteUrl,
-    siteName: "Share Tour Jogja",
-    images: [
-      {
-        url: "/images/hero-bromo.png",
-        width: 1200,
-        height: 630,
-        alt: "Share Tour Jogja — Small Group Travel Adventures",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Share Tour Jogja — Open Trip & Yogyakarta Sharing Tours",
-    description:
-      "Join small-group travel tours across Yogyakarta and Indonesia. Save up to 60% with transparent cost-sharing and guaranteed departures.",
-    images: ["/images/hero-bromo.png"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  icons: {
-    icon: "/images/logo.png",
-    apple: "/images/logo.png",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await seoService.getGlobalSeo();
+  const ogImage = seo.defaultOgImage.startsWith("http")
+    ? seo.defaultOgImage
+    : `${siteUrl}${seo.defaultOgImage.startsWith("/") ? "" : "/"}${seo.defaultOgImage}`;
 
-export default function RootLayout({
+  const meta: Metadata = {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: seo.siteTitleDefault,
+      template: seo.siteTitleTemplate,
+    },
+    description: seo.metaDescription,
+    keywords: seo.keywords,
+    authors: [{ name: "Share Tour Jogja Team" }],
+    creator: "Share Tour Jogja",
+    publisher: "Share Tour Jogja",
+    formatDetection: {
+      email: false,
+      address: false,
+      telephone: false,
+    },
+    openGraph: {
+      title: seo.siteTitleDefault,
+      description: seo.metaDescription,
+      url: siteUrl,
+      siteName: "Share Tour Jogja",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: seo.siteTitleDefault,
+        },
+      ],
+      locale: "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: seo.siteTitleDefault,
+      description: seo.metaDescription,
+      images: [ogImage],
+    },
+    robots: {
+      index: seo.robotsIndex,
+      follow: seo.robotsIndex,
+      googleBot: {
+        index: seo.robotsIndex,
+        follow: seo.robotsIndex,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    icons: {
+      icon: "/images/logo.png",
+      apple: "/images/logo.png",
+    },
+  };
+
+  if (seo.googleVerificationTag) {
+    meta.verification = {
+      google: seo.googleVerificationTag,
+    };
+  }
+
+  return meta;
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const jsonLdOrg = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "Share Tour Jogja",
-    url: siteUrl,
-    logo: `${siteUrl}/images/logo.png`,
-    description: "Yogyakarta open trip and cost-sharing tour platform for small-group travel adventures.",
-    contactPoint: {
-      "@type": "ContactPoint",
-      telephone: "+6281216916003",
-      contactType: "customer service",
-      areaServed: "ID",
-      availableLanguage: ["English", "Indonesian"],
-    },
-  };
+  const seo = await seoService.getGlobalSeo();
+
+  let jsonLdOrg: Record<string, unknown>;
+  if (seo.organizationSchemaJson) {
+    try {
+      jsonLdOrg = JSON.parse(seo.organizationSchemaJson);
+    } catch {
+      jsonLdOrg = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "Share Tour Jogja",
+        url: siteUrl,
+        logo: `${siteUrl}/images/logo.png`,
+        description: seo.metaDescription,
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: "+6281216916003",
+          contactType: "customer service",
+          areaServed: "ID",
+          availableLanguage: ["English", "Indonesian"],
+        },
+      };
+    }
+  } else {
+    jsonLdOrg = {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "Share Tour Jogja",
+      url: siteUrl,
+      logo: `${siteUrl}/images/logo.png`,
+      description: seo.metaDescription,
+      contactPoint: {
+        "@type": "ContactPoint",
+        telephone: "+6281216916003",
+        contactType: "customer service",
+        areaServed: "ID",
+        availableLanguage: ["English", "Indonesian"],
+      },
+    };
+  }
 
   return (
     <html

@@ -13,6 +13,11 @@ import {
   Save,
   Loader2,
   Clock,
+  Globe,
+  ChevronDown,
+  ChevronUp,
+  Code2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -46,6 +51,15 @@ export default function EditDestinationPage() {
   const [isPopular, setIsPopular] = useState(false);
   const [isActive, setIsActive] = useState(true);
 
+  // Dynamic SEO & Schema Overrides
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [seoKeywordsText, setSeoKeywordsText] = useState("");
+  const [seoOgImage, setSeoOgImage] = useState("");
+  const [customSchemaJson, setCustomSchemaJson] = useState("");
+  const [noIndex, setNoIndex] = useState(false);
+  const [isSeoOpen, setIsSeoOpen] = useState(false);
+
   // Inclusions & Exclusions String
   const [inclusionsText, setInclusionsText] = useState("");
   const [exclusionsText, setExclusionsText] = useState("");
@@ -76,6 +90,17 @@ export default function EditDestinationPage() {
           setMeetingPoint(dest.meetingPoint || "Stasiun / Bandara Terdekat");
           setIsPopular(Boolean(dest.isPopular));
           setIsActive(dest.isActive !== undefined ? Boolean(dest.isActive) : true);
+
+          // SEO fields
+          setSeoTitle(dest.seoTitle || "");
+          setSeoDescription(dest.seoDescription || "");
+          setSeoKeywordsText(Array.isArray(dest.seoKeywords) ? dest.seoKeywords.join(", ") : "");
+          setSeoOgImage(dest.seoOgImage || "");
+          setCustomSchemaJson(dest.customSchemaJson || "");
+          setNoIndex(Boolean(dest.noIndex));
+          if (dest.seoTitle || dest.seoDescription || dest.customSchemaJson || dest.noIndex) {
+            setIsSeoOpen(true);
+          }
 
           const incl = dest.inclusions || dest.includedFacilities || [];
           setInclusionsText(incl.join(", "));
@@ -226,6 +251,12 @@ export default function EditDestinationPage() {
           .filter(Boolean),
         itinerary: cleanedItinerary,
         maxGroupCapacity: 6,
+        seoTitle: seoTitle.trim() || null,
+        seoDescription: seoDescription.trim() || null,
+        seoKeywords: seoKeywordsText ? seoKeywordsText.split(",").map((s) => s.trim()).filter(Boolean) : [],
+        seoOgImage: seoOgImage.trim() || null,
+        customSchemaJson: customSchemaJson.trim() || null,
+        noIndex,
       });
 
       setFeedback({ type: "success", message: "Data destinasi berhasil diperbarui!" });
@@ -641,6 +672,126 @@ export default function EditDestinationPage() {
               </div>
             ))}
           </div>
+        </Card>
+
+        {/* Card 4: SEO & Custom Schema.org (Optional) */}
+        <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white space-y-4">
+          <div
+            onClick={() => setIsSeoOpen(!isSeoOpen)}
+            className="flex items-center justify-between cursor-pointer select-none border-b border-slate-100 pb-2"
+          >
+            <div>
+              <div className="flex items-center gap-2">
+                <Globe className="h-4 w-4 text-[#00677d]" />
+                <h2 className="font-heading font-bold text-sm text-[#191c1e]">
+                  4. Pengaturan SEO & Schema.org (Opsional)
+                </h2>
+                <Badge variant="outline" className="text-[10px] text-slate-500 bg-slate-50 font-medium">
+                  Per-Destinasi Override
+                </Badge>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Kustomisasi title, meta description, keywords, OG Image, dan JSON-LD khusus destinasi ini.
+              </p>
+            </div>
+            <button type="button" className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+              {isSeoOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+          </div>
+
+          {isSeoOpen && (
+            <div className="space-y-4 pt-2">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 block">
+                  Custom SEO Meta Title
+                </label>
+                <Input
+                  placeholder={`Default: ${title || "Judul Destinasi"} — Yogyakarta Sharing Tour (Max 6 Pax)`}
+                  value={seoTitle}
+                  onChange={(e) => setSeoTitle(e.target.value)}
+                  className="text-xs bg-white"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Kosongkan jika ingin memakai judul destinasi default.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-600 block">
+                  Custom SEO Meta Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Deskripsi singkat yang tampil di hasil pencarian Google..."
+                  value={seoDescription}
+                  onChange={(e) => setSeoDescription(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-800 focus:border-[#00677d] focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Rekomendasi 140–160 karakter untuk hasil pencarian Google yang optimal.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-600 block">
+                    Target Keywords (Pisahkan dengan koma)
+                  </label>
+                  <Input
+                    placeholder="trip jogja, open trip bromo, paket 6 pax"
+                    value={seoKeywordsText}
+                    onChange={(e) => setSeoKeywordsText(e.target.value)}
+                    className="text-xs bg-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-600 block">
+                    Custom OpenGraph (OG) Image URL
+                  </label>
+                  <Input
+                    placeholder="Default memakai Cover Image destinasi"
+                    value={seoOgImage}
+                    onChange={(e) => setSeoOgImage(e.target.value)}
+                    className="text-xs bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                    <Code2 className="h-3.5 w-3.5 text-[#00677d]" />
+                    <span>Custom JSON-LD Schema (Schema.org)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">Format JSON Valid</span>
+                </div>
+                <textarea
+                  rows={4}
+                  placeholder={`{\n  "@context": "https://schema.org",\n  "@type": "TouristTrip",\n  "name": "${title || "Paket Wisata"}"\n}`}
+                  value={customSchemaJson}
+                  onChange={(e) => setCustomSchemaJson(e.target.value)}
+                  className="w-full font-mono rounded-lg border border-slate-200 bg-slate-900 text-slate-100 p-3 text-xs focus:border-[#00677d] focus:outline-none"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Jika diisi JSON valid, schema ini akan menggantikan auto-generated TouristTrip schema.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                <input
+                  type="checkbox"
+                  id="destNoIndex"
+                  checked={noIndex}
+                  onChange={(e) => setNoIndex(e.target.checked)}
+                  className="rounded border-slate-300 text-[#00677d] focus:ring-[#00677d]"
+                />
+                <label htmlFor="destNoIndex" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                  Cegah mesin pencari mengindeks destinasi ini (noindex / nofollow)
+                </label>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Action Button */}

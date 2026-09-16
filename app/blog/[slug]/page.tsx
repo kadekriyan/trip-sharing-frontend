@@ -24,15 +24,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
-  const ogImageUrl = article.coverImage || `${siteUrl}/images/hero-bromo.png`;
+  const ogImageUrl = article.seoOgImage || article.coverImage || `${siteUrl}/images/hero-bromo.png`;
+  const pageTitle = article.seoTitle || `${article.title} | Blog Wisata & Tips Tour Jogja`;
+  const pageDescription = article.seoDescription || article.excerpt || article.title;
+  const keywords =
+    article.seoKeywords && article.seoKeywords.length > 0
+      ? article.seoKeywords
+      : article.tags || [];
 
   return {
-    title: `${article.title} | Blog Wisata & Tips Tour Jogja`,
-    description: article.excerpt || article.title,
+    title: pageTitle,
+    description: pageDescription,
+    keywords: keywords.length > 0 ? keywords : undefined,
     authors: [{ name: article.author?.name || "Redaksi Share Tour Jogja" }],
+    robots: article.noIndex
+      ? {
+          index: false,
+          follow: false,
+        }
+      : undefined,
     openGraph: {
-      title: article.title,
-      description: article.excerpt || article.title,
+      title: pageTitle,
+      description: pageDescription,
       url: `${siteUrl}/blog/${article.slug}`,
       siteName: "Share Tour Jogja",
       images: [
@@ -49,8 +62,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     twitter: {
       card: "summary_large_image",
-      title: article.title,
-      description: article.excerpt || article.title,
+      title: pageTitle,
+      description: pageDescription,
       images: [ogImageUrl],
     },
   };
@@ -81,28 +94,41 @@ export default async function BlogDetailPage({ params }: PageProps) {
     );
   }
 
-  const jsonLdArticle = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    headline: article.title,
-    description: article.excerpt,
-    image: article.coverImage,
-    datePublished: article.publishedAt,
-    dateModified: article.updatedAt || article.publishedAt,
-    author: {
-      "@type": "Person",
-      name: article.author?.name || "Redaksi Share Tour Jogja",
-    },
-    publisher: {
-      "@type": "Organization",
-      name: "Share Tour Jogja",
-      logo: `${siteUrl}/images/logo.png`,
-    },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `${siteUrl}/blog/${article.slug}`,
-    },
-  };
+  let customSchemaObj: any = null;
+  if (article.customSchemaJson) {
+    try {
+      customSchemaObj =
+        typeof article.customSchemaJson === "string"
+          ? JSON.parse(article.customSchemaJson)
+          : article.customSchemaJson;
+    } catch {
+      customSchemaObj = null;
+    }
+  }
+
+  const jsonLdArticle =
+    customSchemaObj || {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      headline: article.title,
+      description: article.excerpt,
+      image: article.coverImage,
+      datePublished: article.publishedAt,
+      dateModified: article.updatedAt || article.publishedAt,
+      author: {
+        "@type": "Person",
+        name: article.author?.name || "Redaksi Share Tour Jogja",
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "Share Tour Jogja",
+        logo: `${siteUrl}/images/logo.png`,
+      },
+      mainEntityOfPage: {
+        "@type": "WebPage",
+        "@id": `${siteUrl}/blog/${article.slug}`,
+      },
+    };
 
   return (
     <article className="min-h-screen bg-[#f7f9fb] py-12">

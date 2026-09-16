@@ -14,6 +14,7 @@ import {
   Calendar,
   Layers,
   Compass,
+  Globe,
   LogOut,
   Menu,
   X,
@@ -37,6 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Personil Driver", href: "/admin/drivers", icon: UserCheck },
     { label: "Master Armada", href: "/admin/vehicles", icon: Car },
     { label: "CMS Artikel Blog", href: "/admin/blogs", icon: FileText },
+    { label: "SEO & Schema", href: "/admin/seo", icon: Globe },
   ];
 
   return (

@@ -47,6 +47,13 @@ export interface Destination {
   activeTrips?: Trip[];
   totalTrips?: number;
   tripsCount?: number;
+  // Dynamic SEO Fields (Optional Overrides)
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  seoKeywords?: string[] | null;
+  seoOgImage?: string | null;
+  customSchemaJson?: string | null;
+  noIndex?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -335,11 +342,41 @@ export interface Article {
   isPublished?: boolean;
   isActive?: boolean;
   isFeatured?: boolean;
-  seoTitle?: string;
-  seoDescription?: string;
+  isPopular?: boolean;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  seoKeywords?: string[] | null;
+  seoOgImage?: string | null;
+  customSchemaJson?: string | null;
+  noIndex?: boolean;
   tags: string[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface GlobalSeoSettings {
+  id?: string;
+  siteTitleDefault: string;
+  siteTitleTemplate: string;
+  metaDescription: string;
+  keywords: string[];
+  defaultOgImage: string;
+  googleVerificationTag?: string | null;
+  organizationSchemaJson?: string | null;
+  robotsIndex: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateSeoSettingsPayload {
+  siteTitleDefault: string;
+  siteTitleTemplate: string;
+  metaDescription: string;
+  keywords: string[];
+  defaultOgImage: string;
+  googleVerificationTag?: string | null;
+  organizationSchemaJson?: string | null;
+  robotsIndex: boolean;
 }
 
 export interface AuditLog {
