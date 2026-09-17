@@ -35,6 +35,10 @@ export function removeAuthToken() {
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined>;
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
 }
 
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {

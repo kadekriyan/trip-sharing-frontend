@@ -1656,7 +1656,10 @@ export const adminService = {
 
   async getAdminSeoSettings(): Promise<GlobalSeoSettings> {
     try {
-      const res = await apiClient.get<GlobalSeoSettings>("/admin/settings/seo");
+      const res = await apiClient.get<GlobalSeoSettings>("/admin/settings/seo", {
+        cache: "no-store",
+        next: { revalidate: 0 },
+      });
       if (res.success && res.data) {
         return {
           ...DEFAULT_SEO_SETTINGS,
