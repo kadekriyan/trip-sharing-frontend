@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     siteName: "Share Tour Jogja",
     images: [
       {
-        url: "/images/hero-bromo.png",
+        url: `${siteUrl}/images/hero-bromo.png`,
         width: 1200,
         height: 630,
         alt: "Share Tour Jogja Tour Catalog",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Explore Tour Packages & Yogyakarta Sharing Trips — Share Tour Jogja",
     description: "Explore top Yogyakarta tourist destinations with a transparent cost-sharing system.",
-    images: ["/images/hero-bromo.png"],
+    images: [`${siteUrl}/images/hero-bromo.png`],
   },
 };
 
