@@ -31,7 +31,7 @@ export default function NewDriverPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
-  const [experienceYears, setExperienceYears] = useState(5);
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState("");
   const [areaId, setAreaId] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [status, setStatus] = useState<"active" | "on_duty" | "off_duty" | "inactive">("active");
@@ -69,7 +69,7 @@ export default function NewDriverPage() {
       phoneNumber,
       email: email ? email.trim() : undefined,
       licenseNumber,
-      experienceYears: Number(experienceYears),
+      licenseExpiryDate,
     });
 
     if (!validation.isValid) {
@@ -90,7 +90,7 @@ export default function NewDriverPage() {
         phoneNumber: cleanPhone,
         email: email ? email.trim() : undefined,
         licenseNumber: licenseNumber.trim(),
-        experienceYears: Number(experienceYears) || 1,
+        licenseExpiryDate: licenseExpiryDate ? new Date(licenseExpiryDate).toISOString() : undefined,
         areaId: areaId ? areaId : undefined,
         vehicleId: vehicleId ? vehicleId : undefined,
         status: status,
@@ -316,33 +316,38 @@ export default function NewDriverPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Pengalaman Mengemudi (Tahun)
+                Tanggal Kadaluwarsa SIM *
               </label>
               <Input
-                type="number"
-                min={0}
-                value={experienceYears}
+                required
+                type="date"
+                value={licenseExpiryDate}
                 onChange={(e) => {
-                  setExperienceYears(Number(e.target.value));
-                  if (fieldErrors.experienceYears) {
+                  setLicenseExpiryDate(e.target.value);
+                  if (fieldErrors.licenseExpiryDate || fieldErrors.license_expiry_date) {
                     setFieldErrors((prev) => {
                       const next = { ...prev };
-                      delete next.experienceYears;
+                      delete next.licenseExpiryDate;
+                      delete next.license_expiry_date;
                       return next;
                     });
                   }
                 }}
                 className={`text-xs transition-colors ${
-                  fieldErrors.experienceYears
+                  fieldErrors.licenseExpiryDate || fieldErrors.license_expiry_date
                     ? "border-rose-500 bg-rose-50/30 text-rose-900 focus-visible:ring-rose-500 focus-visible:border-rose-500"
                     : ""
                 }`}
               />
-              {fieldErrors.experienceYears && (
+              {(fieldErrors.licenseExpiryDate || fieldErrors.license_expiry_date) ? (
                 <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1">
                   <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                  <span>{fieldErrors.experienceYears}</span>
+                  <span>{fieldErrors.licenseExpiryDate || fieldErrors.license_expiry_date}</span>
                 </p>
+              ) : (
+                <span className="text-[10px] text-slate-400 block">
+                  Pilih batas masa berlaku lisensi SIM pengemudi.
+                </span>
               )}
             </div>
           </div>

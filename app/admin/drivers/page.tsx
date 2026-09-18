@@ -35,6 +35,7 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
+import { formatDate } from "@/src/lib/utils";
 import type { Driver, Vehicle, Area } from "@/src/types";
 
 function DriversAdminContent() {
@@ -529,9 +530,16 @@ function DriversAdminContent() {
                           : "Siap Bertugas"}
                       </Badge>
 
-                      <span className="text-[10px] text-slate-500 font-mono font-semibold">
-                        SIM: {driver.licenseNumber}
-                      </span>
+                      <div className="flex flex-col items-end text-right">
+                        <span className="text-[10px] text-slate-700 font-mono font-semibold">
+                          SIM: {driver.licenseNumber}
+                        </span>
+                        {(driver.licenseExpiryDate || driver.license_expiry_date || driver.licenseExpiry) && (
+                          <span className="text-[9px] text-slate-400">
+                            Exp: {formatDate(driver.licenseExpiryDate || driver.license_expiry_date || driver.licenseExpiry || "")}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

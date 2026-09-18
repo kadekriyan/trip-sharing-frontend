@@ -264,8 +264,9 @@ export interface Driver {
   email?: string;
   licenseNumber: string;
   license_number?: string;
-  experienceYears?: number;
-  experience_years?: number;
+  licenseExpiryDate?: string | null;
+  license_expiry_date?: string | null;
+  licenseExpiry?: string | null;
   rating: number;
   totalTrips?: number;
   total_trips?: number;

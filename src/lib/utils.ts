@@ -754,11 +754,11 @@ export interface DriverFormValidationInput {
   phoneNumber: string;
   email?: string;
   licenseNumber: string;
-  experienceYears?: number;
+  licenseExpiryDate?: string;
 }
 
 /**
- * Validasi ketat untuk form input Driver (Nama, WhatsApp, SIM, Email, Pengalaman)
+ * Validasi ketat untuk form input Driver (Nama, WhatsApp, SIM, Tanggal Kadaluwarsa SIM, Email)
  */
 export function validateDriverForm(input: DriverFormValidationInput): {
   isValid: boolean;
@@ -802,9 +802,14 @@ export function validateDriverForm(input: DriverFormValidationInput): {
     errors.licenseNumber = "Nomor SIM tidak valid. Minimal 5 karakter alfanumerik (contoh: SIM-A-99218201).";
   }
 
-  // 5. Pengalaman Mengemudi
-  if (input.experienceYears !== undefined && (isNaN(input.experienceYears) || input.experienceYears < 0)) {
-    errors.experienceYears = "Pengalaman mengemudi minimal 0 tahun.";
+  // 5. Tanggal Kadaluwarsa SIM
+  if (!input.licenseExpiryDate || input.licenseExpiryDate.trim().length === 0) {
+    errors.licenseExpiryDate = "Tanggal kadaluwarsa SIM wajib diisi.";
+  } else {
+    const expiryDate = new Date(input.licenseExpiryDate);
+    if (isNaN(expiryDate.getTime())) {
+      errors.licenseExpiryDate = "Format tanggal kadaluwarsa SIM tidak valid.";
+    }
   }
 
   const errorKeys = Object.keys(errors);
@@ -876,15 +881,15 @@ export function extractApiErrorDetails(err: unknown): {
         .map((f) => {
           if (f === "phoneNumber" || f === "phone") return "Nomor WhatsApp";
           if (f === "licenseNumber") return "Nomor Lisensi SIM";
+          if (f === "licenseExpiryDate" || f === "license_expiry_date" || f === "licenseExpiry") return "Tanggal Kadaluwarsa SIM";
           if (f === "fullName" || f === "name") return "Nama Pengemudi";
           if (f === "email") return "Email";
-          if (f === "experienceYears") return "Pengalaman Mengemudi";
           return f;
         })
         .join(", ");
       message = `Validasi gagal: Harap periksa kembali kolom (${fieldList}).`;
     } else {
-      message = "Validasi data gagal: Harap periksa format nomor telepon (minimal 9 digit), nomor SIM (minimal 5 digit), dan kolom lainnya.";
+      message = "Validasi data gagal: Harap periksa format nomor telepon (minimal 9 digit), nomor SIM (minimal 5 digit), tanggal kadaluwarsa, dan kolom lainnya.";
     }
   }
 
