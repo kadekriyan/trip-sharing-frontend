@@ -407,7 +407,7 @@ export default function AreasAdminPage() {
                   {/* Resource Counts Row */}
                   <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100">
                     <Link
-                      href={`/admin/drivers?areaId=${area.id}`}
+                      href={`/admin/areas/drivers?areaId=${area.id}`}
                       className="group flex items-center justify-between p-2.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 border border-blue-100 transition-colors"
                       title="Lihat driver di area ini"
                     >

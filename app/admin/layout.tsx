@@ -18,28 +18,65 @@ import {
   LogOut,
   Menu,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Badge } from "@/src/components/ui/badge";
 import { AdminGuard } from "@/src/components/auth/admin-guard";
 import { useAuth } from "@/src/context/auth-context";
 
+interface SubNavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  subItems?: SubNavItem[];
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [areasSubmenuOpen, setAreasSubmenuOpen] = useState(true);
 
-  const navigationItems = [
+  const navigationItems: NavItem[] = [
     { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
     { label: "Jadwal Trip", href: "/admin/trips", icon: Calendar },
-    { label: "Grup Armada", href: "/admin/groups", icon: Layers },
     { label: "Manajemen Peserta", href: "/admin/participants", icon: Users },
     { label: "Katalog Destinasi", href: "/admin/destinations", icon: MapPin },
-    { label: "Wilayah Operasional", href: "/admin/areas", icon: Compass },
-    { label: "Personil Driver", href: "/admin/drivers", icon: UserCheck },
+    {
+      label: "Wilayah Operasional",
+      href: "/admin/areas",
+      icon: Compass,
+      subItems: [
+        { label: "Daftar Wilayah", href: "/admin/areas", icon: Compass },
+        { label: "Grub Armada", href: "/admin/areas/groups", icon: Layers },
+        { label: "Personil Driver", href: "/admin/areas/drivers", icon: UserCheck },
+      ],
+    },
     { label: "Master Armada", href: "/admin/vehicles", icon: Car },
     { label: "CMS Artikel Blog", href: "/admin/blogs", icon: FileText },
     { label: "SEO & Schema", href: "/admin/seo", icon: Globe },
   ];
+
+  const getBreadcrumbTitle = () => {
+    if (pathname === "/admin") return "Overview";
+    if (pathname.startsWith("/admin/areas/groups") || pathname.startsWith("/admin/groups")) {
+      return "Wilayah Operasional / Grub Armada";
+    }
+    if (pathname.startsWith("/admin/areas/drivers") || pathname.startsWith("/admin/drivers")) {
+      return "Wilayah Operasional / Personil Driver";
+    }
+    if (pathname.startsWith("/admin/areas")) {
+      return "Wilayah Operasional / Daftar Wilayah";
+    }
+    return pathname.replace("/admin", "").replace("/", "") || "Overview";
+  };
 
   return (
     <AdminGuard>
@@ -83,9 +120,85 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
 
             {/* Nav Links */}
-            <nav className="p-4 space-y-1.5">
+            <nav className="p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)]">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
+
+                // Handle item with submenus (e.g. Wilayah Operasional)
+                if (item.subItems) {
+                  const isParentActive =
+                    pathname.startsWith("/admin/areas") ||
+                    pathname.startsWith("/admin/groups") ||
+                    pathname.startsWith("/admin/drivers");
+
+                  return (
+                    <div key={item.label} className="space-y-1">
+                      <div
+                        onClick={() => setAreasSubmenuOpen((prev) => !prev)}
+                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                          isParentActive && !areasSubmenuOpen
+                            ? "bg-[#00677d] text-white shadow-sm shadow-[#00677d]/20"
+                            : isParentActive
+                            ? "bg-slate-100 text-[#00677d]"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className={`h-4 w-4 ${isParentActive ? "text-[#00677d]" : "text-slate-400"}`} />
+                          <span>{item.label}</span>
+                        </div>
+                        {areasSubmenuOpen ? (
+                          <ChevronUp className="h-3.5 w-3.5 opacity-60" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                        )}
+                      </div>
+
+                      {areasSubmenuOpen && (
+                        <div className="pl-3 ml-4 border-l-2 border-slate-200 space-y-1 pt-0.5">
+                          {item.subItems.map((sub) => {
+                            const SubIcon = sub.icon;
+                            let isSubActive = false;
+
+                            if (sub.href === "/admin/areas") {
+                              isSubActive =
+                                pathname === "/admin/areas" ||
+                                (pathname.startsWith("/admin/areas/") &&
+                                  !pathname.startsWith("/admin/areas/groups") &&
+                                  !pathname.startsWith("/admin/areas/drivers"));
+                            } else if (sub.href === "/admin/areas/groups") {
+                              isSubActive =
+                                pathname.startsWith("/admin/areas/groups") ||
+                                pathname.startsWith("/admin/groups");
+                            } else if (sub.href === "/admin/areas/drivers") {
+                              isSubActive =
+                                pathname.startsWith("/admin/areas/drivers") ||
+                                pathname.startsWith("/admin/drivers");
+                            }
+
+                            return (
+                              <Link
+                                key={sub.href}
+                                href={sub.href}
+                                onClick={() => setMobileSidebarOpen(false)}
+                                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition-all ${
+                                  isSubActive
+                                    ? "bg-[#00677d] text-white shadow-xs font-bold"
+                                    : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
+                                }`}
+                              >
+                                <SubIcon className={`h-3.5 w-3.5 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                                <span>{sub.label}</span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Regular Single Nav Item
                 const isActive =
                   item.href === "/admin"
                     ? pathname === "/admin"
@@ -143,8 +256,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
               <span>Trip Sharing Operations Control</span>
               <span>/</span>
-              <span className="text-[#00677d] font-bold capitalize">
-                {pathname.replace("/admin", "").replace("/", "") || "Overview"}
+              <span className="text-[#00677d] font-bold">
+                {getBreadcrumbTitle()}
               </span>
             </div>
 

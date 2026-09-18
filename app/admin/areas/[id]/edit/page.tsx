@@ -196,7 +196,7 @@ export default function EditAreaPage() {
       {/* Resource Stats Quick Info */}
       <div className="grid grid-cols-2 gap-4">
         <Link
-          href={`/admin/drivers?areaId=${areaId}`}
+          href={`/admin/areas/drivers?areaId=${areaId}`}
           className="group p-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-blue-300 transition-all flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
