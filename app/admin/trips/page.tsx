@@ -42,6 +42,7 @@ import {
   formatDate,
   calculateOccupancyPercent,
   getDestinationTitle,
+  getDestinationPrice,
   getPaymentBadge,
   getTripStatusBadge,
   getEffectiveTripStatus,
@@ -101,15 +102,21 @@ export default function AdminTripsPage() {
     tripsData: Trip[],
     participantsData: Participant[],
     groupsData: BookingGroup[] = [],
-    driversData: Driver[] = []
+    driversData: Driver[] = [],
+    destsData: Destination[] = []
   ): Trip[] => {
     const partsByTrip = new Map<string, Participant[]>();
     const partsByGroup = new Map<string, Participant[]>();
     const groupsByTrip = new Map<string, BookingGroup[]>();
     const driverById = new Map<string, Driver>();
+    const destById = new Map<string, Destination>();
 
     for (const d of driversData) {
       if (d.id) driverById.set(d.id, d);
+    }
+    for (const dest of destsData) {
+      if (dest.id) destById.set(dest.id, dest);
+      if (dest.slug) destById.set(dest.slug, dest);
     }
 
     // Helper to ensure participant uniqueness in any array
@@ -193,8 +200,20 @@ export default function AdminTripsPage() {
         pushParticipantUnique(combinedParts, p);
       }
 
+      const matchedDest =
+        t.destination ||
+        (t.destinationId ? destById.get(t.destinationId) : undefined) ||
+        (t.destination_id ? destById.get(t.destination_id) : undefined);
+      const destPrice = matchedDest ? getDestinationPrice(matchedDest) : 0;
+      const effectivePrice =
+        typeof t.pricePerPax === "number" && t.pricePerPax > 0
+          ? t.pricePerPax
+          : destPrice;
+
       return {
         ...t,
+        destination: matchedDest || t.destination,
+        pricePerPax: effectivePrice,
         groups: tripGroups,
         booking_groups: tripGroups,
         participants: combinedParts,
@@ -212,7 +231,7 @@ export default function AdminTripsPage() {
         adminService.getParticipants(),
         adminService.getGroups(),
       ]);
-      const enriched = linkTripsAndParticipants(tripsData, partsData, groupsData, driversData);
+      const enriched = linkTripsAndParticipants(tripsData, partsData, groupsData, driversData, destsData);
       setTrips(enriched);
       setDestinations(destsData);
       setDrivers(driversData);
@@ -235,7 +254,7 @@ export default function AdminTripsPage() {
           adminService.getGroups(),
         ]);
         if (isMounted) {
-          const enriched = linkTripsAndParticipants(tripsData, partsData, groupsData, driversData);
+          const enriched = linkTripsAndParticipants(tripsData, partsData, groupsData, driversData, destsData);
           setTrips(enriched);
           setDestinations(destsData);
           setDrivers(driversData);
@@ -259,7 +278,7 @@ export default function AdminTripsPage() {
     setFormDestinationId(destId);
     const dest = destinations.find((d) => d.id === destId);
     if (dest) {
-      const destPrice = dest.pricePerPax || dest.basePrice || dest.price || 0;
+      const destPrice = getDestinationPrice(dest);
       setFormPricePerPax(destPrice);
     }
   };
@@ -270,7 +289,7 @@ export default function AdminTripsPage() {
     if (destinations.length > 0) {
       const firstDest = destinations[0];
       setFormDestinationId(firstDest.id);
-      const destPrice = firstDest.pricePerPax || firstDest.basePrice || firstDest.price || 0;
+      const destPrice = getDestinationPrice(firstDest);
       setFormPricePerPax(destPrice);
     } else {
       setFormDestinationId("");
@@ -331,7 +350,7 @@ export default function AdminTripsPage() {
     setIsSubmitting(true);
     try {
       const selectedDest = destinations.find((d) => d.id === formDestinationId);
-      const destPrice = selectedDest?.pricePerPax || selectedDest?.basePrice || selectedDest?.price || 0;
+      const destPrice = selectedDest ? getDestinationPrice(selectedDest) : 0;
       const effectivePrice = Number(formPricePerPax) > 0 ? Number(formPricePerPax) : destPrice;
 
       const payload: CreateTripPayload = {
@@ -366,7 +385,16 @@ export default function AdminTripsPage() {
   const handleOpenEditModal = (trip: Trip) => {
     setEditingTrip(trip);
     setEditStatus(trip.status);
-    setEditPricePerPax(trip.pricePerPax);
+    const matchedDest =
+      trip.destination ||
+      destinations.find((d) => d.id === (trip.destinationId || trip.destination_id)) ||
+      destinations.find((d) => d.slug === (trip.destinationId || trip.destination_id));
+    const destPrice = matchedDest ? getDestinationPrice(matchedDest) : 0;
+    const effectivePrice =
+      typeof trip.pricePerPax === "number" && trip.pricePerPax > 0
+        ? trip.pricePerPax
+        : destPrice;
+    setEditPricePerPax(effectivePrice);
     const pad = (n: number) => String(n).padStart(2, "0");
     const formatLocal = (d: Date) =>
       `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -693,8 +721,14 @@ export default function AdminTripsPage() {
           {filteredTrips.map((trip) => {
             const dest =
               trip.destination ||
-              destinations.find((d) => d.id === trip.destinationId) ||
+              destinations.find((d) => d.id === (trip.destinationId || trip.destination_id)) ||
+              destinations.find((d) => d.slug === (trip.destinationId || trip.destination_id)) ||
               destinations[0];
+            const destPrice = dest ? getDestinationPrice(dest) : 0;
+            const effectivePrice =
+              typeof trip.pricePerPax === "number" && trip.pricePerPax > 0
+                ? trip.pricePerPax
+                : destPrice;
 
             const totalTripParticipants =
               trip.groups?.reduce((acc, g) => acc + (g.currentParticipants || 0), 0) || 0;
@@ -789,7 +823,7 @@ export default function AdminTripsPage() {
                       Tarif Sharing Per Pax
                     </span>
                     <div className="font-heading font-extrabold text-base text-[#a43c12]">
-                      {formatCurrency(trip.pricePerPax)}
+                      {formatCurrency(effectivePrice)}
                     </div>
                     <span className="text-[10px] text-slate-400">All-in Package</span>
                   </div>

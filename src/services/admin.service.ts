@@ -22,7 +22,7 @@ import type {
   GlobalSeoSettings,
   UpdateSeoSettingsPayload,
 } from "@/src/types";
-import { normalizeParticipant } from "@/src/lib/utils";
+import { normalizeParticipant, getDestinationPrice } from "@/src/lib/utils";
 import { DEFAULT_SEO_SETTINGS } from "@/src/services/seo.service";
 
 export function normalizeArea(raw: Record<string, unknown>): Area {
@@ -243,9 +243,7 @@ export function normalizeTrip(raw: Record<string, unknown>): Trip {
       ? raw.current_participants
       : 0;
   const rawDest = (raw.destination || raw.dest) as Record<string, unknown> | undefined;
-  const destPrice = rawDest
-    ? Number(rawDest.pricePerPax ?? rawDest.price ?? rawDest.basePrice ?? rawDest.price_per_pax ?? 0)
-    : 0;
+  const destPrice = rawDest ? getDestinationPrice(rawDest) : 0;
   const pricePerPax =
     typeof raw.pricePerPax === "number" && raw.pricePerPax > 0
       ? raw.pricePerPax
@@ -253,6 +251,10 @@ export function normalizeTrip(raw: Record<string, unknown>): Trip {
       ? raw.price_per_pax
       : typeof raw.price === "number" && raw.price > 0
       ? raw.price
+      : typeof raw.basePrice === "number" && raw.basePrice > 0
+      ? raw.basePrice
+      : typeof raw.base_price === "number" && raw.base_price > 0
+      ? raw.base_price
       : destPrice > 0
       ? destPrice
       : 0;
