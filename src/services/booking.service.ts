@@ -250,7 +250,19 @@ export const bookingService = {
     const dest = foundParticipant.destination || foundParticipant.trip?.destination;
     const group = foundParticipant.group || foundParticipant.bookingGroup;
     const driver = group?.driver;
-    const basePrice = foundParticipant.trip?.pricePerPax || dest?.pricePerPax || 0;
+
+    const isTransportOnly =
+      foundParticipant.packageType === "TRANSPORT_ONLY" ||
+      foundParticipant.package_type === "TRANSPORT_ONLY" ||
+      foundParticipant.serviceType === "TRANSPORT_ONLY" ||
+      foundParticipant.packageType === "transport_only" ||
+      foundParticipant.package_type === "transport_only";
+    const packageTypeKey = isTransportOnly ? "TRANSPORT_ONLY" : "ALL_IN";
+    const packageTypeLabel = isTransportOnly ? "Transport Only (Hanya Transport)" : "All-Inclusive (Paket Lengkap)";
+
+    const basePrice = isTransportOnly
+      ? (dest?.priceTransportOnly || dest?.price_transport_only || dest?.priceTransport || foundParticipant.totalAmount || dest?.pricePerPax || 0)
+      : (foundParticipant.trip?.pricePerPax || dest?.pricePerPax || 0);
     const totalAmount = foundParticipant.totalAmount || basePrice;
     const isPaid = foundParticipant.paymentStatus === "paid";
     const bookingCode = foundParticipant.bookingCode || cleanId;
@@ -259,8 +271,8 @@ export const bookingService = {
     const items: InvoiceItem[] = [
       {
         itemNumber: 1,
-        description: `Paket Trip Sharing - ${dest?.title || dest?.name || "Destinasi Wisata"} (1 Pax)`,
-        category: "Trip Package",
+        description: `Paket Trip Sharing - ${dest?.title || dest?.name || "Destinasi Wisata"} (${packageTypeLabel}) (1 Pax)`,
+        category: isTransportOnly ? "Transport Only" : "All-In Package",
         quantity: 1,
         unitPrice: basePrice,
         amount: basePrice,
@@ -280,6 +292,8 @@ export const bookingService = {
         participantId: foundParticipant.id,
         bookingGroupId: foundParticipant.bookingGroupId || "",
         tripId: foundParticipant.tripId || "",
+        packageType: packageTypeKey,
+        package_type: packageTypeKey,
       },
       issuer: {
         companyName: "Share Tour Jogja",
@@ -315,6 +329,9 @@ export const bookingService = {
         pickupLatitude: foundParticipant.pickupLatitude ?? null,
         pickupLongitude: foundParticipant.pickupLongitude ?? null,
         pickupNotes: foundParticipant.pickupNotes || "",
+        packageType: packageTypeKey,
+        package_type: packageTypeKey,
+        serviceType: packageTypeKey,
         groupNumber: group?.groupNumber || 1,
         vehicleModel: driver?.vehicleModel || "Toyota HiAce (6-Seater VIP)",
         vehiclePlateNumber: driver?.plateNumber || "-",

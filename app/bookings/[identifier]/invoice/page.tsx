@@ -133,6 +133,17 @@ export default function BookingInvoicePage() {
   const isTripFinished = isTripPast(tripDetails.departureDate, tripDetails.returnDate) && !isCancelled;
   const pickupParsed = parsePickupLocation(tripDetails.pickupLocation);
 
+  const rawPackageType =
+    tripDetails.packageType ||
+    tripDetails.package_type ||
+    tripDetails.serviceType ||
+    inv.packageType ||
+    inv.package_type ||
+    "ALL_IN";
+  const isTransportOnly =
+    String(rawPackageType).toUpperCase() === "TRANSPORT_ONLY" ||
+    String(rawPackageType).toLowerCase() === "transport_only";
+
   return (
     <div className="min-h-screen bg-[#f7f9fb] py-8 sm:py-12 print:bg-white print:py-0 print:min-h-0">
       <style jsx global>{`
@@ -244,6 +255,17 @@ export default function BookingInvoicePage() {
             {/* Invoice Meta & Status */}
             <div className="sm:text-right print:text-right space-y-1.5 print:space-y-0.5 shrink-0">
               <div className="flex flex-wrap items-center sm:justify-end gap-1.5">
+                {/* Badge Jenis Layanan Paket */}
+                <span
+                  className={`text-xs print:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${
+                    isTransportOnly
+                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                      : "bg-teal-50 text-teal-800 border-teal-200"
+                  }`}
+                >
+                  {isTransportOnly ? "TRANSPORT ONLY" : "ALL-INCLUSIVE"}
+                </span>
+
                 <span
                   className={`text-xs print:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${isPaid
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -408,6 +430,18 @@ export default function BookingInvoicePage() {
                     Grup Mobil #{tripDetails.groupNumber} ({tripDetails.vehicleModel || "HiAce 6-Seater"}) • Driver: {tripDetails.driverName || "Pak Driver"}
                   </span>
                 </div>
+                <div className="pt-0.5 flex flex-wrap items-center gap-1.5">
+                  <span className="text-slate-400">Tipe Layanan: </span>
+                  <span
+                    className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded text-[10px] print:text-[9px] border ${
+                      isTransportOnly
+                        ? "bg-amber-50 text-amber-800 border-amber-200"
+                        : "bg-teal-50 text-teal-800 border-teal-200"
+                    }`}
+                  >
+                    {isTransportOnly ? "Transport Only (Hanya Transportasi)" : "All-Inclusive (Paket Lengkap)"}
+                  </span>
+                </div>
                 <div className="pt-0.5">
                   <span className="text-slate-400">Status Layanan: </span>
                   {isCancelled ? (
@@ -450,10 +484,23 @@ export default function BookingInvoicePage() {
                   {pricing.items.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-2 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-center font-mono text-slate-400">{item.itemNumber || idx + 1}</td>
-                      <td className="py-2 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 font-semibold text-slate-800">{item.description}</td>
+                      <td className="py-2 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 font-semibold text-slate-800">
+                        <div>{item.description}</div>
+                        <span className="text-[10px] print:text-[8.5px] text-slate-400 block font-normal mt-0.5">
+                          {isTransportOnly
+                            ? "Fasilitas: Kursi Armada HiAce VIP + Driver as Guide + BBM (Tiket wisata mandiri)"
+                            : "Fasilitas: Tiket Masuk Objek Wisata + Kursi Armada HiAce VIP + Driver as Guide + BBM"}
+                        </span>
+                      </td>
                       <td className="py-2 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-slate-500">
-                        <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-[10px] print:text-[8.5px] font-medium">
-                          {item.category}
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-[10px] print:text-[8.5px] font-semibold ${
+                            isTransportOnly
+                              ? "bg-amber-100/70 text-amber-800 border border-amber-200/60"
+                              : "bg-teal-100/70 text-teal-800 border border-teal-200/60"
+                          }`}
+                        >
+                          {item.category || (isTransportOnly ? "Transport Only" : "All-In Package")}
                         </span>
                       </td>
                       <td className="py-2 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-center">{item.quantity}</td>
@@ -475,7 +522,9 @@ export default function BookingInvoicePage() {
                   <span>Garansi Kepastian & Transparansi Biaya</span>
                 </div>
                 <p className="text-[11px] print:text-[9px] leading-relaxed print:leading-tight text-slate-400">
-                  Seluruh tarif sudah mencakup bahan bakar, driver as guide, tiket masuk, dan fasilitas sharing armada.
+                  {isTransportOnly
+                    ? "Tarif mencakup bahan bakar, operasional armada, dan pendampingan driver as guide. Tiket masuk objek wisata dan pengeluaran pribadi dibayar mandiri oleh traveler."
+                    : "Seluruh tarif sudah mencakup bahan bakar, driver as guide, tiket masuk objek wisata, dan fasilitas sharing armada lengkap."}
                 </p>
               </div>
 

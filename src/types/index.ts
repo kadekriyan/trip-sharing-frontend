@@ -610,6 +610,8 @@ export interface InvoiceData {
     participantId: string;
     bookingGroupId: string;
     tripId: string;
+    packageType?: "ALL_IN" | "TRANSPORT_ONLY" | string;
+    package_type?: string;
   };
   issuer: {
     companyName: string;
@@ -648,6 +650,9 @@ export interface InvoiceData {
     pickupLatitude?: number | null;
     pickupLongitude?: number | null;
     pickupNotes?: string;
+    packageType?: "ALL_IN" | "TRANSPORT_ONLY" | string;
+    package_type?: string;
+    serviceType?: string;
     roomPreference?: string;
     roomType?: string;
     groupNumber: number;
