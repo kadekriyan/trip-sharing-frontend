@@ -749,4 +749,146 @@ export function parsePickupLocation(locationStr?: string | null): { placeName: s
   return { placeName: clean };
 }
 
+export interface DriverFormValidationInput {
+  fullName: string;
+  phoneNumber: string;
+  email?: string;
+  licenseNumber: string;
+  experienceYears?: number;
+}
+
+/**
+ * Validasi ketat untuk form input Driver (Nama, WhatsApp, SIM, Email, Pengalaman)
+ */
+export function validateDriverForm(input: DriverFormValidationInput): {
+  isValid: boolean;
+  errors: Record<string, string>;
+  firstErrorMessage: string | null;
+} {
+  const errors: Record<string, string> = {};
+
+  // 1. Nama Lengkap
+  if (!input.fullName || input.fullName.trim().length === 0) {
+    errors.fullName = "Nama lengkap pengemudi wajib diisi.";
+  } else if (input.fullName.trim().length < 3) {
+    errors.fullName = "Nama lengkap pengemudi minimal 3 karakter.";
+  }
+
+  // 2. Nomor WhatsApp / Telepon
+  const rawPhone = input.phoneNumber || "";
+  const cleanedPhone = rawPhone.replace(/[\s\-()]/g, "");
+  if (!rawPhone || rawPhone.trim().length === 0) {
+    errors.phoneNumber = "Nomor WhatsApp driver wajib diisi.";
+  } else {
+    const phoneRegex = /^(\+?[0-9]{9,15})$/;
+    if (!phoneRegex.test(cleanedPhone) || cleanedPhone.replace(/\D/g, "").length < 9) {
+      errors.phoneNumber =
+        "Nomor WhatsApp tidak valid. Masukkan nomor telepon valid 9–15 digit (contoh: 08123456789 atau +628123456789).";
+    }
+  }
+
+  // 3. Email (Opsional, tapi jika diisi harus valid)
+  if (input.email && input.email.trim().length > 0) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(input.email.trim())) {
+      errors.email = "Format email tidak valid (contoh: driver@tripsharing.local).";
+    }
+  }
+
+  // 4. Nomor Lisensi SIM
+  if (!input.licenseNumber || input.licenseNumber.trim().length === 0) {
+    errors.licenseNumber = "Nomor lisensi SIM wajib diisi.";
+  } else if (input.licenseNumber.trim().length < 5) {
+    errors.licenseNumber = "Nomor SIM tidak valid. Minimal 5 karakter alfanumerik (contoh: SIM-A-99218201).";
+  }
+
+  // 5. Pengalaman Mengemudi
+  if (input.experienceYears !== undefined && (isNaN(input.experienceYears) || input.experienceYears < 0)) {
+    errors.experienceYears = "Pengalaman mengemudi minimal 0 tahun.";
+  }
+
+  const errorKeys = Object.keys(errors);
+  const isValid = errorKeys.length === 0;
+  const firstErrorMessage = isValid ? null : errors[errorKeys[0]];
+
+  return {
+    isValid,
+    errors,
+    firstErrorMessage,
+  };
+}
+
+/**
+ * Mengekstrak rincian field error dari response ApiError backend
+ */
+export function extractApiErrorDetails(err: unknown): {
+  message: string;
+  fieldErrors: Record<string, string>;
+} {
+  let message = "Terjadi kesalahan saat memproses data.";
+  const fieldErrors: Record<string, string> = {};
+
+  if (!err) return { message, fieldErrors };
+
+  if (err instanceof Error) {
+    message = err.message || message;
+  }
+
+  const errObj = err as Record<string, unknown>;
+  const rawErrors = errObj.errors || errObj.details;
+
+  if (Array.isArray(rawErrors)) {
+    for (const item of rawErrors) {
+      if (typeof item === "string") {
+        message += ` ${item}`;
+      } else if (typeof item === "object" && item !== null) {
+        const fieldName = String(
+          (item as Record<string, unknown>).field ||
+          (item as Record<string, unknown>).path ||
+          (item as Record<string, unknown>).param ||
+          ""
+        );
+        const itemMsg = String(
+          (item as Record<string, unknown>).message ||
+          (item as Record<string, unknown>).msg ||
+          ""
+        );
+        if (fieldName && itemMsg) {
+          fieldErrors[fieldName] = itemMsg;
+        }
+      }
+    }
+  } else if (typeof rawErrors === "object" && rawErrors !== null) {
+    for (const [k, v] of Object.entries(rawErrors as Record<string, unknown>)) {
+      if (typeof v === "string") {
+        fieldErrors[k] = v;
+      } else if (Array.isArray(v) && v.length > 0 && typeof v[0] === "string") {
+        fieldErrors[k] = v[0];
+      }
+    }
+  }
+
+  // Perbaiki pesan umum jika bertuliskan "Validation failed"
+  if (message.toLowerCase().includes("validation failed")) {
+    const errorCount = Object.keys(fieldErrors).length;
+    if (errorCount > 0) {
+      const fieldList = Object.keys(fieldErrors)
+        .map((f) => {
+          if (f === "phoneNumber" || f === "phone") return "Nomor WhatsApp";
+          if (f === "licenseNumber") return "Nomor Lisensi SIM";
+          if (f === "fullName" || f === "name") return "Nama Pengemudi";
+          if (f === "email") return "Email";
+          if (f === "experienceYears") return "Pengalaman Mengemudi";
+          return f;
+        })
+        .join(", ");
+      message = `Validasi gagal: Harap periksa kembali kolom (${fieldList}).`;
+    } else {
+      message = "Validasi data gagal: Harap periksa format nomor telepon (minimal 9 digit), nomor SIM (minimal 5 digit), dan kolom lainnya.";
+    }
+  }
+
+  return { message, fieldErrors };
+}
+
 

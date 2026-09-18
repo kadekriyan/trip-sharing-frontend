@@ -19,6 +19,11 @@ import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
+import {
+  validateDriverForm,
+  extractApiErrorDetails,
+  sanitizePhoneNumber,
+} from "@/src/lib/utils";
 import type { Vehicle, Driver, Area } from "@/src/types";
 
 export default function EditDriverPage() {
@@ -29,6 +34,7 @@ export default function EditDriverPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [fullName, setFullName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -100,19 +106,35 @@ export default function EditDriverPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName || !phoneNumber || !licenseNumber) {
-      setFeedback({ type: "error", message: "Harap lengkapi semua kolom wajib (*)." });
+    setFeedback(null);
+
+    // Client-side strict validation
+    const validation = validateDriverForm({
+      fullName,
+      phoneNumber,
+      email: email ? email.trim() : undefined,
+      licenseNumber,
+      experienceYears: Number(experienceYears),
+    });
+
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setFeedback({
+        type: "error",
+        message: validation.firstErrorMessage || "Harap periksa kolom formulir yang disorot merah.",
+      });
       return;
     }
 
+    setFieldErrors({});
     setIsSubmitting(true);
-    setFeedback(null);
     try {
+      const cleanPhone = sanitizePhoneNumber(phoneNumber);
       await adminService.updateDriver(driverId, {
-        fullName,
-        phoneNumber,
+        fullName: fullName.trim(),
+        phoneNumber: cleanPhone,
         email: email ? email.trim() : undefined,
-        licenseNumber,
+        licenseNumber: licenseNumber.trim(),
         experienceYears: Number(experienceYears),
         areaId: areaId ? areaId : null,
         isAvailable: status === "active",
@@ -128,8 +150,11 @@ export default function EditDriverPage() {
         router.push("/admin/drivers");
       }, 1000);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Gagal memperbarui data driver.";
-      setFeedback({ type: "error", message: msg });
+      const { message, fieldErrors: serverFieldErrors } = extractApiErrorDetails(err);
+      if (Object.keys(serverFieldErrors).length > 0) {
+        setFieldErrors(serverFieldErrors);
+      }
+      setFeedback({ type: "error", message });
     } finally {
       setIsSubmitting(false);
     }
@@ -170,10 +195,10 @@ export default function EditDriverPage() {
 
       {feedback && (
         <div
-          className={`p-4 rounded-2xl flex items-start gap-3 border ${
+          className={`p-4 rounded-2xl flex items-start gap-3 border transition-all ${
             feedback.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-rose-50 border-rose-200 text-rose-800"
+              : "bg-rose-50 border-rose-200 text-rose-800 shadow-sm"
           }`}
         >
           {feedback.type === "success" ? (
@@ -181,12 +206,17 @@ export default function EditDriverPage() {
           ) : (
             <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
           )}
-          <p className="text-xs font-semibold">{feedback.message}</p>
+          <div>
+            <p className="text-xs font-bold mb-0.5">
+              {feedback.type === "success" ? "Berhasil" : "Validasi Formulir Gagal"}
+            </p>
+            <p className="text-xs text-slate-700 font-medium">{feedback.message}</p>
+          </div>
         </div>
       )}
 
       {/* Main Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white rounded-2xl space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <h2 className="font-heading font-bold text-sm text-[#191c1e] flex items-center gap-2">
@@ -207,9 +237,29 @@ export default function EditDriverPage() {
               required
               placeholder="Contoh: Pak Joko Santoso, S.Pd"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="text-xs"
+              onChange={(e) => {
+                setFullName(e.target.value);
+                if (fieldErrors.fullName || fieldErrors.name) {
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.fullName;
+                    delete next.name;
+                    return next;
+                  });
+                }
+              }}
+              className={`text-xs transition-colors ${
+                fieldErrors.fullName || fieldErrors.name
+                  ? "border-rose-500 bg-rose-50/30 text-rose-900 focus-visible:ring-rose-500 focus-visible:border-rose-500"
+                  : ""
+              }`}
             />
+            {(fieldErrors.fullName || fieldErrors.name) && (
+              <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>{fieldErrors.fullName || fieldErrors.name}</span>
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -219,11 +269,36 @@ export default function EditDriverPage() {
               </label>
               <Input
                 required
-                placeholder="Contoh: +6281233445577"
+                type="tel"
+                placeholder="Contoh: 081233445577 atau +6281233445577"
                 value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="text-xs"
+                onChange={(e) => {
+                  setPhoneNumber(e.target.value);
+                  if (fieldErrors.phoneNumber || fieldErrors.phone) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.phoneNumber;
+                      delete next.phone;
+                      return next;
+                    });
+                  }
+                }}
+                className={`text-xs transition-colors ${
+                  fieldErrors.phoneNumber || fieldErrors.phone
+                    ? "border-rose-500 bg-rose-50/30 text-rose-900 focus-visible:ring-rose-500 focus-visible:border-rose-500"
+                    : ""
+                }`}
               />
+              {(fieldErrors.phoneNumber || fieldErrors.phone) ? (
+                <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{fieldErrors.phoneNumber || fieldErrors.phone}</span>
+                </p>
+              ) : (
+                <span className="text-[10px] text-slate-400 block">
+                  Format: 9–15 digit numerik (contoh: 08123456789 atau +628123456789).
+                </span>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -232,11 +307,30 @@ export default function EditDriverPage() {
               </label>
               <Input
                 type="email"
-                placeholder="joko@driver.local"
+                placeholder="joko@driver.local (Opsional)"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="text-xs"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.email;
+                      return next;
+                    });
+                  }
+                }}
+                className={`text-xs transition-colors ${
+                  fieldErrors.email
+                    ? "border-rose-500 bg-rose-50/30 text-rose-900 focus-visible:ring-rose-500 focus-visible:border-rose-500"
+                    : ""
+                }`}
               />
+              {fieldErrors.email && (
+                <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{fieldErrors.email}</span>
+                </p>
+              )}
             </div>
           </div>
 
@@ -249,9 +343,32 @@ export default function EditDriverPage() {
                 required
                 placeholder="Contoh: SIM-A-99218201"
                 value={licenseNumber}
-                onChange={(e) => setLicenseNumber(e.target.value)}
-                className="text-xs font-mono"
+                onChange={(e) => {
+                  setLicenseNumber(e.target.value);
+                  if (fieldErrors.licenseNumber) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.licenseNumber;
+                      return next;
+                    });
+                  }
+                }}
+                className={`text-xs font-mono transition-colors ${
+                  fieldErrors.licenseNumber
+                    ? "border-rose-500 bg-rose-50/30 text-rose-900 focus-visible:ring-rose-500 focus-visible:border-rose-500"
+                    : ""
+                }`}
               />
+              {fieldErrors.licenseNumber ? (
+                <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{fieldErrors.licenseNumber}</span>
+                </p>
+              ) : (
+                <span className="text-[10px] text-slate-400 block">
+                  Nomor SIM minimal 5 karakter alfanumerik.
+                </span>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -260,11 +377,30 @@ export default function EditDriverPage() {
               </label>
               <Input
                 type="number"
-                min={1}
+                min={0}
                 value={experienceYears}
-                onChange={(e) => setExperienceYears(Number(e.target.value))}
-                className="text-xs"
+                onChange={(e) => {
+                  setExperienceYears(Number(e.target.value));
+                  if (fieldErrors.experienceYears) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.experienceYears;
+                      return next;
+                    });
+                  }
+                }}
+                className={`text-xs transition-colors ${
+                  fieldErrors.experienceYears
+                    ? "border-rose-500 bg-rose-50/30 text-rose-900 focus-visible:ring-rose-500 focus-visible:border-rose-500"
+                    : ""
+                }`}
               />
+              {fieldErrors.experienceYears && (
+                <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1 mt-1">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  <span>{fieldErrors.experienceYears}</span>
+                </p>
+              )}
             </div>
           </div>
         </Card>
