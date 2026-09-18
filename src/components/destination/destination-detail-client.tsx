@@ -301,9 +301,9 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
   // Multi-Booking Item Handlers
   const handleAddBooking = () => {
-    const maxAllowed = 20;
+    const maxAllowed = 5;
     if (bookingItems.length >= maxAllowed) {
-      setErrorMessage(`Maximum booking limit in a single transaction is ${maxAllowed} travelers.`);
+      setErrorMessage(`Maksimal pemesanan dalam satu transaksi adalah ${maxAllowed} peserta (sesuai kapasitas unit armada).`);
       return;
     }
 
@@ -437,6 +437,11 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       errors.departureDate = earliest.isAfterCutoff
         ? `Booking cutoff for tomorrow's trip is closed (19:00 WIB / UTC+7). Please select a date on or after ${formatDate(earliest.dateISO)}.`
         : `Departure date cannot be earlier than ${formatDate(earliest.dateISO)}.`;
+    }
+
+    // Validate Maximum Limit of 5 Travelers
+    if (bookingItems.length > 5) {
+      errors.travelers = "Maksimal pemesanan adalah 5 peserta per transaksi sesuai kapasitas unit armada.";
     }
 
     // Validate each booking item
@@ -876,21 +881,19 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     }}
                   />
 
-                  {/* Armada Group Status */}
+                  {/* Armada Group Queue & Selection */}
                   {selectedDate && groups.length > 0 && (
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2.5 mt-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <div className="space-y-3 mt-3 pt-3 border-t border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                           <Car className="h-3.5 w-3.5 text-[#00677d]" />
-                          Vehicle Fleet Allocation:
-                        </span>
-                        <span className="text-[11px] font-semibold text-teal-700">
-                          {compatibleGroup
-                            ? `Vehicle #${compatibleGroup.groupNumber || 1} (${compatibleGroup.driver?.vehicleModel || "HiAce VIP"})`
-                            : isSmartSegregationActive
-                            ? "New Vehicle Fleet (Group Initiator)"
-                            : groups[0]?.driver?.vehicleModel || "HiAce Commuter VIP (6 Seats)"}
-                        </span>
+                          <span>Pilihan Antrian Grup Mobil ({groups.length} Unit Armada)</span>
+                        </label>
+                        {isCustomDateMode && (
+                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                            Inisiator Trip Baru
+                          </span>
+                        )}
                       </div>
 
                       {/* Smart Segregation Info Banner */}
@@ -898,29 +901,87 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                         <div className="p-2.5 rounded-xl bg-teal-50/90 border border-teal-200/80 text-[11px] text-teal-900 flex items-start gap-2 shadow-xs">
                           <Info className="h-3.5 w-3.5 text-teal-600 shrink-0 mt-0.5" />
                           <div className="leading-relaxed">
-                            <span className="font-bold">Smart Fleet Allocation:</span> Your party is automatically allocated to a new vehicle fleet to ensure social harmony and group comfort.
+                            <span className="font-bold">Smart Fleet Allocation:</span> Rombongan Anda otomatis dialokasikan ke unit kendaraan baru untuk menjamin keharmonisan dan kenyamanan perjalanan.
                           </div>
                         </div>
                       )}
 
-                      <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                        <div
-                          className="bg-[#00677d] h-full transition-all duration-300"
-                          style={{
-                            width: `${calculateOccupancyPercent(
-                              compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0,
-                              compatibleGroup ? (compatibleGroup.capacity || 6) : 6
-                            )}%`,
-                          }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-                        <span>
-                          Occupied: {compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0} / {compatibleGroup ? (compatibleGroup.capacity || 6) : 6} Seats
-                        </span>
-                        <span>
-                          {(compatibleGroup ? (compatibleGroup.capacity || 6) : 6) - (compatibleGroup ? (compatibleGroup.currentParticipants || 0) : 0)} Seats Available
-                        </span>
+                      {/* List of Group Cards */}
+                      <div className="space-y-2.5">
+                        {groups.map((grp, idx) => {
+                          const isSelected = selectedGroup === grp.id || (!selectedGroup && idx === 0);
+                          const capacity = grp.capacity || 6;
+                          const currentPax = grp.currentParticipants || 0;
+                          const remainingSeats = Math.max(0, capacity - currentPax);
+                          const isFull = remainingSeats <= 0;
+                          const occPercent = calculateOccupancyPercent(currentPax, capacity);
+
+                          return (
+                            <div
+                              key={grp.id || idx}
+                              onClick={() => {
+                                if (!isFull) {
+                                  setSelectedGroup(grp.id);
+                                }
+                              }}
+                              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                                isSelected
+                                  ? "border-[#00677d] bg-[#00677d]/5 ring-2 ring-[#00677d]/20 shadow-xs"
+                                  : isFull
+                                  ? "border-slate-200 bg-slate-50/70 opacity-70 cursor-not-allowed"
+                                  : "border-slate-200 bg-white hover:border-[#00677d]/50 hover:bg-slate-50/50"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-[#191c1e] flex items-center gap-1.5">
+                                    <Car className="h-3.5 w-3.5 text-[#00677d]" />
+                                    <span>{grp.name || `Grup Mobil #${grp.groupNumber || idx + 1}`}</span>
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-medium">
+                                    ({grp.driver?.vehicleModel || "HiAce Premio / Commuter VIP"})
+                                  </span>
+                                </div>
+
+                                {isFull ? (
+                                  <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                                    Penuh (0 Kursi)
+                                  </span>
+                                ) : isSelected ? (
+                                  <span className="text-[10px] font-bold text-[#00677d] bg-sky-50 px-2.5 py-0.5 rounded-md border border-[#00677d]/30 flex items-center gap-1">
+                                    <Check className="h-3 w-3" />
+                                    <span>Grup Terpilih ({remainingSeats} Sisa)</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                                    Sisa {remainingSeats} Kursi
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Progress Bar */}
+                              <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-1.5">
+                                <div
+                                  className={`h-full transition-all duration-300 rounded-full ${
+                                    isFull
+                                      ? "bg-rose-500"
+                                      : occPercent >= 80
+                                      ? "bg-amber-500"
+                                      : "bg-[#00677d]"
+                                  }`}
+                                  style={{ width: `${occPercent}%` }}
+                                />
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
+                                <span>Terisi: {currentPax} / {capacity} Penumpang</span>
+                                <span>
+                                  Driver: {grp.driver?.fullName || "Ditugaskan HQ"}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1209,16 +1270,25 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     })}
                   </div>
 
-                  {/* ADD ANOTHER BOOKING BUTTON */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleAddBooking}
-                    className="w-full py-5 border-dashed border-2 border-[#00677d]/40 text-[#00677d] hover:bg-[#00677d]/5 hover:border-[#00677d] font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    <span>+ Add Another Traveler (Traveler #{bookingItems.length + 1})</span>
-                  </Button>
+                  {/* ADD ANOTHER BOOKING BUTTON / MAX LIMIT NOTICE */}
+                  {bookingItems.length < 5 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAddBooking}
+                      className="w-full py-5 border-dashed border-2 border-[#00677d]/40 text-[#00677d] hover:bg-[#00677d]/5 hover:border-[#00677d] font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all shadow-sm"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      <span>+ Tambah Peserta Rombongan (Peserta #{bookingItems.length + 1} dari Maks 5)</span>
+                    </Button>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-[11px] text-amber-800 text-center flex items-center justify-center gap-2 shadow-xs">
+                      <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span className="font-medium">
+                        Batas maksimal pemesanan tercapai (Maksimal 5 peserta per unit armada mobil).
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* STEP 3: PRICE BREAKDOWN & SUMMARY */}
