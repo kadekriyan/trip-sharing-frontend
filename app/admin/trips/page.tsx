@@ -44,6 +44,8 @@ import {
   getDestinationTitle,
   getPaymentBadge,
   getTripStatusBadge,
+  getEffectiveTripStatus,
+  isTripPast,
   parsePickupLocation,
 } from "@/src/lib/utils";
 import { checkInternalBookingConflicts } from "@/src/lib/country-conflict";
@@ -451,10 +453,11 @@ export default function AdminTripsPage() {
 
   // Filtered trips computation
   const filteredTrips = trips.filter((t) => {
+    const effectiveStatus = getEffectiveTripStatus(t.status, t.departureDate, t.returnDate);
     if (selectedDestinationFilter !== "all" && t.destinationId !== selectedDestinationFilter) {
       return false;
     }
-    if (selectedStatusFilter !== "all" && t.status !== selectedStatusFilter) {
+    if (selectedStatusFilter !== "all" && effectiveStatus !== selectedStatusFilter) {
       return false;
     }
     if (searchQuery) {
@@ -471,8 +474,14 @@ export default function AdminTripsPage() {
   });
 
   // Analytics Metrics
-  const totalScheduled = trips.filter((t) => ["scheduled", "planning", "published", "active"].includes(t.status)).length;
-  const totalOngoing = trips.filter((t) => ["ongoing", "departed"].includes(t.status)).length;
+  const totalScheduled = trips.filter((t) => {
+    const eff = getEffectiveTripStatus(t.status, t.departureDate, t.returnDate);
+    return ["scheduled", "planning", "published", "active"].includes(eff);
+  }).length;
+  const totalOngoing = trips.filter((t) => {
+    const eff = getEffectiveTripStatus(t.status, t.departureDate, t.returnDate);
+    return ["ongoing", "departed"].includes(eff);
+  }).length;
   const totalArmadaCount = trips.reduce((acc, t) => acc + (t.groups?.length || 0), 0);
   const totalParticipantsAll = trips.reduce(
     (acc, t) =>
@@ -490,13 +499,17 @@ export default function AdminTripsPage() {
   const avgOccupancy =
     totalCapacityAll > 0 ? Math.round((totalParticipantsAll / totalCapacityAll) * 100) : 0;
 
-  const getStatusBadge = (status: TripStatus | string) => {
-    const badgeInfo = getTripStatusBadge(status);
+  const getStatusBadge = (status: TripStatus | string, departureDate?: string | null, returnDate?: string | null) => {
+    const effectiveStatus = getEffectiveTripStatus(status, departureDate, returnDate);
+    const badgeInfo = getTripStatusBadge(effectiveStatus);
+    const isPast = isTripPast(departureDate, returnDate) && status !== "cancelled";
+
     return (
       <span
-        className={`inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${badgeInfo.className}`}
+        className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${badgeInfo.className}`}
       >
-        {badgeInfo.label}
+        {isPast && <CheckCircle2 className="h-3 w-3 text-slate-500 shrink-0" />}
+        <span>{badgeInfo.label}</span>
       </span>
     );
   };
@@ -709,7 +722,7 @@ export default function AdminTripsPage() {
                         <h3 className="font-heading font-extrabold text-base sm:text-lg text-[#191c1e]">
                           {getDestinationTitle(dest)}
                         </h3>
-                        {getStatusBadge(trip.status)}
+                        {getStatusBadge(trip.status, trip.departureDate, trip.returnDate)}
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 mt-1">
                         <span className="flex items-center gap-1">

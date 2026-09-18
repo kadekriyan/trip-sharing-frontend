@@ -157,8 +157,60 @@ export function calculateOccupancyPercent(current: number, max: number = 6): num
   return Math.min(Math.round((current / max) * 100), 100);
 }
 
-export function getGroupStatusBadge(status: GroupStatus): { label: string; className: string } {
-  switch (status) {
+/**
+ * Mengecek apakah suatu tanggal perjalanan telah terlewat (H+1 atau sudah selesai).
+ * Batas toleransi diatur hingga akhir hari (23:59:59.999).
+ */
+export function isTripPast(departureDate?: string | null, returnDate?: string | null): boolean {
+  const targetDateStr = returnDate || departureDate;
+  if (!targetDateStr) return false;
+  try {
+    const target = new Date(targetDateStr);
+    if (isNaN(target.getTime())) return false;
+    // Set toleransi ke akhir hari tanggal target (23:59:59.999)
+    target.setHours(23, 59, 59, 999);
+    const now = new Date();
+    return now.getTime() > target.getTime();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Mengembalikan status efektif grup armada berdasarkan tanggal keberangkatan trip.
+ * Jika tanggal sudah lampau dan status bukan 'cancelled', otomatis berstatus 'completed'.
+ */
+export function getEffectiveGroupStatus(
+  originalStatus?: GroupStatus | string | null,
+  departureDate?: string | null
+): GroupStatus {
+  const status = (originalStatus || "open") as GroupStatus;
+  if (status === "cancelled") return "cancelled";
+  if (isTripPast(departureDate)) {
+    return "completed";
+  }
+  return status;
+}
+
+/**
+ * Mengembalikan status efektif trip berdasarkan tanggal keberangkatan/kepulangan.
+ */
+export function getEffectiveTripStatus(
+  originalStatus?: TripStatus | string | null,
+  departureDate?: string | null,
+  returnDate?: string | null
+): TripStatus {
+  const status = (originalStatus || "planning") as TripStatus;
+  if (status === "cancelled") return "cancelled";
+  if (isTripPast(departureDate, returnDate)) {
+    return "completed";
+  }
+  return status;
+}
+
+export function getGroupStatusBadge(status: GroupStatus, departureDate?: string | null): { label: string; className: string } {
+  const effectiveStatus = getEffectiveGroupStatus(status, departureDate);
+  switch (effectiveStatus) {
     case "open":
       return {
         label: "Slot Tersedia",
@@ -186,7 +238,7 @@ export function getGroupStatusBadge(status: GroupStatus): { label: string; class
       };
     default:
       return {
-        label: status,
+        label: effectiveStatus,
         className: "bg-slate-100 text-slate-800 border-slate-300",
       };
   }

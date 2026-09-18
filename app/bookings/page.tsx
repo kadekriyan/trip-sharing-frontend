@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   CreditCard,
   FileText,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -35,6 +36,7 @@ import {
   getPaymentBadge,
   getDestinationTitle,
   parsePickupLocation,
+  isTripPast,
 } from "@/src/lib/utils";
 import { printTicketVoucher } from "@/src/lib/ticket-printer";
 import type { Participant } from "@/src/types";
@@ -44,7 +46,7 @@ function MyBookingsContent() {
   const initialCode = searchParams?.get("bookingCode") || searchParams?.get("code") || "";
 
   const { user, isAuthenticated, isHydrated } = useAuth();
-  const [activeTab, setActiveTab] = useState<"all" | "paid" | "pending">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "active" | "completed" | "paid" | "pending">("all");
   const [bookings, setBookings] = useState<Participant[]>([]);
   const [searchQuery, setSearchQuery] = useState(initialCode);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,6 +116,10 @@ function MyBookingsContent() {
   const filteredBookings = Array.isArray(bookings)
     ? bookings.filter((b) => {
       if (!b) return false;
+      const departDate = b.departureDate || b.trip?.departureDate || b.createdAt;
+      const isPast = isTripPast(departDate);
+      if (activeTab === "active" && isPast) return false;
+      if (activeTab === "completed" && !isPast) return false;
       if (activeTab === "paid" && b.paymentStatus !== "paid") return false;
       if (activeTab === "pending" && b.paymentStatus !== "pending") return false;
       if (searchQuery) {
@@ -183,33 +189,51 @@ function MyBookingsContent() {
           {/* LEFT: BOOKINGS STREAM & TABS */}
           <div className="lg:col-span-8 space-y-6">
             {/* Status Filter Tabs */}
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+            <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
               <button
                 onClick={() => setActiveTab("all")}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "all"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "all"
                     ? "bg-[#00677d] text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
-                Semua Tiket ({bookings.length})
+                Semua ({bookings.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("active")}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "active"
+                    ? "bg-[#00677d] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100"
+                  }`}
+              >
+                Mendatang ({bookings.filter((p) => !isTripPast(p.departureDate || p.trip?.departureDate || p.createdAt)).length})
+              </button>
+              <button
+                onClick={() => setActiveTab("completed")}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "completed"
+                    ? "bg-[#00677d] text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100"
+                  }`}
+              >
+                Selesai ({bookings.filter((p) => isTripPast(p.departureDate || p.trip?.departureDate || p.createdAt)).length})
               </button>
               <button
                 onClick={() => setActiveTab("paid")}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "paid"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "paid"
                     ? "bg-[#00677d] text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
-                Trip Lunas ({bookings.filter((p) => p.paymentStatus === "paid").length})
+                Lunas ({bookings.filter((p) => p.paymentStatus === "paid").length})
               </button>
               <button
                 onClick={() => setActiveTab("pending")}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "pending"
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "pending"
                     ? "bg-[#00677d] text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
-                Menunggu Pembayaran ({bookings.filter((p) => p.paymentStatus === "pending").length})
+                Belum Bayar ({bookings.filter((p) => p.paymentStatus === "pending").length})
               </button>
             </div>
 
@@ -225,7 +249,7 @@ function MyBookingsContent() {
                 <Ticket className="h-10 w-10 text-slate-300 mx-auto" />
                 <h3 className="font-heading font-bold text-base text-slate-700">Belum Ada Riwayat Pemesanan</h3>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Belum ada tiket perjalanan yang terdaftar pada sesi ini. Mulai eksplorasi destinasi dan buat booking pertama Anda.
+                  Belum ada tiket perjalanan yang terdaftar pada filter ini. Mulai eksplorasi destinasi dan buat booking pertama Anda.
                 </p>
                 <Button asChild className="mt-2" size="sm">
                   <Link href="/destinations">Jelajahi Destinasi Sekarang</Link>
@@ -252,11 +276,15 @@ function MyBookingsContent() {
                     "";
                   const driver = booking.group?.driver;
                   const statusBadge = getPaymentBadge(booking.paymentStatus);
+                  const departDate = booking.departureDate || booking.trip?.departureDate || booking.createdAt;
+                  const isPast = isTripPast(departDate);
 
                   return (
                     <Card
                       key={booking.id}
-                      className="overflow-hidden border border-slate-100 shadow-stitch-card hover:shadow-stitch-hover transition-all"
+                      className={`overflow-hidden border shadow-stitch-card hover:shadow-stitch-hover transition-all ${
+                        isPast ? "bg-slate-50/70 border-slate-200" : "bg-white border-slate-100"
+                      }`}
                     >
                       <div className="grid grid-cols-1 md:grid-cols-12">
                         {/* Image Preview */}
@@ -267,12 +295,23 @@ function MyBookingsContent() {
                             fill
                             className="object-cover"
                           />
-                          <div className="absolute top-3 left-3">
+                          <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
                             <span
-                              className={`text-[10px] font-bold px-2.5 py-1 rounded-full border shadow-sm ${statusBadge.className}`}
+                              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm ${statusBadge.className}`}
                             >
                               {statusBadge.label}
                             </span>
+                            {isPast ? (
+                              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm bg-slate-900/90 text-white border-slate-700 flex items-center gap-1 backdrop-blur-xs">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                                <span>Trip Selesai</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm bg-[#00677d]/90 text-white border-teal-600 flex items-center gap-1 backdrop-blur-xs">
+                                <Calendar className="h-3 w-3 text-teal-200" />
+                                <span>Trip Mendatang</span>
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -295,9 +334,14 @@ function MyBookingsContent() {
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 text-xs text-slate-600">
                               <div className="flex items-center gap-1.5">
-                                <Calendar className="h-3.5 w-3.5 text-[#00677d]" />
+                                <Calendar className={`h-3.5 w-3.5 ${isPast ? "text-slate-400" : "text-[#00677d]"}`} />
                                 <span className="font-semibold text-slate-800">
-                                  {formatDate(booking.departureDate || booking.trip?.departureDate || booking.createdAt)}
+                                  {formatDate(departDate)}
+                                  {isPast && (
+                                    <span className="text-[10px] font-normal text-slate-500 ml-1">
+                                      (Selesai)
+                                    </span>
+                                  )}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5">

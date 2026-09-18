@@ -26,9 +26,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
-import { Badge } from "@/src/components/ui/badge";
 import { bookingService } from "@/src/services/booking.service";
-import { formatCurrency, formatDate, parsePickupLocation } from "@/src/lib/utils";
+import { formatCurrency, formatDate, parsePickupLocation, isTripPast } from "@/src/lib/utils";
 import type { InvoiceData } from "@/src/types";
 
 export default function BookingInvoicePage() {
@@ -131,6 +130,7 @@ export default function BookingInvoicePage() {
 
   const isPaid = inv.status.toUpperCase() === "PAID" || inv.paymentStatus === "paid";
   const isCancelled = inv.status.toUpperCase() === "CANCELLED" || inv.paymentStatus === "cancelled";
+  const isTripFinished = isTripPast(tripDetails.departureDate, tripDetails.returnDate) && !isCancelled;
   const pickupParsed = parsePickupLocation(tripDetails.pickupLocation);
 
   return (
@@ -243,7 +243,7 @@ export default function BookingInvoicePage() {
 
             {/* Invoice Meta & Status */}
             <div className="sm:text-right print:text-right space-y-1.5 print:space-y-0.5 shrink-0">
-              <div className="inline-block">
+              <div className="flex flex-wrap items-center sm:justify-end gap-1.5">
                 <span
                   className={`text-xs print:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${isPaid
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -253,6 +253,31 @@ export default function BookingInvoicePage() {
                     }`}
                 >
                   {isPaid ? "LUNAS / PAID" : isCancelled ? "DIBATALKAN" : "MENUNGGU PEMBAYARAN"}
+                </span>
+
+                {/* Status Pelaksanaan Trip */}
+                <span
+                  className={`text-xs print:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider border flex items-center gap-1 ${
+                    isCancelled
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
+                      : isTripFinished
+                        ? "bg-slate-100 text-slate-700 border-slate-300"
+                        : "bg-sky-50 text-sky-700 border-sky-200"
+                  }`}
+                >
+                  {isCancelled ? (
+                    "TRIP BATAL"
+                  ) : isTripFinished ? (
+                    <>
+                      <CheckCircle2 className="h-3 w-3 text-emerald-600 print:text-slate-700 shrink-0" />
+                      <span>TRIP SELESAI</span>
+                    </>
+                  ) : (
+                    <>
+                      <Calendar className="h-3 w-3 text-sky-600 shrink-0" />
+                      <span>TRIP MENDATANG</span>
+                    </>
+                  )}
                 </span>
               </div>
               <div className="space-y-0.5">
@@ -272,6 +297,26 @@ export default function BookingInvoicePage() {
               </div>
             </div>
           </div>
+
+          {/* TRIP COMPLETION NOTICE BANNER (WHEN EXECUTED/FINISHED) */}
+          {isTripFinished && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 sm:p-4 print:p-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs print:text-[9.5px]">
+              <div className="flex items-center gap-2.5">
+                <div className="h-7 w-7 rounded-lg bg-emerald-100/80 text-emerald-700 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-slate-800 block">Layanan Wisata Telah Selesai Terlaksana</span>
+                  <span className="text-slate-500 text-[11px] print:text-[8.5px]">
+                    Jadwal perjalanan ({formatDate(tripDetails.departureDate)}) telah dieksekusi dengan sukses.
+                  </span>
+                </div>
+              </div>
+              <span className="font-mono font-extrabold text-[10px] print:text-[8.5px] px-2.5 py-1 bg-white rounded-lg border border-slate-300 text-slate-700 shrink-0 uppercase tracking-wider shadow-xs">
+                STATUS: TELAH TERLAKSANA
+              </span>
+            </div>
+          )}
 
           {/* TWO-COLUMN DETAILS: CUSTOMER & TRIP OVERVIEW (ALWAYS 2 COLUMNS IN PRINT) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-4 sm:gap-6 print:gap-3 bg-slate-50/80 p-4 sm:p-5 print:p-2.5 rounded-2xl print:rounded-xl border border-slate-200/70 text-xs print:text-[10.5px]">
@@ -362,6 +407,23 @@ export default function BookingInvoicePage() {
                   <span className="truncate">
                     Grup Mobil #{tripDetails.groupNumber} ({tripDetails.vehicleModel || "HiAce 6-Seater"}) • Driver: {tripDetails.driverName || "Pak Driver"}
                   </span>
+                </div>
+                <div className="pt-0.5">
+                  <span className="text-slate-400">Status Layanan: </span>
+                  {isCancelled ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-[10px] print:text-[9px]">
+                      Dibatalkan
+                    </span>
+                  ) : isTripFinished ? (
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-200/80 px-2 py-0.5 rounded text-[10px] print:text-[9px]">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
+                      Selesai Terlaksana
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded text-[10px] print:text-[9px]">
+                      Menunggu Jadwal Keberangkatan
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
