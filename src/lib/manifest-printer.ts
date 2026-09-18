@@ -13,6 +13,19 @@ function escapeHtml(text: unknown): string {
     .replace(/'/g, "&#039;");
 }
 
+function calculateAgeYears(dobStr?: string | null): string {
+  if (!dobStr) return "-";
+  const birthDate = new Date(dobStr);
+  if (isNaN(birthDate.getTime())) return "-";
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age >= 0 ? `${age} Thn` : "-";
+}
+
 /**
  * Prints or exports A4 Passenger Manifest & Operational Driver Waybill (Surat Jalan Driver)
  * via an isolated hidden iframe.
@@ -159,6 +172,22 @@ export function printGroupManifest(group: BookingGroup): void {
             }
 
             const healthNotes = p.healthNotes || p.health_notes || pRec.medicalNotes || pRec.catatanKesehatan || "";
+            const ageDisplay = calculateAgeYears(dob);
+
+            const rawPkg =
+              p.packageType ||
+              p.package_type ||
+              p.serviceType ||
+              pRec.packageType ||
+              pRec.package_type ||
+              pRec.serviceType ||
+              pRec.tipePaket ||
+              "ALL_IN";
+            const isTransportOnly = String(rawPkg).toUpperCase().includes("TRANSPORT");
+            const packageLabel = isTransportOnly ? "TRANSPORT ONLY" : "ALL IN";
+            const badgeBg = isTransportOnly ? "#fef3c7" : "#e0f2fe";
+            const badgeColor = isTransportOnly ? "#b45309" : "#0369a1";
+            const badgeBorder = isTransportOnly ? "#fde68a" : "#bae6fd";
 
             return `
               <tr style="page-break-inside: avoid; border-bottom: 1px solid #e2e8f0;">
@@ -167,15 +196,12 @@ export function printGroupManifest(group: BookingGroup): void {
                 </td>
                 <td style="padding: 8px 6px; vertical-align: top;">
                   <div style="font-weight: 800; font-size: 12px; color: #0f172a;">${fullName}</div>
-                  <div style="font-size: 10px; color: #64748b; font-family: monospace;">
+                  <div style="font-size: 10px; color: #64748b; font-family: monospace; margin-top: 2px;">
                     Code: <strong>${bookingCode}</strong> ${identityNumber ? `| NIK: ${escapeHtml(identityNumber)}` : ""}
-                  </div>
-                  <div style="font-size: 10px; color: #0284c7; font-weight: 600; margin-top: 2px;">
-                    WA: ${phone}
                   </div>
                 </td>
                 <td style="padding: 8px 6px; vertical-align: top; font-size: 11px;">
-                  <div><strong>Tgl Lahir:</strong> ${formattedDob}</div>
+                  <div><strong>Umur:</strong> ${ageDisplay}</div>
                   <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
                     Gender: <strong>${gender}</strong> | WN: <strong>${nationality}</strong>
                   </div>
@@ -195,30 +221,25 @@ export function printGroupManifest(group: BookingGroup): void {
                       : ""
                   }
                 </td>
-                <td style="padding: 8px 6px; vertical-align: top; font-size: 10px; line-height: 1.3;">
-                  ${
-                    emergencyName || emergencyPhone
-                      ? `<div style="color: #334155;"><strong>${escapeHtml(emergencyName)}</strong> (${escapeHtml(emergencyRel)})<br/><span style="color: #0284c7; font-weight: 600;">${escapeHtml(emergencyPhone)}</span></div>`
-                      : `<span style="color: #94a3b8; font-style: italic;">Tidak ada</span>`
-                  }
+                <td style="padding: 8px 6px; vertical-align: top; font-size: 10.5px; line-height: 1.3;">
+                  <div style="font-weight: 700; font-size: 11px; color: #0284c7;">
+                    ${phone ? `WA: ${escapeHtml(phone)}` : `<span style="color: #94a3b8; font-style: italic;">Tidak ada</span>`}
+                  </div>
                   ${
                     healthNotes
                       ? `<div style="font-size: 9px; color: #be123c; margin-top: 3px;"><strong>Medis:</strong> ${escapeHtml(healthNotes)}</div>`
                       : ""
                   }
+                  ${
+                    emergencyName || emergencyPhone
+                      ? `<div style="font-size: 8.5px; color: #64748b; margin-top: 3px;"><strong>Darurat:</strong> ${escapeHtml(emergencyName || "")} (${escapeHtml(emergencyPhone || "")})</div>`
+                      : ""
+                  }
                 </td>
                 <td style="padding: 8px 6px; text-align: center; vertical-align: top;">
-                  <span style="display: inline-block; background: ${
-                    p.paymentStatus === "paid" ? "#dcfce7" : "#fef3c7"
-                  }; color: ${
-                    p.paymentStatus === "paid" ? "#15803d" : "#b45309"
-                  }; font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">
-                    ${p.paymentStatus === "paid" ? "LUNAS" : escapeHtml(p.paymentStatus || "PENDING")}
+                  <span style="display: inline-block; background: ${badgeBg}; color: ${badgeColor}; border: 1px solid ${badgeBorder}; font-size: 9.5px; font-weight: 800; padding: 3px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.3px;">
+                    ${packageLabel}
                   </span>
-                </td>
-                <td style="padding: 8px 6px; text-align: center; vertical-align: middle;">
-                  <div style="width: 28px; height: 28px; border: 1.5px solid #94a3b8; border-radius: 6px; margin: 0 auto; background: #fafafa;"></div>
-                  <span style="font-size: 8px; color: #94a3b8; margin-top: 2px; display: block;">Hadir</span>
                 </td>
               </tr>
             `;
@@ -555,12 +576,11 @@ export function printGroupManifest(group: BookingGroup): void {
         <thead>
           <tr>
             <th style="width: 25px; text-align: center;">No</th>
-            <th style="width: 170px; text-align: left;">Nama Traveler & Kontak</th>
-            <th style="width: 155px; text-align: left;">Tgl Lahir & Asuransi</th>
+            <th style="width: 175px; text-align: left;">Nama Traveler</th>
+            <th style="width: 145px; text-align: left;">Umur & Asuransi</th>
             <th style="text-align: left;">Titik Jemput (Pickup)</th>
-            <th style="width: 120px; text-align: left;">Kontak Darurat / Medis</th>
-            <th style="width: 65px; text-align: center;">Status</th>
-            <th style="width: 45px; text-align: center;">Paraf</th>
+            <th style="width: 140px; text-align: left;">Kontak Traveler</th>
+            <th style="width: 105px; text-align: center;">Layanan</th>
           </tr>
         </thead>
         <tbody>
@@ -574,9 +594,9 @@ export function printGroupManifest(group: BookingGroup): void {
       <div class="sop-box">
         <h4>📋 SOP Penjemputan Driver:</h4>
         <ul>
-          <li>Hubungi traveler H-1 atau minimal 2 jam sebelum jadwal penjemputan.</li>
-          <li>Verifikasi kecocokan Nama, Kode Booking, dan data Identitas/Tgl Lahir.</li>
-          <li>Beri tanda centang (✓) pada kolom Paraf saat traveler telah naik ke armada.</li>
+          <li>Hubungi nomor WhatsApp traveler H-1 atau minimal 2 jam sebelum jadwal penjemputan.</li>
+          <li>Verifikasi kecocokan Nama, Kode Booking, dan Umur / Identitas traveler.</li>
+          <li>Periksa jenis paket layanan (All In / Transport Only) sesuai manifes perjalanan.</li>
           <li>Patuhi batas kecepatan dan utamakan keselamatan seluruh penumpang.</li>
         </ul>
       </div>

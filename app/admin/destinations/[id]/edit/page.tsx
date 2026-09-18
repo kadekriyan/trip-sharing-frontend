@@ -45,6 +45,7 @@ export default function EditDestinationPage() {
   const [durationDays, setDurationDays] = useState(2);
   const [durationNights, setDurationNights] = useState(1);
   const [pricePerPax, setPricePerPax] = useState<number | string>(0);
+  const [priceTransportOnly, setPriceTransportOnly] = useState<number | string>(0);
   const [coverImage, setCoverImage] = useState("");
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   const [meetingPoint, setMeetingPoint] = useState("");
@@ -83,8 +84,9 @@ export default function EditDestinationPage() {
           setDurationDays(dest.durationDays || 2);
           setDurationNights(dest.durationNights || 1);
           setPricePerPax(getDestinationPrice(dest) || 0);
-          setCoverImage(dest.coverImage || dest.image || dest.imageUrl || "");
           const rawDest = dest as unknown as Record<string, unknown>;
+          setPriceTransportOnly(Number(dest.priceTransportOnly || dest.price_transport_only || rawDest.priceTransport || 0));
+          setCoverImage(dest.coverImage || dest.image || dest.imageUrl || "");
           const gallery = (dest.galleryImages || rawDest.gallery || rawDest.images || []) as string[];
           setGalleryImages(Array.isArray(gallery) ? gallery : []);
           setMeetingPoint(dest.meetingPoint || "Stasiun / Bandara Terdekat");
@@ -236,6 +238,7 @@ export default function EditDestinationPage() {
         durationDays: Number(durationDays),
         durationNights: Number(durationNights),
         pricePerPax: Number(pricePerPax),
+        priceTransportOnly: Number(priceTransportOnly) || 0,
         coverImage,
         galleryImages,
         meetingPoint,
@@ -462,10 +465,10 @@ export default function EditDestinationPage() {
         {/* Card 2: Durasi & Harga Sharing */}
         <Card className="p-6 border border-slate-100 shadow-stitch-card bg-white space-y-4">
           <h2 className="font-heading font-bold text-sm text-[#191c1e] border-b border-slate-100 pb-2">
-            2. Durasi & Biaya Trip Sharing (Max 6 Pax)
+            2. Durasi & Biaya Trip Sharing
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
                 Durasi Hari (Days) *
@@ -496,7 +499,7 @@ export default function EditDestinationPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Harga Per Orang (IDR) *
+                Harga Paket All-Inclusive (IDR) *
               </label>
               <Input
                 required
@@ -505,6 +508,20 @@ export default function EditDestinationPage() {
                 value={pricePerPax}
                 onChange={(e) => setPricePerPax(Number(e.target.value))}
                 className="text-xs font-bold text-[#a43c12]"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Harga Paket Transport Saja (IDR)
+              </label>
+              <Input
+                type="number"
+                step={10000}
+                placeholder="Contoh: 350000"
+                value={priceTransportOnly}
+                onChange={(e) => setPriceTransportOnly(e.target.value === "" ? "" : Number(e.target.value))}
+                className="text-xs font-bold text-[#00677d]"
               />
             </div>
           </div>

@@ -28,6 +28,7 @@ import {
   Info,
   Trash2,
   UserPlus,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -122,7 +123,10 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Step 2: Multi-Booking / Dynamic Guest Items State
+  // Step 2: Service Package Type (All-Inclusive vs Transport-Only)
+  const [packageType, setPackageType] = useState<"ALL_IN" | "TRANSPORT_ONLY">("ALL_IN");
+
+  // Step 3: Multi-Booking / Dynamic Guest Items State
   const [bookingItems, setBookingItems] = useState<BookingItemState[]>([
     createDefaultBookingItem(true),
   ]);
@@ -390,11 +394,21 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
   // Active trip & Pricing Calculation
   const destinationPrice = getDestinationPrice(destination);
+  const rawDest = destination as unknown as Record<string, unknown>;
+  const transportPrice = Number(
+    destination?.priceTransportOnly ||
+    destination?.price_transport_only ||
+    rawDest?.priceTransport ||
+    0
+  );
   const activeTrip = trips.find((t) => t.id === selectedTripId);
-  const basePrice = (activeTrip?.pricePerPax && activeTrip.pricePerPax > 0)
+  const allInPrice = (activeTrip?.pricePerPax && activeTrip.pricePerPax > 0)
     ? activeTrip.pricePerPax
     : destinationPrice;
-  const totalAmount = basePrice * bookingItems.length;
+  const effectiveBasePrice = packageType === "TRANSPORT_ONLY" && transportPrice > 0
+    ? transportPrice
+    : allInPrice;
+  const totalAmount = effectiveBasePrice * bookingItems.length;
 
   // Evaluasi Konflik Geopolitik & Alokasi Armada Cerdas
   const requestedNationalities = useMemo(() => {
@@ -571,6 +585,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
             tripId: targetTripId,
             destinationId: destination.id,
             bookingGroupId: effectiveTargetGroupId,
+            packageType: packageType,
             fullName: item.fullName.trim(),
             email: item.email?.trim() || primaryItem.email.trim(),
             phoneNumber: sanitizePhoneNumber(item.phoneNumber),
@@ -741,11 +756,15 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
           </div>
 
           <div className="bg-white/10 backdrop-blur-md border border-white/20 p-3.5 rounded-2xl text-white md:text-right shrink-0">
-            <span className="text-[11px] text-slate-300 block">Price per Person:</span>
+            <span className="text-[11px] text-slate-300 block">Starting From:</span>
             <span className="font-heading font-black text-2xl text-white">
-              {formatCurrency(basePrice)}
+              {formatCurrency(transportPrice > 0 ? transportPrice : allInPrice)}
             </span>
-            <span className="text-[10px] text-slate-300 block">/ pax (All-inclusive Fleet)</span>
+            <span className="text-[10px] text-slate-300 block">
+              {transportPrice > 0
+                ? `/ pax (Transport) · ${formatCurrency(allInPrice)} (All-in)`
+                : `/ pax (All-inclusive Fleet)`}
+            </span>
           </div>
         </div>
       </div>
@@ -987,12 +1006,93 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                   )}
                 </div>
 
-                {/* STEP 2: MULTI-BOOKING DATA TRAVELER */}
+                {/* STEP 2: SERVICE PACKAGE SELECTION (ALL-INCLUSIVE VS TRANSPORT-ONLY) */}
+                <div className="space-y-3 pt-4 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4" />
+                      Step 2: Service Package Type
+                    </label>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase">
+                      {packageType === "ALL_IN" ? "All-Inclusive" : "Transport Only"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* All-Inclusive Option Card */}
+                    <div
+                      onClick={() => setPackageType("ALL_IN")}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative ${
+                        packageType === "ALL_IN"
+                          ? "border-[#00677d] bg-[#00677d]/5 ring-2 ring-[#00677d]/20 shadow-xs"
+                          : "border-slate-200 bg-white hover:border-[#00677d]/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                          <span>All-Inclusive</span>
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                            Full Trip
+                          </span>
+                        </span>
+                        <div
+                          className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                            packageType === "ALL_IN" ? "border-[#00677d] bg-[#00677d]" : "border-slate-300"
+                          }`}
+                        >
+                          {packageType === "ALL_IN" && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed mb-2">
+                        Includes attraction entry tickets, HiAce transport, driver, &amp; guide.
+                      </div>
+                      <div className="font-heading font-black text-sm text-[#00677d]">
+                        {formatCurrency(allInPrice)}
+                        <span className="text-[10px] font-normal text-slate-400"> / pax</span>
+                      </div>
+                    </div>
+
+                    {/* Transport-Only Option Card */}
+                    <div
+                      onClick={() => setPackageType("TRANSPORT_ONLY")}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer relative ${
+                        packageType === "TRANSPORT_ONLY"
+                          ? "border-[#00677d] bg-[#00677d]/5 ring-2 ring-[#00677d]/20 shadow-xs"
+                          : "border-slate-200 bg-white hover:border-[#00677d]/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                          <span>Transport Only</span>
+                          <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded">
+                            Commuter
+                          </span>
+                        </span>
+                        <div
+                          className={`h-4 w-4 rounded-full border flex items-center justify-center ${
+                            packageType === "TRANSPORT_ONLY" ? "border-[#00677d] bg-[#00677d]" : "border-slate-300"
+                          }`}
+                        >
+                          {packageType === "TRANSPORT_ONLY" && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        </div>
+                      </div>
+                      <div className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed mb-2">
+                        Shared transport &amp; fuel only. Excludes destination admission tickets.
+                      </div>
+                      <div className="font-heading font-black text-sm text-[#a43c12]">
+                        {formatCurrency(transportPrice > 0 ? transportPrice : allInPrice)}
+                        <span className="text-[10px] font-normal text-slate-400"> / pax</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* STEP 3: MULTI-BOOKING DATA TRAVELER */}
                 <div className="space-y-4 pt-4 border-t border-slate-100">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-[#00677d] flex items-center gap-1.5">
                       <Users className="h-4 w-4" />
-                      Step 2: Traveler Details ({bookingItems.length} Traveler{bookingItems.length > 1 ? "s" : ""})
+                      Step 3: Traveler Details ({bookingItems.length} Traveler{bookingItems.length > 1 ? "s" : ""})
                     </label>
                     <span className="text-[10px] text-slate-400 font-medium">
                       * Required fields
@@ -1291,7 +1391,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                   )}
                 </div>
 
-                {/* STEP 3: PRICE BREAKDOWN & SUMMARY */}
+                {/* STEP 4: PRICE BREAKDOWN & SUMMARY */}
                 <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-teal-50/40 border border-slate-200/80 space-y-2.5">
                   <div className="flex justify-between text-xs text-slate-600">
                     <span>Selected Date:</span>
@@ -1300,8 +1400,14 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     </span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-600">
+                    <span>Service Package:</span>
+                    <span className="font-bold text-[#00677d]">
+                      {packageType === "ALL_IN" ? "All-Inclusive" : "Transport Only"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-600">
                     <span>Ticket Price per Person:</span>
-                    <span>{formatCurrency(basePrice)}</span>
+                    <span>{formatCurrency(effectiveBasePrice)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-600">
                     <span>Total Travelers:</span>
@@ -1311,7 +1417,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     <div>
                       <span>Total Amount:</span>
                       <span className="text-[10px] text-slate-400 block font-normal">
-                        ({bookingItems.length} x {formatCurrency(basePrice)})
+                        ({bookingItems.length} x {formatCurrency(effectiveBasePrice)})
                       </span>
                     </div>
                     <span className="font-heading font-black text-lg text-[#a43c12]">

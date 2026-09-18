@@ -35,6 +35,7 @@ export default function NewDestinationPage() {
   const [durationDays, setDurationDays] = useState(2);
   const [durationNights, setDurationNights] = useState(1);
   const [pricePerPax, setPricePerPax] = useState<number | string>("");
+  const [priceTransportOnly, setPriceTransportOnly] = useState<number | string>("");
   const [coverImage, setCoverImage] = useState(
     "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800"
   );
@@ -155,6 +156,7 @@ export default function NewDestinationPage() {
         durationDays: Number(durationDays),
         durationNights: Number(durationNights),
         pricePerPax: Number(pricePerPax),
+        priceTransportOnly: Number(priceTransportOnly) || 0,
         coverImage,
         galleryImages,
         meetingPoint,
@@ -271,7 +273,7 @@ export default function NewDestinationPage() {
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Harga per Pax (Rp) *
+                Harga Paket All-Inclusive (IDR) *
               </label>
               <Input
                 required
@@ -279,6 +281,18 @@ export default function NewDestinationPage() {
                 placeholder="Contoh: 750000"
                 value={pricePerPax}
                 onChange={(e) => setPricePerPax(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Harga Paket Transport Saja (IDR)
+              </label>
+              <Input
+                type="number"
+                placeholder="Contoh: 350000"
+                value={priceTransportOnly}
+                onChange={(e) => setPriceTransportOnly(e.target.value === "" ? "" : Number(e.target.value))}
               />
             </div>
 

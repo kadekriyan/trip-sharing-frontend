@@ -23,6 +23,10 @@ export interface Destination {
   durationDays: number;
   durationNights: number;
   pricePerPax: number;
+  priceTransportOnly?: number;
+  price_transport_only?: number;
+  priceTransport?: number;
+  priceAllIn?: number;
   price?: number;
   basePrice?: number;
   coverImage: string;
@@ -235,6 +239,9 @@ export interface Participant {
   has_insurance?: boolean;
   insuranceFee?: number;
   insurance_fee?: number;
+  packageType?: "ALL_IN" | "TRANSPORT_ONLY" | string;
+  package_type?: string;
+  serviceType?: string;
   totalAmount: number;
   total_amount?: number;
   paymentStatus: PaymentStatus;
@@ -433,6 +440,8 @@ export interface CreateBookingPayload {
   pickupLongitude?: number;
   pickupNotes?: string;
   hasInsurance?: boolean;
+  packageType?: "ALL_IN" | "TRANSPORT_ONLY" | string;
+  package_type?: string;
   captchaToken: string;
   departureDate?: string;
 }
