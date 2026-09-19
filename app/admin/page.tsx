@@ -9,6 +9,8 @@ import {
   Wallet,
   Car,
   ChevronRight,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -269,10 +271,25 @@ export default function AdminOverviewPage() {
               const currentPax = Number(group.currentParticipants || group.participants?.length || 0);
               const isFull = currentPax >= capacity;
               const remaining = Math.max(0, capacity - currentPax);
-              const driver = group.driver;
               const groupNum = group.groupNumber || 1;
               const departureDate = group.trip?.departureDate || group.trip?.departure_date;
               const destTitle = group.trip?.destination ? getDestinationTitle(group.trip.destination) : null;
+
+              // Normalisasi entitas armada & driver
+              const vehicle = group.vehicle || group.driver?.vehicle;
+              const driver = group.driver;
+              const driverName = driver?.fullName || driver?.name || driver?.user?.name;
+              const vehicleName = vehicle?.name || driver?.vehicleModel;
+              const plateNumber = vehicle?.plateNumber || vehicle?.plate_number || driver?.plateNumber;
+
+              let fleetTitle = "Armada Belum Dipasangkan";
+              if (vehicleName && plateNumber) {
+                fleetTitle = `${vehicleName} (${plateNumber})`;
+              } else if (vehicleName) {
+                fleetTitle = vehicleName;
+              } else if (plateNumber) {
+                fleetTitle = `Armada (${plateNumber})`;
+              }
 
               return (
                 <Card
@@ -280,7 +297,7 @@ export default function AdminOverviewPage() {
                   className="p-6 border border-slate-100 shadow-stitch-card space-y-4 bg-white"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-bold text-[#00677d] uppercase tracking-wider">
                           Grup Mobil #{groupNum}
@@ -297,12 +314,31 @@ export default function AdminOverviewPage() {
                           </span>
                         )}
                       </div>
+
+                      {/* Fleet / Vehicle Info */}
                       <h3 className="font-heading font-bold text-base text-[#191c1e] mt-1">
-                        {driver ? `${driver.vehicleModel || "Armada"} (${driver.plateNumber || "-"})` : "Armada Standby"}
+                        {fleetTitle}
                       </h3>
+
+                      {/* Driver Info */}
+                      <div className="flex items-center gap-2 text-xs">
+                        {driverName ? (
+                          <span className="inline-flex items-center gap-1.5 font-medium text-[#00677d]">
+                            <UserCheck className="h-3.5 w-3.5 text-[#00677d]" />
+                            Driver: <span className="font-semibold text-slate-800">{driverName}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60 font-medium text-[11px]">
+                            <UserX className="h-3.5 w-3.5 text-amber-600" />
+                            Driver: Belum Ditugaskan
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Destination Info */}
                       {destTitle && destTitle !== "Paket Wisata" && (
-                        <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                          Tujuan: <span className="text-slate-700">{destTitle}</span>
+                        <p className="text-xs text-slate-500 font-medium pt-0.5">
+                          Tujuan: <span className="text-slate-700 font-semibold">{destTitle}</span>
                         </p>
                       )}
                     </div>

@@ -69,6 +69,40 @@ export function normalizeArea(raw: Record<string, unknown>): Area {
   };
 }
 
+export function normalizeDriver(raw: Record<string, unknown>): Driver {
+  const id = String(raw.id || "");
+  const userId = raw.userId || raw.user_id ? String(raw.userId || raw.user_id) : undefined;
+  const user = raw.user as { id?: string; name?: string; email?: string; phone?: string } | undefined;
+  const fullName = String(raw.fullName || raw.name || user?.name || "Driver");
+  const phoneNumber = String(raw.phoneNumber || raw.phone || user?.phone || "");
+  const email = typeof raw.email === "string" ? raw.email : user?.email;
+  const licenseNumber = String(raw.licenseNumber || raw.license_number || "");
+  const rating = typeof raw.rating === "number" ? raw.rating : Number(raw.rating) || 0;
+  const status = (raw.status as Driver["status"]) || "active";
+  const vehicle = raw.vehicle ? normalizeVehicle(raw.vehicle as Record<string, unknown>) : null;
+  const vehicleModel = typeof raw.vehicleModel === "string" ? raw.vehicleModel : (typeof raw.vehicle_type === "string" ? raw.vehicle_type : vehicle?.name);
+  const plateNumber = typeof raw.plateNumber === "string" ? raw.plateNumber : (typeof raw.plate_number === "string" ? raw.plate_number : (typeof raw.vehicle_plat === "string" ? raw.vehicle_plat : vehicle?.plateNumber));
+
+  return {
+    id,
+    userId,
+    user_id: userId,
+    fullName,
+    name: fullName,
+    phoneNumber,
+    phone: phoneNumber,
+    email,
+    licenseNumber,
+    license_number: licenseNumber,
+    rating,
+    status,
+    vehicle,
+    vehicleModel,
+    plateNumber,
+    user,
+  };
+}
+
 export function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
   const id = String(raw.id || "");
   const name = String(raw.name || raw.title || "Toyota HiAce VIP");
@@ -105,7 +139,7 @@ export function normalizeVehicle(raw: Record<string, unknown>): Vehicle {
   const areaId = raw.areaId || raw.area_id ? String(raw.areaId || raw.area_id) : null;
   const area = raw.area ? normalizeArea(raw.area as Record<string, unknown>) : null;
   const driverId = raw.driverId || raw.driver_id ? String(raw.driverId || raw.driver_id) : null;
-  const driver = raw.driver ? (raw.driver as Driver) : null;
+  const driver = raw.driver ? normalizeDriver(raw.driver as Record<string, unknown>) : null;
 
   return {
     id,
@@ -190,7 +224,7 @@ export function normalizeBookingGroup(raw: Record<string, unknown>, tripIdFallba
       : participants.length;
   const status = (raw.status as BookingGroup["status"]) || "open";
   const driverId = raw.driverId || raw.driver_id ? String(raw.driverId || raw.driver_id) : null;
-  const driver = (raw.driver as Driver) || null;
+  const driver = raw.driver ? normalizeDriver(raw.driver as Record<string, unknown>) : null;
   const vehicleId = raw.vehicleId || raw.vehicle_id ? String(raw.vehicleId || raw.vehicle_id) : null;
   const vehicle = raw.vehicle ? normalizeVehicle(raw.vehicle as Record<string, unknown>) : null;
   const name = typeof raw.name === "string" ? raw.name : undefined;
