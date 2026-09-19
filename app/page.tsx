@@ -9,15 +9,57 @@ import {
   ChevronRight,
   Clock,
 } from "lucide-react";
+import type { Metadata } from "next";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Card, CardContent } from "@/src/components/ui/card";
 import { destinationService } from "@/src/services/destination.service";
 import { articleService } from "@/src/services/article.service";
+import { seoService } from "@/src/services/seo.service";
 import { DestinationFilterGrid } from "@/src/components/home/destination-filter-grid";
 import { formatCurrency, formatDate } from "@/src/lib/utils";
 
 export const revalidate = 60; // ISR revalidate every 60 seconds
+
+export async function generateMetadata(): Promise<Metadata> {
+  const pageSeo = await seoService.getPageSeo("home");
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
+
+  return {
+    title: {
+      absolute: pageSeo.title,
+    },
+    description: pageSeo.description,
+    keywords: pageSeo.keywords,
+    robots: {
+      index: !pageSeo.noIndex,
+      follow: !pageSeo.noIndex,
+    },
+    openGraph: {
+      title: pageSeo.title,
+      description: pageSeo.description,
+      url: siteUrl,
+      siteName: "Share Tour Jogja",
+      images: [
+        {
+          url: pageSeo.ogImage,
+          width: 1200,
+          height: 630,
+          alt: pageSeo.title,
+        },
+      ],
+      locale: "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: pageSeo.title,
+      description: pageSeo.description,
+      images: [pageSeo.ogImage],
+    },
+  };
+}
+
 
 export default async function HomePage() {
   const [destinations, articles] = await Promise.all([

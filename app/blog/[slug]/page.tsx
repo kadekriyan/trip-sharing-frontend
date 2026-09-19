@@ -94,17 +94,18 @@ export default async function BlogDetailPage({ params }: PageProps) {
     );
   }
 
-  let customSchemaObj: any = null;
+  let customSchemaObj: Record<string, unknown> | null = null;
   if (article.customSchemaJson) {
     try {
       customSchemaObj =
         typeof article.customSchemaJson === "string"
           ? JSON.parse(article.customSchemaJson)
-          : article.customSchemaJson;
+          : (article.customSchemaJson as Record<string, unknown>);
     } catch {
       customSchemaObj = null;
     }
   }
+
 
   const jsonLdArticle =
     customSchemaObj || {

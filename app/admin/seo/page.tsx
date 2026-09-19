@@ -19,22 +19,85 @@ import {
   Code,
   Eye,
   ExternalLink,
+  Layers,
+  Layout,
+  Home,
+  MapPin,
+  BookOpen,
+  CalendarCheck,
+  LogIn,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Card } from "@/src/components/ui/card";
 import { Input } from "@/src/components/ui/input";
 import { adminService } from "@/src/services/admin.service";
-import { DEFAULT_SEO_SETTINGS } from "@/src/services/seo.service";
-import type { GlobalSeoSettings, UpdateSeoSettingsPayload } from "@/src/types";
+import { DEFAULT_SEO_SETTINGS, DEFAULT_PAGE_SEO } from "@/src/services/seo.service";
+import type { GlobalSeoSettings, UpdateSeoSettingsPayload, PageSeoItem, PageSeoSettingsMap } from "@/src/types";
+
+interface PageConfigDef {
+  key: string;
+  name: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+}
+
+const CORE_PAGES: PageConfigDef[] = [
+  {
+    key: "home",
+    name: "Landing Page (Beranda)",
+    path: "/",
+    icon: Home,
+    description: "Halaman utama tempat traveler mencari & memilih open trip Yogyakarta.",
+  },
+  {
+    key: "destinations",
+    name: "Katalog Destinasi (Tours)",
+    path: "/destinations",
+    icon: MapPin,
+    description: "Halaman daftar seluruh paket trip sharing (Prambanan, Merapi, Timang, dll).",
+  },
+  {
+    key: "blog",
+    name: "Katalog Blog & Panduan Wisata",
+    path: "/blog",
+    icon: BookOpen,
+    description: "Halaman artikel panduan wisata, tips liburan, dan cerita komunitas traveler.",
+  },
+  {
+    key: "bookings",
+    name: "Cek Booking & Tiket",
+    path: "/bookings",
+    icon: CalendarCheck,
+    description: "Halaman pelacakan status reservasi peserta dan voucher e-tiket.",
+  },
+  {
+    key: "login",
+    name: "Halaman Masuk (Sign In)",
+    path: "/login",
+    icon: LogIn,
+    description: "Halaman autentikasi login traveler dan operator.",
+  },
+  {
+    key: "register",
+    name: "Halaman Registrasi (Sign Up)",
+    path: "/register",
+    icon: UserPlus,
+    description: "Halaman pendaftaran akun traveler baru.",
+  },
+];
 
 export default function AdminSeoSettingsPage() {
-  const [activeTab, setActiveTab] = useState<"general" | "social" | "webmaster" | "schema">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "pages" | "social" | "webmaster" | "schema">("general");
+  const [selectedPageKey, setSelectedPageKey] = useState<string>("home");
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  // Form State
+  // Global SEO Form State
   const [siteTitleDefault, setSiteTitleDefault] = useState("");
   const [siteTitleTemplate, setSiteTitleTemplate] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
@@ -44,6 +107,10 @@ export default function AdminSeoSettingsPage() {
   const [googleVerificationTag, setGoogleVerificationTag] = useState("");
   const [organizationSchemaJson, setOrganizationSchemaJson] = useState("");
   const [robotsIndex, setRobotsIndex] = useState(true);
+
+  // Per-Page SEO Form State
+  const [pageSeoSettings, setPageSeoSettings] = useState<PageSeoSettingsMap>({});
+  const [pageKeywordInput, setPageKeywordInput] = useState("");
 
   // JSON Validation State
   const [jsonValidationError, setJsonValidationError] = useState<string | null>(null);
@@ -83,6 +150,21 @@ export default function AdminSeoSettingsPage() {
     setGoogleVerificationTag(settings.googleVerificationTag || "");
     setRobotsIndex(settings.robotsIndex !== undefined ? settings.robotsIndex : true);
 
+    // Populate Page SEO Settings
+    const initialPages: PageSeoSettingsMap = {};
+    CORE_PAGES.forEach((page) => {
+      const existing = settings.pageSeoSettings?.[page.key];
+      const defaultPage = DEFAULT_PAGE_SEO[page.key];
+      initialPages[page.key] = {
+        title: existing?.title ?? defaultPage?.title ?? "",
+        description: existing?.description ?? defaultPage?.description ?? "",
+        keywords: existing?.keywords ?? defaultPage?.keywords ?? [],
+        ogImage: existing?.ogImage ?? "",
+        noIndex: existing?.noIndex ?? false,
+      };
+    });
+    setPageSeoSettings(initialPages);
+
     // Schema JSON
     if (settings.organizationSchemaJson) {
       try {
@@ -111,6 +193,7 @@ export default function AdminSeoSettingsPage() {
     }
   };
 
+  // Global Keyword handlers
   const handleAddKeyword = (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent) => {
     if ("key" in e && e.key !== "Enter") return;
     e.preventDefault();
@@ -123,6 +206,48 @@ export default function AdminSeoSettingsPage() {
 
   const handleRemoveKeyword = (kwToRemove: string) => {
     setKeywords(keywords.filter((k) => k !== kwToRemove));
+  };
+
+  // Page-specific Keyword handlers
+  const handleAddPageKeyword = (e: React.KeyboardEvent<HTMLInputElement> | React.MouseEvent) => {
+    if ("key" in e && e.key !== "Enter") return;
+    e.preventDefault();
+    const trimmed = pageKeywordInput.trim();
+    const currentPageItem = pageSeoSettings[selectedPageKey] || {};
+    const currentKws = currentPageItem.keywords || [];
+
+    if (trimmed && !currentKws.includes(trimmed)) {
+      setPageSeoSettings({
+        ...pageSeoSettings,
+        [selectedPageKey]: {
+          ...currentPageItem,
+          keywords: [...currentKws, trimmed],
+        },
+      });
+      setPageKeywordInput("");
+    }
+  };
+
+  const handleRemovePageKeyword = (kwToRemove: string) => {
+    const currentPageItem = pageSeoSettings[selectedPageKey] || {};
+    const currentKws = currentPageItem.keywords || [];
+    setPageSeoSettings({
+      ...pageSeoSettings,
+      [selectedPageKey]: {
+        ...currentPageItem,
+        keywords: currentKws.filter((k) => k !== kwToRemove),
+      },
+    });
+  };
+
+  const updateSelectedPageField = <K extends keyof PageSeoItem>(field: K, value: PageSeoItem[K]) => {
+    setPageSeoSettings((prev) => ({
+      ...prev,
+      [selectedPageKey]: {
+        ...prev[selectedPageKey],
+        [field]: value,
+      },
+    }));
   };
 
   const handleSchemaChange = (value: string) => {
@@ -185,10 +310,11 @@ export default function AdminSeoSettingsPage() {
         googleVerificationTag: googleVerificationTag.trim() || null,
         organizationSchemaJson: organizationSchemaJson.trim() || null,
         robotsIndex,
+        pageSeoSettings,
       };
 
       await adminService.updateAdminSeoSettings(payload);
-      setFeedback({ type: "success", message: "Pengaturan SEO & Schema berhasil diperbarui!" });
+      setFeedback({ type: "success", message: "Pengaturan SEO Global & Per Halaman berhasil disimpan!" });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Gagal menyimpan pengaturan SEO.";
       setFeedback({ type: "error", message: msg });
@@ -196,6 +322,9 @@ export default function AdminSeoSettingsPage() {
       setIsSaving(false);
     }
   };
+
+  const activePageDef = CORE_PAGES.find((p) => p.key === selectedPageKey) || CORE_PAGES[0];
+  const activePageSeo = pageSeoSettings[selectedPageKey] || {};
 
   if (isLoading) {
     return (
@@ -216,11 +345,11 @@ export default function AdminSeoSettingsPage() {
               SEO &amp; Schema Management
             </h1>
             <Badge variant="coral" className="text-[10px] uppercase font-bold">
-              Dynamic Metadata
+              Global &amp; Per Page
             </Badge>
           </div>
           <p className="text-xs text-slate-500">
-            Kelola meta tags, target kata kunci, kartu media sosial, dan Structured Data (Schema.org) untuk optimasi mesin pencari Google.
+            Kelola meta tags global, meta tags spesifik per halaman, target kata kunci, kartu media sosial, dan Structured Data Schema.org.
           </p>
         </div>
 
@@ -240,11 +369,11 @@ export default function AdminSeoSettingsPage() {
             size="sm"
             onClick={handleSave}
             disabled={isSaving}
-            className="text-xs font-bold bg-[#00677d] hover:bg-[#005264] text-white shadow-sm"
+            className="bg-[#00677d] hover:bg-[#005566] text-white text-xs font-bold shadow-sm"
           >
             {isSaving ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
                 Menyimpan...
               </>
             ) : (
@@ -257,290 +386,537 @@ export default function AdminSeoSettingsPage() {
         </div>
       </div>
 
-      {/* Feedback Banner */}
+      {/* Feedback Alert */}
       {feedback && (
         <div
-          className={`p-4 rounded-2xl border text-xs font-semibold flex items-center justify-between animate-in fade-in ${
+          className={`p-4 rounded-xl text-xs flex items-start gap-3 border ${
             feedback.type === "success"
               ? "bg-emerald-50 border-emerald-200 text-emerald-800"
               : "bg-rose-50 border-rose-200 text-rose-800"
           }`}
         >
-          <div className="flex items-center gap-2.5">
-            {feedback.type === "success" ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-            ) : (
-              <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-            )}
-            <span>{feedback.message}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setFeedback(null)}
-            className="text-slate-400 hover:text-slate-600"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          {feedback.type === "success" ? (
+            <CheckCircle2 className="h-4 w-4 mt-0.5 text-emerald-600 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 mt-0.5 text-rose-600 flex-shrink-0" />
+          )}
+          <div className="flex-1 font-medium">{feedback.message}</div>
         </div>
       )}
 
       {/* Tabs Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto pb-px">
         <button
           type="button"
           onClick={() => setActiveTab("general")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
             activeTab === "general"
-              ? "bg-[#00677d] text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "border-[#00677d] text-[#00677d] bg-slate-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <Globe className="h-3.5 w-3.5" />
-          General Metadata
+          <Globe className="h-4 w-4" />
+          SEO Global
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("pages")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+            activeTab === "pages"
+              ? "border-[#00677d] text-[#00677d] bg-slate-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          SEO Per Halaman
+          <span className="h-2 w-2 rounded-full bg-[#ff7f50]" />
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab("social")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
             activeTab === "social"
-              ? "bg-[#00677d] text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "border-[#00677d] text-[#00677d] bg-slate-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <Share2 className="h-3.5 w-3.5" />
-          OpenGraph &amp; Social Share
+          <Share2 className="h-4 w-4" />
+          Media Sosial &amp; OG Image
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("schema")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeTab === "schema"
-              ? "bg-[#00677d] text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          <FileCode2 className="h-3.5 w-3.5" />
-          Schema.org JSON-LD
-          {jsonValidationError && (
-            <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
-          )}
-        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab("webmaster")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
             activeTab === "webmaster"
-              ? "bg-[#00677d] text-white shadow-sm"
-              : "text-slate-600 hover:bg-slate-100"
+              ? "border-[#00677d] text-[#00677d] bg-slate-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <Bot className="h-3.5 w-3.5" />
-          Webmaster &amp; Crawlers
+          <Bot className="h-4 w-4" />
+          Webmaster &amp; Robot
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("schema")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+            activeTab === "schema"
+              ? "border-[#00677d] text-[#00677d] bg-slate-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <FileCode2 className="h-4 w-4" />
+          Structured Data (Schema.org)
         </button>
       </div>
 
       <form onSubmit={handleSave} className="space-y-6">
-        {/* TAB 1: GENERAL METADATA */}
+        {/* TAB 1: SEO GLOBAL */}
         {activeTab === "general" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 space-y-5">
-              <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-                <div className="border-b border-slate-100 pb-3">
-                  <h3 className="font-heading font-bold text-sm text-slate-800 flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-[#00677d]" />
-                    Informasi Judul &amp; Deskripsi Dasar
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Konfigurasi meta tag utama yang terbaca oleh perayap mesin pencari.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                    Default Site Title *
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-5">
+              <Card className="p-6 bg-white border-slate-200 shadow-sm rounded-2xl space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Default Meta Title <span className="text-rose-500">*</span>
                   </label>
                   <Input
-                    required
+                    type="text"
                     value={siteTitleDefault}
                     onChange={(e) => setSiteTitleDefault(e.target.value)}
-                    placeholder="Contoh: Share Tour Jogja — Open Trip & Yogyakarta Sharing Tours"
-                  />
-                  <p className="text-[10px] text-slate-400">
-                    Judul default untuk halaman beranda (Homepage).
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                    Title Template *
-                  </label>
-                  <Input
+                    placeholder="Judul Utama Website..."
+                    className="text-sm"
                     required
-                    value={siteTitleTemplate}
-                    onChange={(e) => setSiteTitleTemplate(e.target.value)}
-                    placeholder="%s | Share Tour Jogja"
                   />
-                  <p className="text-[10px] text-slate-400">
-                    Gunakan token <code className="bg-slate-100 px-1 py-0.5 rounded text-[#00677d] font-bold">%s</code> untuk disubstitusi dengan judul subhalaman (misal: Detail Destinasi).
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                    Meta Description *
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={metaDescription}
-                    onChange={(e) => setMetaDescription(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]/20 focus:border-[#00677d]"
-                    placeholder="Tuliskan deskripsi singkat mengenai layanan open trip dan cost sharing..."
-                  />
-                  <div className="flex justify-between text-[10px] text-slate-400">
-                    <span>Rekomendasi panjang: 120 – 160 karakter.</span>
-                    <span className={metaDescription.length > 160 ? "text-amber-600 font-bold" : ""}>
-                      {metaDescription.length} karakter
+                  <div className="flex justify-between text-[11px] text-slate-400">
+                    <span>Judul bawaan ketika halaman tidak memiliki meta title khusus.</span>
+                    <span className={siteTitleDefault.length > 60 ? "text-amber-600 font-bold" : ""}>
+                      {siteTitleDefault.length} / 60 karakter
                     </span>
                   </div>
                 </div>
-              </Card>
 
-              {/* Keywords Tag Manager */}
-              <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-                <div className="border-b border-slate-100 pb-3">
-                  <h3 className="font-heading font-bold text-sm text-slate-800 flex items-center gap-2">
-                    <Search className="h-4 w-4 text-[#00677d]" />
-                    Target Kata Kunci (Keywords)
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Daftar kata kunci pencarian utama yang ditargetkan di meta keywords.
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Meta Title Template <span className="text-rose-500">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    value={siteTitleTemplate}
+                    onChange={(e) => setSiteTitleTemplate(e.target.value)}
+                    placeholder="%s | Share Tour Jogja"
+                    className="text-sm"
+                    required
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    Pola judul untuk halaman turunan. Gunakan <code className="bg-slate-100 px-1 py-0.5 rounded text-[#00677d] font-bold">%s</code> sebagai placeholder judul halaman.
                   </p>
                 </div>
 
-                <div className="flex gap-2">
-                  <Input
-                    value={keywordInput}
-                    onChange={(e) => setKeywordInput(e.target.value)}
-                    onKeyDown={handleAddKeyword}
-                    placeholder="Ketik kata kunci lalu tekan Enter..."
-                    className="text-xs"
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Default Meta Description <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={metaDescription}
+                    onChange={(e) => setMetaDescription(e.target.value)}
+                    placeholder="Deskripsi ringkas yang muncul pada hasil pencarian Google..."
+                    className="w-full rounded-xl border border-slate-200 p-3 text-sm focus-visible:outline-none focus-visible:border-[#00677d] focus-visible:ring-2 focus-visible:ring-[#00a3c4]/20 transition-all resize-y"
+                    required
                   />
-                  <Button
-                    type="button"
-                    onClick={handleAddKeyword}
-                    size="sm"
-                    className="bg-[#00677d] text-white shrink-0 font-bold text-xs"
-                  >
-                    <Plus className="h-3.5 w-3.5 mr-1" />
-                    Tambah
-                  </Button>
+                  <div className="flex justify-between text-[11px] text-slate-400">
+                    <span>Ringkasan konten yang direkomendasikan antara 120–160 karakter.</span>
+                    <span className={metaDescription.length > 160 ? "text-amber-600 font-bold" : ""}>
+                      {metaDescription.length} / 160 karakter
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 pt-2">
-                  {keywords.map((kw, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200"
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Target Kata Kunci Global (Keywords)
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={keywordInput}
+                      onChange={(e) => setKeywordInput(e.target.value)}
+                      onKeyDown={handleAddKeyword}
+                      placeholder="Ketik kata kunci dan tekan Enter..."
+                      className="text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddKeyword}
+                      className="text-xs font-bold text-[#00677d]"
                     >
-                      {kw}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveKeyword(kw)}
-                        className="text-slate-400 hover:text-rose-600"
+                      <Plus className="h-4 w-4 mr-1" />
+                      Tambah
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {keywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#00677d]/10 text-[#00677d] text-xs font-semibold"
                       >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                  {keywords.length === 0 && (
-                    <p className="text-xs text-slate-400 italic">Belum ada kata kunci ditambahkan.</p>
-                  )}
+                        {kw}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveKeyword(kw)}
+                          className="hover:text-rose-600 focus:outline-none"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    {keywords.length === 0 && (
+                      <span className="text-xs text-slate-400 italic">Belum ada kata kunci ditambahkan.</span>
+                    )}
+                  </div>
                 </div>
               </Card>
             </div>
 
-            {/* Preview Column */}
-            <div className="lg:col-span-5 space-y-5">
-              <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <Eye className="h-4 w-4 text-[#00677d]" />
-                  Preview Hasil Pencarian Google (SERP)
+            {/* Google SERP Live Preview */}
+            <div className="space-y-4">
+              <Card className="p-5 bg-white border-slate-200 shadow-sm rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <Search className="h-4 w-4 text-[#00677d]" />
+                  Google SERP Live Preview
                 </div>
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                  <div className="text-[11px] text-slate-500 flex items-center gap-1">
-                    <span>https://sharingtouryogyakarta.com</span>
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 font-sans space-y-1">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                    <span className="text-emerald-700 font-semibold">sharingtouryogyakarta.com</span>
+                    <span>›</span>
                   </div>
-                  <h4 className="text-sm font-semibold text-[#1a0dab] hover:underline cursor-pointer line-clamp-1">
-                    {siteTitleDefault || "Share Tour Jogja — Open Trip & Yogyakarta Sharing Tours"}
-                  </h4>
-                  <p className="text-xs text-[#4d5156] line-clamp-2 leading-relaxed">
-                    {metaDescription || "Open trip and sharing tour platform in Yogyakarta & Indonesia..."}
+                  <h3 className="text-base font-semibold text-[#1a0dab] hover:underline cursor-pointer line-clamp-1 leading-snug">
+                    {siteTitleDefault || "Judul Halaman Preview"}
+                  </h3>
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                    {metaDescription || "Deskripsi meta akan tampil di sini saat halaman Anda ditemukan oleh calon traveler di mesin pencari Google..."}
                   </p>
                 </div>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Tampilan simulasi hasil pencarian desktop. Panjang judul yang terlalu panjang akan terpotong oleh Google.
+                </p>
               </Card>
             </div>
           </div>
         )}
 
-        {/* TAB 2: SOCIAL & OPENGRAPH */}
-        {activeTab === "social" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 space-y-5">
-              <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-                <div className="border-b border-slate-100 pb-3">
-                  <h3 className="font-heading font-bold text-sm text-slate-800 flex items-center gap-2">
-                    <Share2 className="h-4 w-4 text-[#00677d]" />
-                    Pratinjau Berbagi Media Sosial (OpenGraph &amp; Twitter Cards)
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Gambar dan judul yang tampil saat tautan website dibagikan di WhatsApp, Facebook, Telegram, dan Twitter/X.
-                  </p>
-                </div>
+        {/* TAB 2: SEO PER HALAMAN */}
+        {activeTab === "pages" && (
+          <div className="space-y-6">
+            {/* Core Pages Selector Buttons */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              {CORE_PAGES.map((page) => {
+                const Icon = page.icon;
+                const isSelected = selectedPageKey === page.key;
+                const pageConfig = pageSeoSettings[page.key];
+                const hasCustomTitle = Boolean(pageConfig?.title);
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                    Default OG Cover Image URL *
+                return (
+                  <button
+                    key={page.key}
+                    type="button"
+                    onClick={() => setSelectedPageKey(page.key)}
+                    className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 ${
+                      isSelected
+                        ? "bg-[#00677d] text-white border-[#00677d] shadow-md shadow-[#00677d]/20"
+                        : "bg-white text-slate-700 border-slate-200 hover:border-[#00677d]/40 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <Icon className={`h-4 w-4 ${isSelected ? "text-white" : "text-[#00677d]"}`} />
+                      {hasCustomTitle && (
+                        <span className={`h-2 w-2 rounded-full ${isSelected ? "bg-amber-300" : "bg-emerald-500"}`} />
+                      )}
+                    </div>
+                    <div>
+                      <span className="font-bold text-xs block leading-tight truncate">
+                        {page.name.split("(")[0]}
+                      </span>
+                      <span className={`text-[10px] font-mono block mt-0.5 ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                        {page.path}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Page SEO Editor Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-5">
+                <Card className="p-6 bg-white border-slate-200 shadow-sm rounded-2xl space-y-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div>
+                      <span className="text-xs font-bold text-[#00677d] uppercase tracking-wider block">
+                        Konfigurasi SEO Halaman
+                      </span>
+                      <h2 className="text-base font-extrabold text-slate-900 font-heading flex items-center gap-2">
+                        {activePageDef.name}
+                        <code className="text-xs font-mono font-normal bg-slate-100 px-2 py-0.5 rounded text-slate-600">
+                          {activePageDef.path}
+                        </code>
+                      </h2>
+                    </div>
+                    <Badge variant="azure" className="text-[10px]">
+                      {activePageDef.key}
+                    </Badge>
+                  </div>
+
+                  {/* Custom Page Title */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Custom Meta Title Halaman
+                    </label>
+                    <Input
+                      type="text"
+                      value={activePageSeo.title || ""}
+                      onChange={(e) => updateSelectedPageField("title", e.target.value)}
+                      placeholder={`Contoh: ${DEFAULT_PAGE_SEO[activePageDef.key]?.title || siteTitleDefault}`}
+                      className="text-sm"
+                    />
+                    <div className="flex justify-between text-[11px] text-slate-400">
+                      <span>Jika dikosongkan, akan menggunakan template judul global.</span>
+                      <span className={(activePageSeo.title?.length || 0) > 60 ? "text-amber-600 font-bold" : ""}>
+                        {activePageSeo.title?.length || 0} / 60 karakter
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Custom Page Description */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Custom Meta Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={activePageSeo.description || ""}
+                      onChange={(e) => updateSelectedPageField("description", e.target.value)}
+                      placeholder={`Contoh: ${DEFAULT_PAGE_SEO[activePageDef.key]?.description || metaDescription}`}
+                      className="w-full rounded-xl border border-slate-200 p-3 text-sm focus-visible:outline-none focus-visible:border-[#00677d] focus-visible:ring-2 focus-visible:ring-[#00a3c4]/20 transition-all resize-y"
+                    />
+                    <div className="flex justify-between text-[11px] text-slate-400">
+                      <span>Deskripsi spesifik saat link halaman {activePageDef.path} muncul di Google.</span>
+                      <span className={(activePageSeo.description?.length || 0) > 160 ? "text-amber-600 font-bold" : ""}>
+                        {activePageSeo.description?.length || 0} / 160 karakter
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Page Keywords */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Target Kata Kunci Halaman Ini
+                    </label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        value={pageKeywordInput}
+                        onChange={(e) => setPageKeywordInput(e.target.value)}
+                        onKeyDown={handleAddPageKeyword}
+                        placeholder="Ketik kata kunci spesifik dan tekan Enter..."
+                        className="text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddPageKeyword}
+                        className="text-xs font-bold text-[#00677d]"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Tambah
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {(activePageSeo.keywords || []).map((kw) => (
+                        <span
+                          key={kw}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200/60 text-xs font-semibold"
+                        >
+                          {kw}
+                          <button
+                            type="button"
+                            onClick={() => handleRemovePageKeyword(kw)}
+                            className="hover:text-rose-600 focus:outline-none"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                      {(!activePageSeo.keywords || activePageSeo.keywords.length === 0) && (
+                        <span className="text-xs text-slate-400 italic">
+                          Menggunakan kata kunci default global.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Custom OG Image for Page */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 block">
+                      Custom OpenGraph Image URL (Thumbnail Share)
+                    </label>
+                    <Input
+                      type="text"
+                      value={activePageSeo.ogImage || ""}
+                      onChange={(e) => updateSelectedPageField("ogImage", e.target.value)}
+                      placeholder="/images/hero-bromo.png atau URL eksternal https://..."
+                      className="text-sm font-mono"
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      Gambar thumbnail khusus untuk preview saat tautan halaman ini dibagikan ke medsos.
+                    </p>
+                  </div>
+
+                  {/* NoIndex Toggle */}
+                  <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                    <div>
+                      <span className="font-bold text-xs text-slate-800 block">
+                        Robots No-Index untuk Halaman Ini
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Jika diaktifkan, mesin pencari dilarang mengindeks halaman ini.
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(activePageSeo.noIndex)}
+                        onChange={(e) => updateSelectedPageField("noIndex", e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600" />
+                    </label>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Page SERP Preview */}
+              <div className="space-y-4">
+                <Card className="p-5 bg-white border-slate-200 shadow-sm rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    <Search className="h-4 w-4 text-[#00677d]" />
+                    SERP Preview ({activePageDef.path})
+                  </div>
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 font-sans space-y-1">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                      <span className="text-emerald-700 font-semibold">sharingtouryogyakarta.com</span>
+                      <span>›</span>
+                      <span className="text-slate-500">{activePageDef.key}</span>
+                    </div>
+                    <h3 className="text-base font-semibold text-[#1a0dab] hover:underline cursor-pointer line-clamp-1 leading-snug">
+                      {activePageSeo.title || DEFAULT_PAGE_SEO[activePageDef.key]?.title || siteTitleDefault}
+                    </h3>
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      {activePageSeo.description || DEFAULT_PAGE_SEO[activePageDef.key]?.description || metaDescription}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+                    <div>
+                      <strong>Status Index:</strong>{" "}
+                      {activePageSeo.noIndex ? (
+                        <span className="text-rose-600 font-bold">No-Index (Disembunyikan dari Google)</span>
+                      ) : (
+                        <span className="text-emerald-600 font-bold">Index (Terbuka untuk Google)</span>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+
+                {/* OpenGraph Preview */}
+                <Card className="p-5 bg-white border-slate-200 shadow-sm rounded-2xl space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    <Share2 className="h-4 w-4 text-[#00677d]" />
+                    Social Share Preview
+                  </div>
+                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-xs">
+                    <div className="relative h-32 w-full bg-slate-200">
+                      <Image
+                        src={activePageSeo.ogImage || defaultOgImage || "/images/hero-bromo.png"}
+                        alt="Preview"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="p-3 space-y-1 bg-white">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                        sharingtouryogyakarta.com
+                      </span>
+                      <h4 className="text-xs font-bold text-slate-900 line-clamp-1">
+                        {activePageSeo.title || DEFAULT_PAGE_SEO[activePageDef.key]?.title || siteTitleDefault}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-2">
+                        {activePageSeo.description || DEFAULT_PAGE_SEO[activePageDef.key]?.description || metaDescription}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: MEDIA SOSIAL & OPEN GRAPH */}
+        {activeTab === "social" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-5">
+              <Card className="p-6 bg-white border-slate-200 shadow-sm rounded-2xl space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">
+                    Default OpenGraph / Social Image URL <span className="text-rose-500">*</span>
                   </label>
                   <Input
-                    required
+                    type="text"
                     value={defaultOgImage}
                     onChange={(e) => setDefaultOgImage(e.target.value)}
-                    placeholder="https://... atau /images/hero-bromo.png"
+                    placeholder="/images/hero-bromo.png"
+                    className="text-sm font-mono"
+                    required
                   />
-                  <p className="text-[10px] text-slate-400">
-                    Rekomendasi resolusi: <code className="font-bold">1200 x 630 px</code> format PNG atau JPG.
+                  <p className="text-[11px] text-slate-400">
+                    Gambar default rasio 1200x630 pixel yang akan dipakai saat tautan dibagikan ke WhatsApp, Telegram, Facebook, dan Twitter.
                   </p>
                 </div>
               </Card>
             </div>
 
-            {/* Social Share Card Preview */}
-            <div className="lg:col-span-5 space-y-5">
-              <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                  <Eye className="h-4 w-4 text-[#00677d]" />
-                  Preview Kartu Media Sosial (Facebook / WhatsApp)
+            <div className="space-y-4">
+              <Card className="p-5 bg-white border-slate-200 shadow-sm rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  <Share2 className="h-4 w-4 text-[#00677d]" />
+                  Global Social Preview
                 </div>
-                <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm bg-white">
-                  <div className="relative h-44 w-full bg-slate-800">
+                <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-xs">
+                  <div className="relative h-36 w-full bg-slate-200">
                     <Image
-                      src={defaultOgImage.startsWith("http") ? defaultOgImage : defaultOgImage || "/images/hero-bromo.png"}
+                      src={defaultOgImage || "/images/hero-bromo.png"}
                       alt="OG Preview"
                       fill
                       className="object-cover"
-                      unoptimized
                     />
                   </div>
-                  <div className="p-4 space-y-1 bg-slate-50/70 border-t border-slate-100">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                  <div className="p-3 space-y-1 bg-white">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">
                       sharingtouryogyakarta.com
                     </span>
-                    <h5 className="font-heading font-bold text-xs text-slate-800 line-clamp-1">
-                      {siteTitleDefault || "Share Tour Jogja — Open Trip & Yogyakarta Sharing Tours"}
-                    </h5>
+                    <h4 className="text-xs font-bold text-slate-900 line-clamp-1">
+                      {siteTitleDefault}
+                    </h4>
                     <p className="text-[11px] text-slate-500 line-clamp-2">
-                      {metaDescription || "Open trip and sharing tour platform in Yogyakarta & Indonesia..."}
+                      {metaDescription}
                     </p>
                   </div>
                 </div>
@@ -549,118 +925,91 @@ export default function AdminSeoSettingsPage() {
           </div>
         )}
 
-        {/* TAB 3: SCHEMA.ORG JSON-LD */}
-        {activeTab === "schema" && (
-          <div className="space-y-5">
-            <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="font-heading font-bold text-sm text-slate-800 flex items-center gap-2">
-                    <FileCode2 className="h-4 w-4 text-[#00677d]" />
-                    Organization Structured Data (JSON-LD)
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Schema.org/Organization yang disuntikkan secara dinamis pada root header website untuk Google Knowledge Graph.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleFormatJson}
-                    className="text-xs font-bold gap-1 text-[#00677d] border-[#00677d]/30 hover:bg-[#00677d]/5"
-                  >
-                    <Code className="h-3.5 w-3.5" />
-                    Format JSON
-                  </Button>
-                </div>
+        {/* TAB 4: WEBMASTER & ROBOT */}
+        {activeTab === "webmaster" && (
+          <div className="max-w-3xl space-y-5">
+            <Card className="p-6 bg-white border-slate-200 shadow-sm rounded-2xl space-y-5">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Google Search Console Verification Meta Tag
+                </label>
+                <Input
+                  type="text"
+                  value={googleVerificationTag}
+                  onChange={(e) => setGoogleVerificationTag(e.target.value)}
+                  placeholder="Kode verifikasi Google (cth: google-site-verification-token)"
+                  className="text-sm font-mono"
+                />
+                <p className="text-[11px] text-slate-400">
+                  Masukkan isi token verifikasi HTML dari Google Search Console untuk membuktikan kepemilikan domain.
+                </p>
               </div>
 
-              {jsonValidationError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2 font-medium">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{jsonValidationError}</span>
-                </div>
-              )}
+              <hr className="border-slate-100" />
 
-              <div className="space-y-2">
-                <textarea
-                  rows={14}
-                  value={organizationSchemaJson}
-                  onChange={(e) => handleSchemaChange(e.target.value)}
-                  className={`w-full font-mono text-xs p-4 rounded-xl border ${
-                    jsonValidationError
-                      ? "border-rose-400 bg-rose-50/30 text-rose-900"
-                      : "border-slate-200 bg-slate-900 text-emerald-400"
-                  } focus:outline-none focus:ring-2 focus:ring-[#00677d]/30`}
-                  placeholder='{\n  "@context": "https://schema.org",\n  "@type": "Organization",\n  ...\n}'
-                />
-                <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-amber-500" />
-                  Pastikan sintaks JSON valid. Jika dikosongkan, sistem otomatis membentuk Organization schema bawaan.
-                </p>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200/70">
+                <div>
+                  <span className="font-bold text-xs text-slate-800 block">
+                    Izinkan Google Mengindeks Website (Robots Index)
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Bila dinonaktifkan, seluruh website akan memuat tag <code className="font-mono bg-slate-200 px-1 py-0.5 rounded text-rose-700">noindex, nofollow</code>.
+                  </span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={robotsIndex}
+                    onChange={(e) => setRobotsIndex(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00677d]" />
+                </label>
               </div>
             </Card>
           </div>
         )}
 
-        {/* TAB 4: WEBMASTER & CRAWLERS */}
-        {activeTab === "webmaster" && (
-          <div className="space-y-5 max-w-3xl">
-            <Card className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="font-heading font-bold text-sm text-slate-800 flex items-center gap-2">
-                  <Bot className="h-4 w-4 text-[#00677d]" />
-                  Verifikasi Mesin Pencari &amp; Robot Crawler
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  Pengaturan kode verifikasi kepemilikan Google Search Console dan kontrol perayapan bot.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
-                  Google Search Console Verification Tag
-                </label>
-                <Input
-                  value={googleVerificationTag}
-                  onChange={(e) => setGoogleVerificationTag(e.target.value)}
-                  placeholder="Contoh: google-site-verification=XXXXXXXXXXXXXXXXXXXXX"
-                />
-                <p className="text-[10px] text-slate-400">
-                  Masukkan nilai meta tag atau kode hash verifikasi Google Search Console.
-                </p>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                  <div className="space-y-0.5">
-                    <span className="text-xs font-bold text-slate-800 block">
-                      Search Engine Indexing Status
-                    </span>
-                    <span className="text-[11px] text-slate-500 block">
-                      Izinkan Google, Bing, dan bot crawler mengindeks halaman publik website ini.
-                    </span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={robotsIndex}
-                      onChange={(e) => setRobotsIndex(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00677d]"></div>
-                  </label>
-                </div>
-                {!robotsIndex && (
-                  <p className="text-[11px] font-semibold text-rose-600 mt-2 flex items-center gap-1 animate-in fade-in">
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                    Peringatan: Mode NoIndex aktif. Situs akan memblokir pengindeksan mesin pencari (Disallow/NoIndex).
+        {/* TAB 5: SCHEMA.ORG JSON-LD */}
+        {activeTab === "schema" && (
+          <div className="space-y-4">
+            <Card className="p-6 bg-white border-slate-200 shadow-sm rounded-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-xs text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <Code className="h-4 w-4 text-[#00677d]" />
+                    Organization Schema JSON-LD Editor
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Data terstruktur Schema.org untuk menghasilkan Google Knowledge Panel dan rich snippet perusahaan.
                   </p>
-                )}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFormatJson}
+                  className="text-xs font-bold text-[#00677d] border-slate-200"
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  Format JSON
+                </Button>
               </div>
+
+              {jsonValidationError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{jsonValidationError}</span>
+                </div>
+              )}
+
+              <textarea
+                rows={14}
+                value={organizationSchemaJson}
+                onChange={(e) => handleSchemaChange(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 p-4 font-mono text-xs text-slate-800 bg-slate-50 focus-visible:outline-none focus-visible:border-[#00677d] focus-visible:ring-2 focus-visible:ring-[#00a3c4]/20 transition-all resize-y"
+                placeholder='{"@context": "https://schema.org", "@type": "Organization", ...}'
+              />
             </Card>
           </div>
         )}

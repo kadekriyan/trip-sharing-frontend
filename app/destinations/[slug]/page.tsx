@@ -81,17 +81,18 @@ export default async function DestinationDetailPage({ params }: PageProps) {
   const destination = await destinationService.getDestinationBySlug(slug).catch(() => null);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
-  let customSchemaObj: any = null;
+  let customSchemaObj: Record<string, unknown> | null = null;
   if (destination?.customSchemaJson) {
     try {
       customSchemaObj =
         typeof destination.customSchemaJson === "string"
           ? JSON.parse(destination.customSchemaJson)
-          : destination.customSchemaJson;
+          : (destination.customSchemaJson as Record<string, unknown>);
     } catch {
       customSchemaObj = null;
     }
   }
+
 
   const jsonLdTrip =
     customSchemaObj ||

@@ -1,13 +1,9 @@
 import React from "react";
 import type { Metadata } from "next";
-import { destinationService } from "@/src/services/destination.service";
 import { seoService } from "@/src/services/seo.service";
-import { DestinationsCatalogClient } from "@/src/components/destination/destinations-catalog-client";
-
-export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const pageSeo = await seoService.getPageSeo("destinations");
+  const pageSeo = await seoService.getPageSeo("login");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
 
   return {
@@ -21,14 +17,14 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `${pageSeo.title} — Share Tour Jogja`,
       description: pageSeo.description,
-      url: `${siteUrl}/destinations`,
+      url: `${siteUrl}/login`,
       siteName: "Share Tour Jogja",
       images: [
         {
           url: pageSeo.ogImage,
           width: 1200,
           height: 630,
-          alt: "Share Tour Jogja Tour Catalog",
+          alt: pageSeo.title,
         },
       ],
       type: "website",
@@ -42,9 +38,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-
-export default async function DestinationsPage() {
-  const initialDestinations = await destinationService.getAllDestinations().catch(() => []);
-
-  return <DestinationsCatalogClient initialDestinations={initialDestinations} />;
+export default function LoginLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return <>{children}</>;
 }

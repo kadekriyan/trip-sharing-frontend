@@ -362,6 +362,16 @@ export interface Article {
   updatedAt?: string;
 }
 
+export interface PageSeoItem {
+  title?: string;
+  description?: string;
+  keywords?: string[];
+  ogImage?: string;
+  noIndex?: boolean;
+}
+
+export type PageSeoSettingsMap = Record<string, PageSeoItem>;
+
 export interface GlobalSeoSettings {
   id?: string;
   siteTitleDefault: string;
@@ -372,6 +382,8 @@ export interface GlobalSeoSettings {
   googleVerificationTag?: string | null;
   organizationSchemaJson?: string | null;
   robotsIndex: boolean;
+  pageSeoSettings?: PageSeoSettingsMap | null;
+  page_seo_settings?: PageSeoSettingsMap | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -385,7 +397,11 @@ export interface UpdateSeoSettingsPayload {
   googleVerificationTag?: string | null;
   organizationSchemaJson?: string | null;
   robotsIndex: boolean;
+  pageSeoSettings?: PageSeoSettingsMap | null;
+  page_seo_settings?: PageSeoSettingsMap | null;
 }
+
+
 
 export interface AuditLog {
   id: string;
