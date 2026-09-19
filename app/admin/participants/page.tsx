@@ -450,6 +450,7 @@ export default function ParticipantsManagementPage() {
                   <th className="px-5 py-3.5">Lokasi Penjemputan</th>
                   <th className="px-5 py-3.5">Armada Mobil</th>
                   <th className="px-5 py-3.5">Status Pembayaran</th>
+                  <th className="px-5 py-3.5">Tanggal Pemesanan</th>
                   <th className="px-5 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -490,7 +491,7 @@ export default function ParticipantsManagementPage() {
                               <div className="flex items-start gap-1.5">
                                 <MapPin className="h-3.5 w-3.5 text-[#00677d] shrink-0 mt-0.5" />
                                 <div className="min-w-0">
-                                  <div className="font-bold text-slate-800 text-xs truncate" title={parsed.placeName}>
+                                   <div className="font-bold text-slate-800 text-xs truncate" title={parsed.placeName}>
                                     {parsed.placeName}
                                   </div>
                                   {parsed.address && (
@@ -538,6 +539,19 @@ export default function ParticipantsManagementPage() {
                         <span className="block text-[11px] text-slate-500 font-bold mt-1">
                           {formatCurrency(p.totalAmount)}
                         </span>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="font-semibold text-slate-800 text-xs">
+                          {p.createdAt ? formatDate(p.createdAt) : "-"}
+                        </div>
+                        {p.createdAt && !isNaN(new Date(p.createdAt).getTime()) && (
+                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                            {new Date(p.createdAt).toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })} WIB
+                          </div>
+                        )}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
