@@ -185,9 +185,22 @@ export interface ManualParticipantPayload {
   phoneNumber: string;
   phone?: string;
   nationality?: string;
+  country?: string;
   gender?: "male" | "female" | string;
   identityNumber?: string;
   roomPreference?: "single" | "shared" | "none" | string;
+  packageType?: "ALL_IN" | "TRANSPORT_ONLY" | string;
+  package_type?: "ALL_IN" | "TRANSPORT_ONLY" | string;
+  dateOfBirth?: string;
+  date_of_birth?: string;
+  pickupLocation?: string;
+  pickup_location?: string;
+  pickupLatitude?: number | null;
+  pickup_latitude?: number | null;
+  pickupLongitude?: number | null;
+  pickup_longitude?: number | null;
+  pickupNotes?: string;
+  pickup_notes?: string;
   amountPaid?: number;
   totalAmount?: number;
   paymentMethod?: "manual_transfer" | "cash_onsite" | "qris" | "bank_transfer" | string;
@@ -195,6 +208,7 @@ export interface ManualParticipantPayload {
   hasInsurance?: boolean;
   insuranceFee?: number;
   notes?: string;
+  healthNotes?: string;
 }
 
 export function normalizeBookingGroup(raw: Record<string, unknown>, tripIdFallback?: string): BookingGroup {
@@ -465,13 +479,28 @@ export const adminService = {
       email: payload.email,
       phoneNumber: payload.phoneNumber || payload.phone,
       phone: payload.phoneNumber || payload.phone,
-      nationality: payload.nationality || "Indonesia",
+      nationality: payload.nationality || payload.country || "Indonesia",
+      country: payload.country || payload.nationality || "Indonesia",
       gender: payload.gender || "male",
+      packageType: payload.packageType || payload.package_type || "ALL_IN",
+      package_type: payload.packageType || payload.package_type || "ALL_IN",
+      dateOfBirth: payload.dateOfBirth || payload.date_of_birth,
+      date_of_birth: payload.dateOfBirth || payload.date_of_birth,
+      pickupLocation: payload.pickupLocation || payload.pickup_location,
+      pickup_location: payload.pickupLocation || payload.pickup_location,
+      pickupLatitude: payload.pickupLatitude !== undefined ? payload.pickupLatitude : payload.pickup_latitude,
+      pickup_latitude: payload.pickupLatitude !== undefined ? payload.pickupLatitude : payload.pickup_latitude,
+      pickupLongitude: payload.pickupLongitude !== undefined ? payload.pickupLongitude : payload.pickup_longitude,
+      pickup_longitude: payload.pickupLongitude !== undefined ? payload.pickupLongitude : payload.pickup_longitude,
+      pickupNotes: payload.pickupNotes || payload.pickup_notes,
+      pickup_notes: payload.pickupNotes || payload.pickup_notes,
       paymentStatus: payload.paymentStatus || "paid",
       paymentMethod: payload.paymentMethod || "cash_onsite",
       totalAmount: payload.totalAmount || payload.amountPaid,
       amountPaid: payload.totalAmount || payload.amountPaid,
       notes: payload.notes,
+      healthNotes: payload.healthNotes || payload.notes,
+      health_notes: payload.healthNotes || payload.notes,
     };
 
     try {
