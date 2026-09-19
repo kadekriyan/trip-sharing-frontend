@@ -14,6 +14,12 @@ export interface RegisterPayload {
   nationality?: string;
 }
 
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword?: string;
+}
+
 export const authService = {
   async login(payload: LoginPayload): Promise<AuthResponse> {
     const res = await apiClient.post<AuthResponse>("/auth/login", payload);
@@ -97,5 +103,17 @@ export const authService = {
     }
     throw new Error(res.message || "Gagal mengatur ulang kata sandi.");
   },
+
+  async changePassword(payload: ChangePasswordPayload): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.post<{ message: string }>("/auth/change-password", payload);
+    if (res.success) {
+      return {
+        success: true,
+        message: res.message || res.data?.message || "Kata sandi berhasil diperbarui.",
+      };
+    }
+    throw new Error(res.message || "Gagal memperbarui kata sandi.");
+  },
 };
+
 

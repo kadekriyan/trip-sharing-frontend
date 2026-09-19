@@ -104,17 +104,23 @@ export function Navbar() {
             <div className="h-8 w-24 rounded-lg bg-slate-100 animate-pulse" />
           ) : isAuthenticated ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs">
+              <Link
+                href={isAdmin ? "/admin/settings/password" : "/account/password"}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs hover:border-[#00677d]/40 hover:bg-[#00677d]/5 transition-all group"
+                title="Kelola Akun & Ganti Password"
+              >
                 <UserIcon className="h-4 w-4 text-[#00677d]" />
-                <span className="font-bold text-slate-800 max-w-[120px] truncate">
+                <span className="font-bold text-slate-800 max-w-[120px] truncate group-hover:text-[#00677d]">
                   {user?.fullName || user?.email}
                 </span>
-                {isAdmin && (
+                {isAdmin ? (
                   <Badge variant="coral" className="text-[9px] px-1 py-0 h-3.5">
                     Admin
                   </Badge>
+                ) : (
+                  <span className="text-[10px] text-slate-400 group-hover:text-[#00677d]">Profil</span>
                 )}
-              </div>
+              </Link>
               <Button
                 variant="ghost"
                 size="sm"
@@ -183,9 +189,17 @@ export function Navbar() {
           <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
             {isAuthenticated ? (
               <div className="space-y-2">
-                <div className="text-xs text-slate-600 px-3">
-                  Signed in as: <strong>{user?.fullName || user?.email}</strong>
-                </div>
+                <Link
+                  href={isAdmin ? "/admin/settings/password" : "/account/password"}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between text-xs text-slate-700 px-3 py-2 bg-slate-50 rounded-lg hover:bg-slate-100 border border-slate-200/60"
+                >
+                  <div>
+                    <span className="text-slate-500 block text-[10px]">Masuk sebagai:</span>
+                    <strong className="text-slate-800">{user?.fullName || user?.email}</strong>
+                  </div>
+                  <span className="text-[#00677d] font-semibold text-[11px]">Ganti Password →</span>
+                </Link>
                 <Button
                   variant="outline"
                   size="sm"
@@ -212,6 +226,7 @@ export function Navbar() {
           </div>
         </div>
       )}
+
     </header>
   );
 }

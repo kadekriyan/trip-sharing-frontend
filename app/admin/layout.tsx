@@ -20,6 +20,7 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  KeyRound,
 } from "lucide-react";
 import { Badge } from "@/src/components/ui/badge";
 import { AdminGuard } from "@/src/components/auth/admin-guard";
@@ -62,10 +63,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Master Armada", href: "/admin/vehicles", icon: Car },
     { label: "CMS Artikel Blog", href: "/admin/blogs", icon: FileText },
     { label: "SEO & Schema", href: "/admin/seo", icon: Globe },
+    { label: "Ganti Password", href: "/admin/settings/password", icon: KeyRound },
   ];
 
   const getBreadcrumbTitle = () => {
     if (pathname === "/admin") return "Overview";
+    if (pathname.startsWith("/admin/settings/password")) {
+      return "Pengaturan Akun / Ganti Password";
+    }
     if (pathname.startsWith("/admin/areas/groups") || pathname.startsWith("/admin/groups")) {
       return "Wilayah Operasional / Grub Armada";
     }
@@ -77,6 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     return pathname.replace("/admin", "").replace("/", "") || "Overview";
   };
+
 
   return (
     <AdminGuard>
@@ -224,20 +230,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           {/* Sidebar Bottom: Staff Profile & Exit */}
-          <div className="p-4 border-t border-slate-100 space-y-3">
-            <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100">
-              <div className="h-8 w-8 rounded-full bg-[#00677d] text-white flex items-center justify-center font-bold text-xs">
+          <div className="p-4 border-t border-slate-100 space-y-2.5">
+            <Link
+              href="/admin/settings/password"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100 hover:border-[#00677d]/30 hover:bg-[#00677d]/5 transition-all group cursor-pointer"
+              title="Kelola & Ganti Kata Sandi"
+            >
+              <div className="h-8 w-8 rounded-full bg-[#00677d] text-white flex items-center justify-center font-bold text-xs group-hover:scale-105 transition-transform">
                 {user?.fullName?.slice(0, 2).toUpperCase() || "AD"}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="font-bold text-xs text-slate-800 block truncate">
-                  {user?.fullName || "Admin Operator"}
-                </span>
-                <span className="text-[10px] text-emerald-600 font-semibold block">
-                  {user?.email || "admin@sharingtouryogyakarta.com"}
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-slate-800 truncate block">
+                    {user?.fullName || "Admin Operator"}
+                  </span>
+                  <KeyRound className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#00677d]" />
+                </div>
+                <span className="text-[10px] text-slate-500 font-medium block truncate">
+                  Ganti Kata Sandi
                 </span>
               </div>
-            </div>
+            </Link>
 
             <button
               onClick={logout}
@@ -248,6 +262,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </button>
           </div>
         </aside>
+
 
         {/* Main Content Area */}
         <main className="flex-1 md:pl-64 min-h-screen">
