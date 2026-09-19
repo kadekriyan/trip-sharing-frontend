@@ -65,4 +65,37 @@ export const authService = {
       localStorage.removeItem("auth_user");
     }
   },
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.post<{ message: string }>("/auth/forgot-password", { email });
+    if (res.success) {
+      return {
+        success: true,
+        message: res.message || res.data?.message || "Tautan pemulihan kata sandi telah dikirim ke email Anda.",
+      };
+    }
+    throw new Error(res.message || "Gagal memproses permintaan lupa password.");
+  },
+
+  async verifyResetToken(token: string): Promise<{ valid: boolean; email?: string; name?: string }> {
+    const res = await apiClient.get<{ valid: boolean; email?: string; name?: string }>(
+      `/auth/reset-password/verify?token=${encodeURIComponent(token)}`
+    );
+    if (res.success && res.data) {
+      return res.data;
+    }
+    throw new Error(res.message || "Token reset kata sandi tidak valid atau telah kedaluwarsa.");
+  },
+
+  async resetPassword(token: string, password: string): Promise<{ success: boolean; message: string }> {
+    const res = await apiClient.post<{ message: string }>("/auth/reset-password", { token, password });
+    if (res.success) {
+      return {
+        success: true,
+        message: res.message || res.data?.message || "Kata sandi berhasil diperbarui. Silakan masuk kembali.",
+      };
+    }
+    throw new Error(res.message || "Gagal mengatur ulang kata sandi.");
+  },
 };
+
