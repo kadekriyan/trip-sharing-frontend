@@ -258,7 +258,7 @@ export const bookingService = {
       foundParticipant.packageType === "transport_only" ||
       foundParticipant.package_type === "transport_only";
     const packageTypeKey = isTransportOnly ? "TRANSPORT_ONLY" : "ALL_IN";
-    const packageTypeLabel = isTransportOnly ? "Transport Only (Hanya Transport)" : "All-Inclusive (Paket Lengkap)";
+    const packageTypeLabel = isTransportOnly ? "Transport Only (Vehicle & Driver Assist)" : "All-Inclusive (Complete Tour Package)";
 
     const basePrice = isTransportOnly
       ? (dest?.priceTransportOnly || dest?.price_transport_only || dest?.priceTransport || foundParticipant.totalAmount || dest?.pricePerPax || 0)
@@ -271,7 +271,7 @@ export const bookingService = {
     const items: InvoiceItem[] = [
       {
         itemNumber: 1,
-        description: `Paket Trip Sharing - ${dest?.title || dest?.name || "Destinasi Wisata"} (${packageTypeLabel}) (1 Pax)`,
+        description: `Trip Sharing Package - ${dest?.title || dest?.name || "Tour Destination"} (${packageTypeLabel}) (1 Pax)`,
         category: isTransportOnly ? "Transport Only" : "All-In Package",
         quantity: 1,
         unitPrice: basePrice,
@@ -298,7 +298,7 @@ export const bookingService = {
       issuer: {
         companyName: "Share Tour Jogja",
         legalName: "PT Share Tour Jogja",
-        tagline: "Platform Petualangan Wisata Sharing Tour Yogyakarta",
+        tagline: "Yogyakarta Tour & Trip Sharing Adventure Platform",
         website: "https://tripsharing.id",
         supportEmail: "dejaayajax@gmail.com",
         supportPhone: "081216916003",
@@ -318,14 +318,14 @@ export const bookingService = {
       },
       tripDetails: {
         destinationId: dest?.id || "",
-        destinationName: dest?.title || dest?.name || "Paket Wisata",
+        destinationName: dest?.title || dest?.name || "Tour Package",
         destinationSlug: dest?.slug || "",
         destinationCoverImage: dest?.coverImage || "/images/hero-bromo.png",
         departureDate: foundParticipant.departureDate || foundParticipant.trip?.departureDate || foundParticipant.createdAt,
         returnDate: foundParticipant.trip?.returnDate || foundParticipant.departureDate || foundParticipant.createdAt,
-        duration: dest ? `${dest.durationDays || 2} Hari ${dest.durationNights || 1} Malam` : "-",
-        meetingPoint: dest?.meetingPoint || "Meeting Point Destinasi",
-        pickupLocation: foundParticipant.pickupLocation || dest?.meetingPoint || "Meeting Point Resmi Destinasi",
+        duration: dest ? `${dest.durationDays || 2} Days ${dest.durationNights || 1} Nights` : "-",
+        meetingPoint: dest?.meetingPoint || "Official Meeting Point",
+        pickupLocation: foundParticipant.pickupLocation || dest?.meetingPoint || "Official Meeting Point",
         pickupLatitude: foundParticipant.pickupLatitude ?? null,
         pickupLongitude: foundParticipant.pickupLongitude ?? null,
         pickupNotes: foundParticipant.pickupNotes || "",
@@ -333,9 +333,9 @@ export const bookingService = {
         package_type: packageTypeKey,
         serviceType: packageTypeKey,
         groupNumber: group?.groupNumber || 1,
-        vehicleModel: driver?.vehicleModel || "Toyota HiAce (6-Seater VIP)",
+        vehicleModel: driver?.vehicleModel || "Toyota HiAce (VIP Fleet)",
         vehiclePlateNumber: driver?.plateNumber || "-",
-        driverName: driver?.fullName || "Driver Belum Ditugaskan",
+        driverName: driver?.fullName || "Driver Assist Standby",
         driverPhone: driver?.phoneNumber || "-",
       },
       pricing: {

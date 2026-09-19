@@ -17,13 +17,8 @@ import {
   Phone,
   ShieldCheck,
   CreditCard,
-  Building2,
-  FileCheck,
   AlertCircle,
-  Loader2,
   CheckCircle2,
-  QrCode,
-  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { bookingService } from "@/src/services/booking.service";
@@ -58,7 +53,7 @@ export default function BookingInvoicePage() {
           setError(
             err instanceof Error
               ? err.message
-              : "Faktur tidak ditemukan atau terjadi kendala saat memuat data."
+              : "Invoice not found or an error occurred while loading data."
           );
         }
       } finally {
@@ -90,7 +85,7 @@ export default function BookingInvoicePage() {
     return (
       <div className="min-h-screen bg-[#f7f9fb] flex flex-col items-center justify-center p-6 space-y-4">
         <div className="h-10 w-10 animate-spin rounded-full border-3 border-[#00677d] border-t-transparent" />
-        <p className="text-sm font-semibold text-slate-600">Memuat Faktur Resmi...</p>
+        <p className="text-sm font-semibold text-slate-600">Loading Official Invoice...</p>
       </div>
     );
   }
@@ -103,14 +98,14 @@ export default function BookingInvoicePage() {
             <AlertCircle className="h-7 w-7" />
           </div>
           <div className="space-y-1">
-            <h2 className="font-heading font-extrabold text-xl text-slate-800">Faktur Tidak Ditemukan</h2>
+            <h2 className="font-heading font-extrabold text-xl text-slate-800">Invoice Not Found</h2>
             <p className="text-xs text-slate-500 leading-relaxed">
-              {error || "Kami tidak dapat menemukan data faktur untuk kode booking atau ID ini."}
+              {error || "We could not find invoice data for this booking code or identifier."}
             </p>
           </div>
           <div className="pt-2 flex flex-col gap-2">
             <Button asChild className="w-full bg-[#00677d] hover:bg-[#005264] text-xs font-bold">
-              <Link href="/bookings">Kembali ke Riwayat Booking</Link>
+              <Link href="/bookings">Back to Bookings</Link>
             </Button>
           </div>
         </div>
@@ -169,7 +164,7 @@ export default function BookingInvoicePage() {
             className="text-xs font-bold gap-1.5 text-slate-600 hover:text-[#00677d]"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>Kembali ke Tiket</span>
+            <span>Back to Ticket</span>
           </Button>
 
           <div className="flex items-center gap-2">
@@ -182,12 +177,12 @@ export default function BookingInvoicePage() {
               {copied ? (
                 <>
                   <Check className="h-3.5 w-3.5 text-emerald-600" />
-                  <span className="text-emerald-600 font-bold">Tersalin!</span>
+                  <span className="text-emerald-600 font-bold">Copied!</span>
                 </>
               ) : (
                 <>
                   <Copy className="h-3.5 w-3.5" />
-                  <span>Salin Tautan</span>
+                  <span>Copy Link</span>
                 </>
               )}
             </Button>
@@ -198,7 +193,7 @@ export default function BookingInvoicePage() {
               className="bg-[#00677d] hover:bg-[#005264] text-white text-xs font-bold gap-1.5 shadow-sm"
             >
               <Printer className="h-3.5 w-3.5" />
-              <span>Cetak / Unduh PDF</span>
+              <span>Print / Download PDF</span>
             </Button>
           </div>
         </div>
@@ -220,9 +215,11 @@ export default function BookingInvoicePage() {
                       : "Share Tour Jogja"}
                   </h1>
                   <span className="text-[11px] print:text-[10px] font-semibold text-[#00677d] block">
-                    {issuer.tagline && !issuer.tagline.toLowerCase().includes("teman berbagi")
+                    {issuer.tagline &&
+                    !issuer.tagline.toLowerCase().includes("teman berbagi") &&
+                    !issuer.tagline.toLowerCase().includes("platform petualangan")
                       ? issuer.tagline
-                      : "Platform Petualangan Wisata Sharing Tour Yogyakarta"}
+                      : "Yogyakarta Tour & Trip Sharing Adventure Platform"}
                   </span>
                 </div>
               </div>
@@ -242,7 +239,7 @@ export default function BookingInvoicePage() {
                 </span>
                 <span>•</span>
                 <span>
-                  Telp/WA:{" "}
+                  Phone/WhatsApp:{" "}
                   <strong className="text-slate-700">
                     {issuer.supportPhone && !issuer.supportPhone.includes("812-3456-7890")
                       ? issuer.supportPhone
@@ -274,7 +271,7 @@ export default function BookingInvoicePage() {
                         : "bg-amber-50 text-amber-700 border-amber-200"
                     }`}
                 >
-                  {isPaid ? "LUNAS / PAID" : isCancelled ? "DIBATALKAN" : "MENUNGGU PEMBAYARAN"}
+                  {isPaid ? "PAID" : isCancelled ? "CANCELLED" : "PAYMENT PENDING"}
                 </span>
 
                 {/* Status Pelaksanaan Trip */}
@@ -288,34 +285,34 @@ export default function BookingInvoicePage() {
                   }`}
                 >
                   {isCancelled ? (
-                    "TRIP BATAL"
+                    "TRIP CANCELLED"
                   ) : isTripFinished ? (
                     <>
                       <CheckCircle2 className="h-3 w-3 text-emerald-600 print:text-slate-700 shrink-0" />
-                      <span>TRIP SELESAI</span>
+                      <span>TRIP COMPLETED</span>
                     </>
                   ) : (
                     <>
                       <Calendar className="h-3 w-3 text-sky-600 shrink-0" />
-                      <span>TRIP MENDATANG</span>
+                      <span>UPCOMING TRIP</span>
                     </>
                   )}
                 </span>
               </div>
               <div className="space-y-0.5">
                 <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400 block">
-                  Nomor Faktur
+                  Invoice Number
                 </span>
                 <span className="font-mono font-bold text-sm print:text-xs text-[#00677d] block">
                   {inv.invoiceNumber}
                 </span>
               </div>
               <div className="text-xs print:text-[10px] text-slate-500 space-y-0.5">
-                <div>Tanggal Faktur: <strong className="text-slate-700">{formatDate(inv.invoiceDate)}</strong></div>
+                <div>Invoice Date: <strong className="text-slate-700">{formatDate(inv.invoiceDate)}</strong></div>
                 {inv.paidAt && (
-                  <div>Waktu Lunas: <strong className="text-emerald-700">{formatDate(inv.paidAt)}</strong></div>
+                  <div>Paid Date: <strong className="text-emerald-700">{formatDate(inv.paidAt)}</strong></div>
                 )}
-                <div>Kode Booking: <strong className="font-mono text-[#00677d] font-bold">{inv.bookingCode}</strong></div>
+                <div>Booking Code: <strong className="font-mono text-[#00677d] font-bold">{inv.bookingCode}</strong></div>
               </div>
             </div>
           </div>
@@ -328,14 +325,14 @@ export default function BookingInvoicePage() {
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="font-bold text-slate-800 block">Layanan Wisata Telah Selesai Terlaksana</span>
+                  <span className="font-bold text-slate-800 block">Tour & Travel Service Completed</span>
                   <span className="text-slate-500 text-[11px] print:text-[8.5px]">
-                    Jadwal perjalanan ({formatDate(tripDetails.departureDate)}) telah dieksekusi dengan sukses.
+                    The itinerary scheduled for {formatDate(tripDetails.departureDate)} has been completed successfully.
                   </span>
                 </div>
               </div>
               <span className="font-mono font-extrabold text-[10px] print:text-[8.5px] px-2.5 py-1 bg-white rounded-lg border border-slate-300 text-slate-700 shrink-0 uppercase tracking-wider shadow-xs">
-                STATUS: TELAH TERLAKSANA
+                STATUS: COMPLETED
               </span>
             </div>
           )}
@@ -346,7 +343,7 @@ export default function BookingInvoicePage() {
             <div className="space-y-2 print:space-y-1">
               <span className="font-bold text-[#00677d] uppercase tracking-wider text-[11px] print:text-[10px] flex items-center gap-1.5 pb-1 border-b border-slate-200">
                 <User className="h-3.5 w-3.5 print:h-3 print:w-3" />
-                Ditagihkan Kepada (Customer)
+                Billed To (Customer)
               </span>
               <div className="space-y-1.5 print:space-y-0.5 text-slate-600">
                 <div className="text-sm print:text-xs font-bold text-slate-800">{customer.fullName}</div>
@@ -359,15 +356,15 @@ export default function BookingInvoicePage() {
                   <span className="truncate">{customer.email || "—"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Kewarganegaraan: </span>
+                  <span className="text-slate-400">Nationality: </span>
                   <span className="font-medium text-slate-700">{customer.country || customer.nationality || "Indonesia"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Tanggal Lahir: </span>
+                  <span className="text-slate-400">Date of Birth: </span>
                   <span className="font-medium text-slate-700">
                     {customer.dateOfBirth || customer.date_of_birth
                       ? formatDate(customer.dateOfBirth || customer.date_of_birth || "")
-                      : "— (Tidak diisi)"}
+                      : "— (Not provided)"}
                   </span>
                 </div>
                 {/* Status Asuransi Perjalanan */}
@@ -375,12 +372,12 @@ export default function BookingInvoicePage() {
                   {customer.dateOfBirth || customer.date_of_birth || customer.hasInsurance || customer.has_insurance ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
                       <ShieldCheck className="h-3 w-3 text-emerald-600 shrink-0" />
-                      Tercover Asuransi Perjalanan (Polis Aktif)
+                      Covered by Travel Insurance (Active Policy)
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500 text-[10px] font-medium">
                       <ShieldCheck className="h-3 w-3 text-slate-400 shrink-0" />
-                      Tanpa Asuransi (Tanggal Lahir Tidak Diisi)
+                      No Insurance (Date of Birth Not Provided)
                     </span>
                   )}
                 </div>
@@ -391,11 +388,11 @@ export default function BookingInvoicePage() {
             <div className="space-y-2 print:space-y-1">
               <span className="font-bold text-[#00677d] uppercase tracking-wider text-[11px] print:text-[10px] flex items-center gap-1.5 pb-1 border-b border-slate-200">
                 <MapPin className="h-3.5 w-3.5 print:h-3 print:w-3" />
-                Rincian Destinasi & Penjemputan
+                Destination & Pickup Details
               </span>
               <div className="space-y-1 print:space-y-0.5 text-slate-600">
                 <div>
-                  <span className="text-slate-400">Destinasi: </span>
+                  <span className="text-slate-400">Destination: </span>
                   <strong className="text-slate-800 font-heading text-xs print:text-[11px]">
                     {tripDetails.destinationName}
                   </strong>
@@ -403,7 +400,7 @@ export default function BookingInvoicePage() {
                 <div className="flex items-center gap-1.5">
                   <Calendar className="h-3 w-3 print:h-2.5 print:w-2.5 text-slate-400 shrink-0" />
                   <span>
-                    {formatDate(tripDetails.departureDate)} s.d. {formatDate(tripDetails.returnDate)}
+                    {formatDate(tripDetails.departureDate)} to {formatDate(tripDetails.returnDate)}
                   </span>
                 </div>
                 <div className="space-y-0.5">
@@ -418,7 +415,7 @@ export default function BookingInvoicePage() {
                       )}
                       {tripDetails.pickupNotes && (
                         <span className="text-[10px] print:text-[9px] text-amber-700 italic block mt-0.5">
-                          Catatan: {tripDetails.pickupNotes}
+                          Pickup Notes: {tripDetails.pickupNotes}
                         </span>
                       )}
                     </div>
@@ -427,11 +424,11 @@ export default function BookingInvoicePage() {
                 <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
                   <Car className="h-3 w-3 print:h-2.5 print:w-2.5 text-[#00677d] shrink-0" />
                   <span className="truncate">
-                    Grup Mobil #{tripDetails.groupNumber} ({tripDetails.vehicleModel || "HiAce 6-Seater"}) • Driver: {tripDetails.driverName || "Pak Driver"}
+                    Fleet Group #{tripDetails.groupNumber} ({tripDetails.vehicleModel || "HiAce VIP"}) • Driver Assist: {tripDetails.driverName || "Assigned Driver"}
                   </span>
                 </div>
                 <div className="pt-0.5 flex flex-wrap items-center gap-1.5">
-                  <span className="text-slate-400">Tipe Layanan: </span>
+                  <span className="text-slate-400">Service Type: </span>
                   <span
                     className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded text-[10px] print:text-[9px] border ${
                       isTransportOnly
@@ -439,23 +436,23 @@ export default function BookingInvoicePage() {
                         : "bg-teal-50 text-teal-800 border-teal-200"
                     }`}
                   >
-                    {isTransportOnly ? "Transport Only (Hanya Transportasi)" : "All-Inclusive (Paket Lengkap)"}
+                    {isTransportOnly ? "Transport Only (Vehicle & Driver Assist)" : "All-Inclusive (Complete Tour Package)"}
                   </span>
                 </div>
                 <div className="pt-0.5">
-                  <span className="text-slate-400">Status Layanan: </span>
+                  <span className="text-slate-400">Service Status: </span>
                   {isCancelled ? (
                     <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded text-[10px] print:text-[9px]">
-                      Dibatalkan
+                      Cancelled
                     </span>
                   ) : isTripFinished ? (
                     <span className="inline-flex items-center gap-1 font-bold text-slate-700 bg-slate-200/80 px-2 py-0.5 rounded text-[10px] print:text-[9px]">
                       <CheckCircle2 className="h-3 w-3 text-emerald-600 shrink-0" />
-                      Selesai Terlaksana
+                      Completed
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded text-[10px] print:text-[9px]">
-                      Menunggu Jadwal Keberangkatan
+                      Scheduled & Awaiting Departure
                     </span>
                   )}
                 </div>
@@ -466,18 +463,18 @@ export default function BookingInvoicePage() {
           {/* ITEMIZED BILLING TABLE */}
           <div className="space-y-2 sm:space-y-3 print:space-y-1.5">
             <span className="font-heading font-extrabold text-sm print:text-xs text-[#191c1e] block">
-              Rincian Tagihan Layanan (Itemized Charges)
+              Itemized Charges & Billing Details
             </span>
             <div className="overflow-x-auto border border-slate-200 rounded-2xl print:rounded-xl">
               <table className="w-full text-left text-xs print:text-[10px] border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px] print:text-[9px]">
                     <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 w-10 text-center">No</th>
-                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2">Deskripsi Layanan</th>
-                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2">Kategori</th>
+                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2">Service Description</th>
+                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2">Category</th>
                     <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-center">Qty</th>
-                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-right">Tarif Satuan</th>
-                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-right">Jumlah</th>
+                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-right">Unit Price</th>
+                    <th className="py-2.5 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white text-slate-700">
@@ -488,8 +485,8 @@ export default function BookingInvoicePage() {
                         <div>{item.description}</div>
                         <span className="text-[10px] print:text-[8.5px] text-slate-400 block font-normal mt-0.5">
                           {isTransportOnly
-                            ? "Fasilitas: Kursi Armada HiAce VIP + Driver as Guide + BBM (Tiket wisata mandiri)"
-                            : "Fasilitas: Tiket Masuk Objek Wisata + Kursi Armada HiAce VIP + Driver as Guide + BBM"}
+                            ? "Facility: VIP HiAce Passenger Seat + Driver Assist + Fuel (Admission tickets not included)"
+                            : "Facility: Admission Tickets + VIP HiAce Passenger Seat + Driver Assist + Fuel"}
                         </span>
                       </td>
                       <td className="py-2 px-3 sm:py-3 sm:px-4 print:py-1 print:px-2 text-slate-500">
@@ -519,23 +516,23 @@ export default function BookingInvoicePage() {
               <div className="text-xs print:text-[9.5px] text-slate-500 max-w-sm space-y-0.5">
                 <div className="flex items-center gap-1 font-semibold text-slate-700">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                  <span>Garansi Kepastian & Transparansi Biaya</span>
+                  <span>Guaranteed Price & Cost Transparency</span>
                 </div>
                 <p className="text-[11px] print:text-[9px] leading-relaxed print:leading-tight text-slate-400">
                   {isTransportOnly
-                    ? "Tarif mencakup bahan bakar, operasional armada, dan pendampingan driver as guide. Tiket masuk objek wisata dan pengeluaran pribadi dibayar mandiri oleh traveler."
-                    : "Seluruh tarif sudah mencakup bahan bakar, driver as guide, tiket masuk objek wisata, dan fasilitas sharing armada lengkap."}
+                    ? "Rate includes fuel, fleet operations, and Driver Assist support. Destination admission tickets and personal expenses are paid independently by the traveler."
+                    : "All rates include vehicle fuel, Driver Assist, destination admission tickets, and full fleet sharing facilities."}
                 </p>
               </div>
 
               <div className="w-full sm:w-72 print:w-64 bg-slate-50 p-3 sm:p-4 print:p-2 rounded-2xl print:rounded-xl border border-slate-200 space-y-1.5 print:space-y-0.5 text-xs print:text-[10px]">
                 <div className="flex justify-between text-slate-600">
-                  <span>Subtotal Paket:</span>
+                  <span>Package Subtotal:</span>
                   <span className="font-mono font-semibold">{formatCurrency(pricing.basePrice)}</span>
                 </div>
                 {Boolean(pricing.insuranceFee && pricing.insuranceFee > 0) && (
                   <div className="flex justify-between text-slate-600">
-                    <span>Premi Asuransi:</span>
+                    <span>Insurance Premium:</span>
                     <span className="font-mono font-semibold text-emerald-700">
                       + {formatCurrency(pricing.insuranceFee)}
                     </span>
@@ -543,16 +540,16 @@ export default function BookingInvoicePage() {
                 )}
                 {pricing.discountAmount > 0 && (
                   <div className="flex justify-between text-rose-600">
-                    <span>Potongan Diskon:</span>
+                    <span>Discount / Voucher:</span>
                     <span className="font-mono font-semibold">- {formatCurrency(pricing.discountAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-slate-600">
-                  <span>Biaya Administrasi:</span>
-                  <span className="font-mono font-semibold text-emerald-600">Rp 0 (Gratis)</span>
+                  <span>Administrative Fee:</span>
+                  <span className="font-mono font-semibold text-emerald-600">Rp 0 (Free)</span>
                 </div>
                 <div className="border-t border-slate-200 pt-1.5 flex justify-between items-center text-sm print:text-xs font-extrabold text-[#191c1e]">
-                  <span>Total Tagihan:</span>
+                  <span>Total Amount Due:</span>
                   <span className="font-heading font-extrabold text-[#00677d] text-base print:text-xs">
                     {formatCurrency(pricing.totalAmount)}
                   </span>
@@ -567,27 +564,27 @@ export default function BookingInvoicePage() {
             <div className="sm:col-span-8 print:col-span-8 space-y-1.5 print:space-y-0.5">
               <span className="font-bold text-[#00677d] uppercase tracking-wider text-[11px] print:text-[9.5px] flex items-center gap-1.5">
                 <CreditCard className="h-3.5 w-3.5 print:h-3 print:w-3" />
-                Informasi Pembayaran & Rekonsiliasi
+                Payment Information & Settlement
               </span>
               <div className="bg-slate-50 p-3 sm:p-3.5 print:p-2 rounded-xl border border-slate-200/70 space-y-1 print:space-y-0.5 text-slate-600">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Kanal Pembayaran:</span>
+                  <span className="text-slate-400">Payment Method / Gateway:</span>
                   <strong className="text-slate-800">{paymentDetails.paymentMethod || "Midtrans Snap Gateway"}</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Order ID Gateway:</span>
+                  <span className="text-slate-400">Gateway Order ID:</span>
                   <span className="font-mono font-bold text-[#00677d]">
                     {paymentDetails.midtransOrderId || `TRIP-${inv.bookingCode}`}
                   </span>
                 </div>
                 {paymentDetails.midtransTransactionId && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">ID Transaksi Midtrans:</span>
+                    <span className="text-slate-400">Midtrans Transaction ID:</span>
                     <span className="font-mono text-slate-600">{paymentDetails.midtransTransactionId}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Status Pembayaran:</span>
+                  <span className="text-slate-400">Payment Status:</span>
                   <strong className={isPaid ? "text-emerald-700 uppercase" : "text-amber-700 uppercase"}>
                     {paymentDetails.paymentStatus || inv.paymentStatus}
                   </strong>
@@ -600,7 +597,7 @@ export default function BookingInvoicePage() {
               <div className="relative h-20 w-20 sm:h-24 sm:w-24 print:h-14 print:w-14 bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
                 <Image
                   src={verification.voucherQrCode || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${inv.bookingCode}`}
-                  alt="QR Verifikasi"
+                  alt="Verification QR Code"
                   fill
                   unoptimized
                   className="object-contain"
@@ -610,7 +607,7 @@ export default function BookingInvoicePage() {
                 {inv.bookingCode}
               </span>
               <span className="text-[10px] print:text-[8px] text-slate-400 leading-tight block">
-                Pindai verifikasi e-faktur resmi
+                Scan to verify official electronic invoice
               </span>
             </div>
           </div>
@@ -618,10 +615,10 @@ export default function BookingInvoicePage() {
           {/* LEGAL DISCLAIMER / FOOTER */}
           <div className="pt-3 sm:pt-4 print:pt-1.5 border-t border-slate-200 text-center space-y-0.5 text-[11px] print:text-[8.5px] text-slate-400 leading-tight">
             <p>
-              Dokumen ini diterbitkan secara otomatis dan sah oleh sistem komputerisasi <strong>Share Tour Jogja</strong>.
+              This document is officially generated and validated by the computerized system of <strong>Share Tour Jogja</strong>.
             </p>
             <p>
-              Untuk pertanyaan atau klaim faktur, silakan hubungi customer service kami di{" "}
+              For invoice inquiries or support, please contact our customer service at{" "}
               <strong className="text-slate-600">
                 {issuer.supportEmail && !issuer.supportEmail.includes("support@tripsharing.id")
                   ? issuer.supportEmail
