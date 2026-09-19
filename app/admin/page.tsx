@@ -16,6 +16,8 @@ import { Card } from "@/src/components/ui/card";
 import { adminService } from "@/src/services/admin.service";
 import {
   formatCurrency,
+  formatDate,
+  getDestinationTitle,
   calculateOccupancyPercent,
   getPaymentBadge,
 } from "@/src/lib/utils";
@@ -239,16 +241,16 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      {/* 2. FLEET OCCUPANCY LIVE MONITOR (6-SEAT CAPACITY) */}
+      {/* 2. FLEET OCCUPANCY LIVE MONITOR */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-heading font-bold text-lg text-[#191c1e] flex items-center gap-2">
               <Car className="h-5 w-5 text-[#00677d]" />
-              Pantauan Okupansi Armada 6-Seater (Live Group Capacity)
+              Pantauan Okupansi Armada (Live Group Capacity)
             </h2>
             <p className="text-xs text-slate-500">
-              Sistem membatasi maksimal 6 peserta per mobil/grup. Grup baru otomatis dibuat jika kapasitas penuh.
+              Sistem membatasi kuota peserta per mobil/grup. Grup baru otomatis dibuat jika kapasitas penuh.
             </p>
           </div>
           <Badge variant="azure" className="text-xs">
@@ -269,27 +271,47 @@ export default function AdminOverviewPage() {
               const remaining = Math.max(0, capacity - currentPax);
               const driver = group.driver;
               const groupNum = group.groupNumber || 1;
+              const departureDate = group.trip?.departureDate || group.trip?.departure_date;
+              const destTitle = group.trip?.destination ? getDestinationTitle(group.trip.destination) : null;
 
               return (
                 <Card
                   key={group.id}
                   className="p-6 border border-slate-100 shadow-stitch-card space-y-4 bg-white"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="text-xs font-bold text-[#00677d] uppercase tracking-wider">
-                        Grup Mobil #{groupNum}
-                      </span>
-                      <h3 className="font-heading font-bold text-base text-[#191c1e] mt-0.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-[#00677d] uppercase tracking-wider">
+                          Grup Mobil #{groupNum}
+                        </span>
+                        {departureDate ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                            <Calendar className="h-3 w-3 text-[#00677d]" />
+                            {formatDate(departureDate)}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md italic">
+                            <Calendar className="h-3 w-3 text-slate-400" />
+                            Jadwal Belum Ditentukan
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-heading font-bold text-base text-[#191c1e] mt-1">
                         {driver ? `${driver.vehicleModel || "Armada"} (${driver.plateNumber || "-"})` : "Armada Standby"}
                       </h3>
+                      {destTitle && destTitle !== "Paket Wisata" && (
+                        <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                          Tujuan: <span className="text-slate-700">{destTitle}</span>
+                        </p>
+                      )}
                     </div>
-                    <Badge variant={isFull ? "destructive" : "azure"} className="font-bold">
+                    <Badge variant={isFull ? "destructive" : "azure"} className="font-bold shrink-0">
                       {isFull ? `Grup Penuh (${capacity}/${capacity})` : `${remaining} Kursi Tersedia`}
                     </Badge>
                   </div>
 
-                  {/* Visual 6-Seat Grid */}
+                  {/* Visual Seat Grid */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs text-slate-500 font-semibold">
                       <span>Visual Kursi (Maks {capacity} Orang):</span>

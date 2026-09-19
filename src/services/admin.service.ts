@@ -207,7 +207,7 @@ export function normalizeBookingGroup(raw: Record<string, unknown>, tripIdFallba
   return {
     id,
     tripId,
-    trip: raw.trip as Trip | undefined,
+    trip: raw.trip ? normalizeTrip(raw.trip as Record<string, unknown>) : undefined,
     groupNumber,
     capacity,
     maxParticipants: capacity,
