@@ -8,10 +8,6 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
-  Bold,
-  Italic,
-  List,
-  Link2,
   Save,
   Loader2,
 } from "lucide-react";
@@ -20,6 +16,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { ImageUploader } from "@/src/components/ui/image-uploader";
+import { BlogRichEditor } from "@/src/components/admin/blog-rich-editor";
 import { adminService } from "@/src/services/admin.service";
 
 export default function EditBlogArticlePage() {
@@ -89,18 +86,6 @@ export default function EditBlogArticlePage() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "")
       );
-    }
-  };
-
-  const handleFormat = (tag: string) => {
-    if (tag === "a") {
-      setContent((prev) => `${prev} <a href="https://example.com" target="_blank" rel="noopener noreferrer">Teks Link</a>`);
-    } else if (tag === "li") {
-      setContent((prev) => `${prev}\n<ul>\n  <li>Poin item 1</li>\n  <li>Poin item 2</li>\n</ul>\n`);
-    } else if (tag === "h2") {
-      setContent((prev) => `${prev}\n<h2>Judul Sub-Bab</h2>\n`);
-    } else {
-      setContent((prev) => `${prev} <${tag}>Teks Terformat</${tag}>`);
     }
   };
 
@@ -263,66 +248,26 @@ export default function EditBlogArticlePage() {
           </div>
         </Card>
 
-        {/* Section 2: Editor Konten */}
-        <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-5 bg-white">
+        {/* Section 2: Editor Konten (WordPress-style Rich Editor) */}
+        <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-4 bg-white">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h2 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2">
               <span className="h-6 w-6 rounded-full bg-[#00677d] text-white flex items-center justify-center text-xs font-bold">
                 2
               </span>
-              Isi Konten Artikel (Markdown / HTML)
+              Isi Konten Artikel
             </h2>
-
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => handleFormat("b")}
-              >
-                <Bold className="h-3 w-3" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => handleFormat("i")}
-              >
-                <Italic className="h-3 w-3" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => handleFormat("li")}
-              >
-                <List className="h-3 w-3" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 px-2 text-xs"
-                onClick={() => handleFormat("a")}
-              >
-                <Link2 className="h-3 w-3" />
-              </Button>
-            </div>
+            <span className="text-xs text-slate-400">
+              Visual WYSIWYG, HTML Code, Live Preview, & Split Screen
+            </span>
           </div>
 
-          <div className="space-y-1.5">
-            <textarea
-              required
-              rows={12}
-              placeholder="Tulis artikel lengkap di sini... (Mendukung tag HTML standar)"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 p-4 text-xs font-mono text-slate-800 leading-relaxed focus:outline-none focus:border-[#00677d]"
-            />
-          </div>
+          <BlogRichEditor
+            content={content}
+            onChange={setContent}
+            placeholder="Tulis atau edit artikel di sini..."
+            minHeight="550px"
+          />
         </Card>
 
         {/* Section 3: Media, Tag, & Pengaturan Publikasi */}

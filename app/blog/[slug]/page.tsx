@@ -187,9 +187,9 @@ export default async function BlogDetailPage({ params }: PageProps) {
         </div>
 
         {/* Article Body Content */}
-        <div className="bg-white p-8 sm:p-12 rounded-3xl border border-slate-100 shadow-stitch-card space-y-6">
+        <div className="bg-white p-6 sm:p-10 lg:p-12 rounded-3xl border border-slate-100 shadow-stitch-card space-y-6">
           <div
-            className="prose prose-slate max-w-none text-sm sm:text-base leading-relaxed text-slate-700 space-y-4 [&_a]:text-[#00677d] [&_a]:font-semibold [&_a]:underline [&_a]:hover:text-[#004e5f] [&_strong]:font-bold [&_strong]:text-slate-900 [&_b]:font-bold [&_b]:text-slate-900 [&_em]:italic [&_i]:italic [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mt-1.5 [&_h2]:font-heading [&_h2]:font-extrabold [&_h2]:text-xl [&_h2]:text-[#191c1e] [&_h3]:font-heading [&_h3]:font-bold [&_h3]:text-lg [&_h3]:text-[#191c1e] [&_p]:leading-relaxed"
+            className="prose prose-slate max-w-none text-sm sm:text-base leading-relaxed text-slate-700 space-y-4 [&_a]:text-[#00677d] [&_a]:font-semibold [&_a]:underline [&_a]:hover:text-[#004e5f] [&_strong]:font-bold [&_strong]:text-slate-900 [&_b]:font-bold [&_b]:text-slate-900 [&_em]:italic [&_i]:italic [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mt-1.5 [&_h2]:font-heading [&_h2]:font-extrabold [&_h2]:text-2xl [&_h2]:text-[#191c1e] [&_h2]:mt-8 [&_h2]:mb-3 [&_h3]:font-heading [&_h3]:font-bold [&_h3]:text-xl [&_h3]:text-[#191c1e] [&_h3]:mt-6 [&_h3]:mb-2 [&_h4]:font-heading [&_h4]:font-bold [&_h4]:text-lg [&_h4]:text-slate-800 [&_h4]:mt-4 [&_p]:leading-relaxed [&_blockquote]:border-l-4 [&_blockquote]:border-[#00677d] [&_blockquote]:bg-slate-50 [&_blockquote]:p-4 [&_blockquote]:rounded-r-2xl [&_blockquote]:italic [&_blockquote]:my-6 [&_blockquote]:text-slate-700 [&_code]:bg-slate-100 [&_code]:text-rose-600 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_hr]:my-8 [&_hr]:border-slate-200"
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
 

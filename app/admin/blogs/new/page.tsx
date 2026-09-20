@@ -8,16 +8,13 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
-  Bold,
-  Italic,
-  List,
-  Link2,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
 import { Input } from "@/src/components/ui/input";
 import { Card } from "@/src/components/ui/card";
 import { ImageUploader } from "@/src/components/ui/image-uploader";
+import { BlogRichEditor } from "@/src/components/admin/blog-rich-editor";
 import { adminService } from "@/src/services/admin.service";
 
 export default function NewBlogArticlePage() {
@@ -44,18 +41,6 @@ export default function NewBlogArticlePage() {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")
     );
-  };
-
-  const handleFormat = (tag: string) => {
-    if (tag === "a") {
-      setContent((prev) => `${prev} <a href="https://example.com" target="_blank" rel="noopener noreferrer">Teks Link</a>`);
-    } else if (tag === "li") {
-      setContent((prev) => `${prev}\n<ul>\n  <li>Poin item 1</li>\n  <li>Poin item 2</li>\n</ul>\n`);
-    } else if (tag === "h2") {
-      setContent((prev) => `${prev}\n<h2>Judul Sub-Bab</h2>\n`);
-    } else {
-      setContent((prev) => `${prev} <${tag}>Teks Terformat</${tag}>`);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -173,51 +158,22 @@ export default function NewBlogArticlePage() {
                 />
               </div>
 
-              {/* Editor Box */}
+              {/* Rich Content Editor (WordPress-style) */}
               <div className="space-y-2 pt-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                  Isi Konten Artikel *
-                </label>
-
-                {/* Toolbar */}
-                <div className="flex items-center gap-1 p-2 rounded-lg bg-slate-100 border border-slate-200 text-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => handleFormat("strong")}
-                    className="p-1.5 rounded hover:bg-white text-xs font-bold"
-                  >
-                    <Bold className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFormat("em")}
-                    className="p-1.5 rounded hover:bg-white text-xs"
-                  >
-                    <Italic className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFormat("li")}
-                    className="p-1.5 rounded hover:bg-white text-xs"
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleFormat("a")}
-                    className="p-1.5 rounded hover:bg-white text-xs"
-                  >
-                    <Link2 className="h-4 w-4" />
-                  </button>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                    Isi Konten Artikel *
+                  </label>
+                  <span className="text-[11px] text-slate-400">
+                    Mendukung format visual WYSIWYG, embed foto/video, tabel, dan kode HTML.
+                  </span>
                 </div>
 
-                <textarea
-                  required
-                  rows={10}
-                  placeholder="Tulis artikel inspiratif Anda di sini..."
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-4 text-xs font-sans text-slate-800 leading-relaxed focus:border-[#00677d] focus:outline-none"
+                <BlogRichEditor
+                  content={content}
+                  onChange={setContent}
+                  placeholder="Mulai tulis artikel inspiratif atau paste draft Anda di sini..."
+                  minHeight="500px"
                 />
               </div>
             </Card>
