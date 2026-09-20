@@ -75,23 +75,43 @@ export function BlogRichEditor({
   const [imageCaption, setImageCaption] = useState("");
   const [imageAlign, setImageAlign] = useState<"center" | "left" | "right" | "full">("center");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imagePreviewError, setImagePreviewError] = useState(false);
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
   const [videoCaption, setVideoCaption] = useState("");
 
-  const visualEditorRef = useRef<HTMLDivElement>(null);
+  const visualEditorRef = useRef<HTMLDivElement | null>(null);
   const savedSelectionRef = useRef<Range | null>(null);
+
+  // Callback ref to guarantee visual editor is populated on mount
+  const setVisualEditorRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      visualEditorRef.current = node;
+      if (node && node.innerHTML !== htmlCode) {
+        node.innerHTML = htmlCode;
+      }
+    },
+    [htmlCode]
+  );
 
   // Sync internal HTML code when prop content changes externally
   useEffect(() => {
-    if (content !== htmlCode) {
-      setHtmlCode(content || "");
-      if (visualEditorRef.current && visualEditorRef.current.innerHTML !== content) {
-        visualEditorRef.current.innerHTML = content || "";
-      }
+    const nextHtml = content || "";
+    setHtmlCode(nextHtml);
+    if (visualEditorRef.current && visualEditorRef.current.innerHTML !== nextHtml) {
+      visualEditorRef.current.innerHTML = nextHtml;
     }
   }, [content]);
+
+  // Sync visual editor innerHTML when switching tabs to visual or split-screen
+  useEffect(() => {
+    if ((activeTab === "visual" || isSplitScreen) && visualEditorRef.current) {
+      if (visualEditorRef.current.innerHTML !== htmlCode) {
+        visualEditorRef.current.innerHTML = htmlCode;
+      }
+    }
+  }, [activeTab, isSplitScreen, htmlCode]);
 
   // Save current text selection range before opening dialogs
   const saveSelection = () => {
@@ -235,6 +255,7 @@ export function BlogRichEditor({
     setImageAlt("");
     setImageCaption("");
     setImageAlign("center");
+    setImagePreviewError(false);
     setIsImageModalOpen(true);
   };
 
@@ -243,6 +264,7 @@ export function BlogRichEditor({
     if (!file) return;
 
     setIsUploadingImage(true);
+    setImagePreviewError(false);
     try {
       const res = await uploadService.uploadImage(file, "articles");
       setImageUrl(res.url);
@@ -714,7 +736,7 @@ export function BlogRichEditor({
         <div className={`p-4 flex flex-col ${activeTab === "preview" && !isSplitScreen ? "hidden" : "block"}`}>
           {activeTab === "visual" || isSplitScreen ? (
             <div
-              ref={visualEditorRef}
+              ref={setVisualEditorRef}
               contentEditable
               onInput={handleVisualInput}
               onBlur={handleVisualInput}
@@ -878,7 +900,10 @@ export function BlogRichEditor({
                 <Input
                   placeholder="https://images.unsplash.com/... atau upload di samping"
                   value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
+                  onChange={(e) => {
+                    setImageUrl(e.target.value);
+                    setImagePreviewError(false);
+                  }}
                   className="text-xs flex-1"
                 />
                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 border border-slate-200 transition-colors shrink-0">
@@ -895,12 +920,21 @@ export function BlogRichEditor({
               </div>
 
               {imageUrl && (
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100 mt-2">
-                  <img
-                    src={getImageUrl(imageUrl)}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100 mt-2 flex items-center justify-center">
+                  {!imagePreviewError ? (
+                    <img
+                      src={getImageUrl(imageUrl)}
+                      alt="Preview"
+                      onError={() => setImagePreviewError(true)}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="p-4 text-center space-y-1.5 text-slate-500">
+                      <AlertTriangle className="h-6 w-6 text-amber-500 mx-auto" />
+                      <p className="text-xs font-semibold text-slate-700">Gambar tidak dapat dimuat</p>
+                      <p className="text-[11px] text-slate-400">Pastikan URL gambar valid atau gunakan tombol Upload untuk mengunggah berkas lokal.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
