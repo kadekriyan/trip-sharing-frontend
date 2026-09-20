@@ -521,13 +521,9 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       }
     });
 
-    // Validate reCAPTCHA in production
+    // Validate reCAPTCHA: If site key is configured, user MUST complete captcha
     const recaptchaSiteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-    const activeToken =
-      captchaToken ||
-      (process.env.NODE_ENV === "development" ? "dev-dummy-captcha-token" : null);
-
-    if (!activeToken && process.env.NODE_ENV === "production" && recaptchaSiteKey) {
+    if (recaptchaSiteKey && !captchaToken) {
       errors.captcha = "Please complete the reCAPTCHA verification.";
     }
 
@@ -555,10 +551,6 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      const activeToken =
-        captchaToken ||
-        (process.env.NODE_ENV === "development" ? "dev-dummy-captcha-token" : null);
-
       const targetTripId = selectedTripId || `trip-ondemand-${Date.now()}`;
       const primaryItem = bookingItems[0];
 
@@ -567,7 +559,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
       const effectiveTargetGroupId = undefined;
 
       const bulkPayload: BulkBookingPayload = {
-        captchaToken: activeToken || "dev-dummy-captcha-token",
+        captchaToken: captchaToken || undefined,
         bookings: bookingItems.map((item, idx) => {
           const isUsePrimary = idx > 0 && item.usePrimaryPickup;
           const pLoc = isUsePrimary ? primaryItem.pickupLocation : item.pickupLocation;
@@ -613,7 +605,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
         } catch {
           const singlePayload: CreateBookingPayload = {
             ...bulkPayload.bookings[0],
-            captchaToken: activeToken || "dev-dummy-captcha-token",
+            captchaToken: captchaToken || undefined,
           };
           const singleRes = await bookingService.createBooking(singlePayload);
           setCreatedParticipants([singleRes.participant]);
@@ -1432,9 +1424,23 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                     <ReCAPTCHA
                       ref={recaptchaRef}
                       sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
-                      onChange={(token) => setCaptchaToken(token)}
+                      onChange={(token) => {
+                        setCaptchaToken(token);
+                        if (fieldErrors.captcha) {
+                          setFieldErrors((prev) => {
+                            const updated = { ...prev };
+                            delete updated.captcha;
+                            return updated;
+                          });
+                        }
+                      }}
                       onExpired={() => setCaptchaToken(null)}
                     />
+                    {fieldErrors.captcha && (
+                      <p className="text-xs text-red-500 font-semibold mt-1.5 animate-pulse">
+                        {fieldErrors.captcha}
+                      </p>
+                    )}
                   </div>
                 )}
 

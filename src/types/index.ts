@@ -458,7 +458,7 @@ export interface CreateBookingPayload {
   hasInsurance?: boolean;
   packageType?: "ALL_IN" | "TRANSPORT_ONLY" | string;
   package_type?: string;
-  captchaToken: string;
+  captchaToken?: string;
   departureDate?: string;
 }
 
