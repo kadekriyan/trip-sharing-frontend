@@ -48,16 +48,23 @@ declare global {
   }
 }
 
-// Global script loader helper for Places API (New)
+// Global script loader helper for Places API
 function loadGoogleMapsScript(apiKey: string): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
-  if (window.google?.maps?.importLibrary) return Promise.resolve();
+  if (window.google?.maps?.places || typeof window.google?.maps?.importLibrary === "function") {
+    return Promise.resolve();
+  }
 
   if (window.__googleMapsLoadingPromise) {
     return window.__googleMapsLoadingPromise;
   }
 
   window.__googleMapsLoadingPromise = new Promise((resolve, reject) => {
+    if (window.google?.maps?.places || typeof window.google?.maps?.importLibrary === "function") {
+      resolve();
+      return;
+    }
+
     const existingScript = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
     if (existingScript) {
       if (window.google?.maps) {
@@ -70,7 +77,7 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
     }
 
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=places&language=id&region=ID&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&libraries=places&language=id&region=ID`;
     script.async = true;
     script.defer = true;
     script.onload = () => resolve();
@@ -138,7 +145,7 @@ export function GooglePlacesAutocomplete({
     };
   }, []);
 
-  // Initialize Places API (New) library
+  // Initialize Places library (supports both New and Classic APIs)
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.gm_authFailure = () => {
@@ -160,16 +167,28 @@ export function GooglePlacesAutocomplete({
         if (!isMounted || !window.google?.maps) return;
 
         try {
-          const placesLib = await window.google.maps.importLibrary("places");
+          let placesLib: any = null;
+          if (typeof window.google.maps.importLibrary === "function") {
+            placesLib = await window.google.maps.importLibrary("places");
+          } else if (window.google.maps.places) {
+            placesLib = window.google.maps.places;
+          }
+
           if (!isMounted) return;
 
-          placesLibRef.current = placesLib;
-          if (placesLib.AutocompleteSessionToken) {
-            sessionTokenRef.current = new placesLib.AutocompleteSessionToken();
+          if (placesLib) {
+            placesLibRef.current = placesLib;
+            if (placesLib.AutocompleteSessionToken) {
+              sessionTokenRef.current = new placesLib.AutocompleteSessionToken();
+            }
           }
         } catch (err) {
-          console.warn("Places API (New) import library warning:", err);
-          if (isMounted) setLoadError(true);
+          if (window.google?.maps?.places) {
+            placesLibRef.current = window.google.maps.places;
+          } else {
+            console.warn("Places API library initialization note:", err);
+            if (isMounted) setLoadError(true);
+          }
         }
       })
       .catch((err) => {
@@ -185,10 +204,17 @@ export function GooglePlacesAutocomplete({
     };
   }, [apiKey]);
 
-  // Fetch suggestions with Places API (New)
+  // Fetch suggestions with Places API (New or Classic fallback)
   const fetchSuggestions = useCallback(
     async (query: string) => {
-      if (!query || query.trim().length < 2 || !placesLibRef.current?.AutocompleteSuggestion) {
+      if (!query || query.trim().length < 2) {
+        setPredictions([]);
+        setShowDropdown(false);
+        return;
+      }
+
+      const placesLib = placesLibRef.current || window.google?.maps?.places;
+      if (!placesLib) {
         setPredictions([]);
         setShowDropdown(false);
         return;
@@ -196,38 +222,78 @@ export function GooglePlacesAutocomplete({
 
       setIsSearching(true);
       try {
-        const { AutocompleteSuggestion, AutocompleteSessionToken } = placesLibRef.current;
+        // Path A: Places API (New) AutocompleteSuggestion
+        if (placesLib.AutocompleteSuggestion) {
+          const { AutocompleteSuggestion, AutocompleteSessionToken } = placesLib;
 
-        if (!sessionTokenRef.current && AutocompleteSessionToken) {
-          sessionTokenRef.current = new AutocompleteSessionToken();
+          if (!sessionTokenRef.current && AutocompleteSessionToken) {
+            sessionTokenRef.current = new AutocompleteSessionToken();
+          }
+
+          const request = {
+            input: query,
+            sessionToken: sessionTokenRef.current,
+            includedRegionCodes: ["id"],
+            language: "id",
+          };
+
+          const response = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+          const suggestions = response?.suggestions || [];
+
+          const formattedList: PredictionItem[] = suggestions.map((s: any) => {
+            const pred = s.placePrediction;
+            const main = pred?.mainText?.text || pred?.text?.text || "";
+            const sub = pred?.secondaryText?.text || "";
+            return {
+              id: pred?.placeId || `${main}-${Math.random()}`,
+              title: main,
+              subtitle: sub,
+              prediction: pred,
+            };
+          });
+
+          setPredictions(formattedList);
+          setShowDropdown(formattedList.length > 0);
+          return;
         }
 
-        const request = {
-          input: query,
-          sessionToken: sessionTokenRef.current,
-          includedRegionCodes: ["id"],
-          language: "id",
-        };
+        // Path B: Classic Places API AutocompleteService
+        if (placesLib.AutocompleteService || window.google?.maps?.places?.AutocompleteService) {
+          const AutoService = placesLib.AutocompleteService || window.google.maps.places.AutocompleteService;
+          const service = new AutoService();
 
-        const response = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
-        const suggestions = response?.suggestions || [];
+          service.getPlacePredictions(
+            {
+              input: query,
+              componentRestrictions: { country: "id" },
+            },
+            (predictionsList: any[], status: any) => {
+              if (
+                status === window.google?.maps?.places?.PlacesServiceStatus?.OK &&
+                Array.isArray(predictionsList)
+              ) {
+                const formattedList: PredictionItem[] = predictionsList.map((p) => ({
+                  id: p.place_id,
+                  title: p.structured_formatting?.main_text || p.description,
+                  subtitle: p.structured_formatting?.secondary_text || "",
+                  prediction: p,
+                }));
+                setPredictions(formattedList);
+                setShowDropdown(formattedList.length > 0);
+              } else {
+                setPredictions([]);
+                setShowDropdown(false);
+              }
+              setIsSearching(false);
+            }
+          );
+          return;
+        }
 
-        const formattedList: PredictionItem[] = suggestions.map((s: any) => {
-          const pred = s.placePrediction;
-          const main = pred?.mainText?.text || pred?.text?.text || "";
-          const sub = pred?.secondaryText?.text || "";
-          return {
-            id: pred?.placeId || `${main}-${Math.random()}`,
-            title: main,
-            subtitle: sub,
-            prediction: pred,
-          };
-        });
-
-        setPredictions(formattedList);
-        setShowDropdown(formattedList.length > 0);
+        setPredictions([]);
+        setShowDropdown(false);
       } catch (err) {
-        console.warn("Places API (New) fetch error:", err);
+        console.warn("Places API fetch error:", err);
         setPredictions([]);
         setShowDropdown(false);
       } finally {
@@ -294,21 +360,41 @@ export function GooglePlacesAutocomplete({
           latitude: typeof lat === "number" ? lat : undefined,
           longitude: typeof lng === "number" ? lng : undefined,
         });
+      } else if (item.id && window.google?.maps?.places?.PlacesService) {
+        // Classic PlacesService getDetails fallback
+        const dummyDiv = document.createElement("div");
+        const service = new window.google.maps.places.PlacesService(dummyDiv);
+
+        service.getDetails(
+          {
+            placeId: item.id,
+            fields: ["name", "formatted_address", "geometry"],
+          },
+          (placeResult: any, status: any) => {
+            if (status === window.google?.maps?.places?.PlacesServiceStatus?.OK && placeResult) {
+              const lat = placeResult.geometry?.location?.lat?.();
+              const lng = placeResult.geometry?.location?.lng?.();
+              const pName = placeResult.name || item.title;
+              const pAddress = placeResult.formatted_address || item.subtitle || pName;
+
+              setSelectedPlaceName(pName);
+              setSelectedAddress(pAddress);
+              setInputValue(pName);
+              setIsEditMode(false);
+
+              onChange({
+                address: pAddress,
+                placeName: pName,
+                latitude: typeof lat === "number" ? lat : undefined,
+                longitude: typeof lng === "number" ? lng : undefined,
+              });
+            } else {
+              fallbackToText();
+            }
+          }
+        );
       } else {
-        const pName = item.title;
-        const pAddress = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
-
-        setSelectedPlaceName(pName);
-        setSelectedAddress(pAddress);
-        setInputValue(pName);
-        setIsEditMode(false);
-
-        onChange({
-          address: pAddress,
-          placeName: pName,
-          latitude: undefined,
-          longitude: undefined,
-        });
+        fallbackToText();
       }
 
       // Reset session token for subsequent searches
@@ -317,6 +403,12 @@ export function GooglePlacesAutocomplete({
       }
     } catch (err) {
       console.warn("Place details fetch failed (falling back to text):", err);
+      fallbackToText();
+    } finally {
+      setIsFetchingDetails(false);
+    }
+
+    function fallbackToText() {
       const pName = item.title;
       const pAddress = item.subtitle ? `${item.title}, ${item.subtitle}` : item.title;
 
@@ -331,8 +423,6 @@ export function GooglePlacesAutocomplete({
         latitude: undefined,
         longitude: undefined,
       });
-    } finally {
-      setIsFetchingDetails(false);
     }
   };
 

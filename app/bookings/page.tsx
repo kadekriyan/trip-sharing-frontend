@@ -193,8 +193,8 @@ function MyBookingsContent() {
               <button
                 onClick={() => setActiveTab("all")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "all"
-                    ? "bg-[#00677d] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-[#00677d] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
                 All ({bookings.length})
@@ -202,8 +202,8 @@ function MyBookingsContent() {
               <button
                 onClick={() => setActiveTab("active")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "active"
-                    ? "bg-[#00677d] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-[#00677d] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
                 Upcoming ({bookings.filter((p) => !isTripPast(p.departureDate || p.trip?.departureDate || p.createdAt)).length})
@@ -211,8 +211,8 @@ function MyBookingsContent() {
               <button
                 onClick={() => setActiveTab("completed")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "completed"
-                    ? "bg-[#00677d] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-[#00677d] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
                 Completed ({bookings.filter((p) => isTripPast(p.departureDate || p.trip?.departureDate || p.createdAt)).length})
@@ -220,8 +220,8 @@ function MyBookingsContent() {
               <button
                 onClick={() => setActiveTab("paid")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "paid"
-                    ? "bg-[#00677d] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-[#00677d] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
                 Paid ({bookings.filter((p) => p.paymentStatus === "paid").length})
@@ -229,8 +229,8 @@ function MyBookingsContent() {
               <button
                 onClick={() => setActiveTab("pending")}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${activeTab === "pending"
-                    ? "bg-[#00677d] text-white shadow-sm"
-                    : "text-slate-600 hover:bg-slate-100"
+                  ? "bg-[#00677d] text-white shadow-sm"
+                  : "text-slate-600 hover:bg-slate-100"
                   }`}
               >
                 Pending Payment ({bookings.filter((p) => p.paymentStatus === "pending").length})
@@ -282,9 +282,8 @@ function MyBookingsContent() {
                   return (
                     <Card
                       key={booking.id}
-                      className={`overflow-hidden border shadow-stitch-card hover:shadow-stitch-hover transition-all ${
-                        isPast ? "bg-slate-50/70 border-slate-200" : "bg-white border-slate-100"
-                      }`}
+                      className={`overflow-hidden border shadow-stitch-card hover:shadow-stitch-hover transition-all ${isPast ? "bg-slate-50/70 border-slate-200" : "bg-white border-slate-100"
+                        }`}
                     >
                       <div className="grid grid-cols-1 md:grid-cols-12">
                         {/* Image Preview */}
