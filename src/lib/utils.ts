@@ -213,27 +213,27 @@ export function getGroupStatusBadge(status: GroupStatus, departureDate?: string 
   switch (effectiveStatus) {
     case "open":
       return {
-        label: "Slot Tersedia",
+        label: "Available Slots",
         className: "bg-emerald-100 text-emerald-800 border-emerald-300",
       };
     case "full":
       return {
-        label: "Grup Penuh",
+        label: "Group Full",
         className: "bg-amber-100 text-amber-800 border-amber-300",
       };
     case "in_progress":
       return {
-        label: "Sedang Berjalan",
+        label: "In Progress",
         className: "bg-sky-100 text-sky-800 border-sky-300",
       };
     case "completed":
       return {
-        label: "Selesai",
+        label: "Completed",
         className: "bg-slate-100 text-slate-800 border-slate-300",
       };
     case "cancelled":
       return {
-        label: "Dibatalkan",
+        label: "Cancelled",
         className: "bg-rose-100 text-rose-800 border-rose-300",
       };
     default:
@@ -248,27 +248,27 @@ export function getPaymentBadge(status: PaymentStatus): { label: string; classNa
   switch (status) {
     case "paid":
       return {
-        label: "Lunas",
+        label: "Paid",
         className: "bg-emerald-50 text-emerald-700 border-emerald-200",
       };
     case "pending":
       return {
-        label: "Menunggu Pembayaran",
+        label: "Pending Payment",
         className: "bg-amber-50 text-amber-700 border-amber-200",
       };
     case "failed":
       return {
-        label: "Gagal",
+        label: "Failed",
         className: "bg-rose-50 text-rose-700 border-rose-200",
       };
     case "cancelled":
       return {
-        label: "Dibatalkan",
+        label: "Cancelled",
         className: "bg-slate-50 text-slate-600 border-slate-200",
       };
     case "refunded":
       return {
-        label: "Dikembalikan",
+        label: "Refunded",
         className: "bg-purple-50 text-purple-700 border-purple-200",
       };
     default:

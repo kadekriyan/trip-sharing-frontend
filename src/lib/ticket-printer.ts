@@ -32,10 +32,10 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
   )}`;
 
   const html = `<!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>E-Voucher Tiket - ${data.bookingCode}</title>
+  <title>Trip E-Voucher - ${data.bookingCode}</title>
   <style>
     @page {
       size: auto;
@@ -164,7 +164,7 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
     <div class="ticket-header">
       <span class="badge">Official E-Voucher</span>
       <div class="title">${data.destinationTitle || "Share Tour Jogja"}</div>
-      <div class="subtitle">Platform Sharing Tour & Open Trip Yogyakarta</div>
+      <div class="subtitle">Yogyakarta Open Trip & Sharing Tour Platform</div>
     </div>
     <div class="ticket-body">
       <div class="qr-container">
@@ -174,14 +174,14 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
 
       <div class="details-table">
         <div class="detail-row">
-          <span class="detail-label">Nama Penumpang</span>
+          <span class="detail-label">Passenger Name</span>
           <span class="detail-val">${data.fullName}</span>
         </div>
         ${
           data.identityNumber && data.identityNumber !== "-"
             ? `
         <div class="detail-row">
-          <span class="detail-label">Nomor Identitas (NIK)</span>
+          <span class="detail-label">Identity / Passport No.</span>
           <span class="detail-val font-mono">${data.identityNumber}</span>
         </div>
         `
@@ -191,7 +191,7 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
           data.dateOfBirth
             ? `
         <div class="detail-row">
-          <span class="detail-label">Tanggal Lahir</span>
+          <span class="detail-label">Date of Birth</span>
           <span class="detail-val">${data.dateOfBirth}</span>
         </div>
         `
@@ -201,7 +201,7 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
           data.phoneNumber
             ? `
         <div class="detail-row">
-          <span class="detail-label">No. Telepon / WA</span>
+          <span class="detail-label">Phone / WhatsApp</span>
           <span class="detail-val">${data.phoneNumber}</span>
         </div>
         `
@@ -211,7 +211,7 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
           data.email
             ? `
         <div class="detail-row">
-          <span class="detail-label">Email Penumpang</span>
+          <span class="detail-label">Passenger Email</span>
           <span class="detail-val" style="font-size: 10px; max-width: 200px; word-break: break-all;">${data.email}</span>
         </div>
         `
@@ -221,25 +221,25 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
           data.departureDate
             ? `
         <div class="detail-row">
-          <span class="detail-label">Tanggal Booking</span>
+          <span class="detail-label">Trip Date</span>
           <span class="detail-val">${data.departureDate}</span>
         </div>
         `
             : ""
         }
         <div class="detail-row">
-          <span class="detail-label">Status Pembayaran</span>
-          <span class="detail-val val-paid">Lunas (PAID)</span>
+          <span class="detail-label">Payment Status</span>
+          <span class="detail-val val-paid">PAID</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Alokasi Grup</span>
-          <span class="detail-val">Grup #${data.groupNumber || 1} (Maks 6 Pax)</span>
+          <span class="detail-label">Group Allocation</span>
+          <span class="detail-val">Group #${data.groupNumber || 1} (Max 6 Pax)</span>
         </div>
         ${
           data.driverName
             ? `
         <div class="detail-row">
-          <span class="detail-label">Driver & Armada</span>
+          <span class="detail-label">Driver & Fleet</span>
           <span class="detail-val">${data.driverName} ${
                 data.vehicleModel ? `(${data.vehicleModel})` : ""
               }</span>
@@ -254,7 +254,7 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
                 return `
         <div class="detail-row" style="flex-direction: column; align-items: flex-start; gap: 2px;">
           <div style="display: flex; justify-content: space-between; width: 100%;">
-            <span class="detail-label">Lokasi Jemput</span>
+            <span class="detail-label">Pickup Location</span>
             <span class="detail-val" style="color: #00677d; font-weight: 800;">${parsed.placeName}</span>
           </div>
           ${parsed.address ? `<div style="font-size: 10px; color: #64748b; text-align: right; width: 100%;">${parsed.address}</div>` : ""}
@@ -267,7 +267,7 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
           data.pickupNotes
             ? `
         <div class="detail-row">
-          <span class="detail-label">Catatan Jemput</span>
+          <span class="detail-label">Pickup Notes</span>
           <span class="detail-val" style="max-width: 210px; word-break: break-word; font-style: italic; color: #475569;">${data.pickupNotes}</span>
         </div>
         `
@@ -276,7 +276,7 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
       </div>
 
       <div class="footer-note">
-        Tunjukkan kode QR e-voucher ini kepada Driver saat penjemputan armada.
+        Present this e-voucher QR code to the driver upon fleet pickup.
       </div>
     </div>
   </div>
