@@ -898,11 +898,11 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                           <Car className="h-3.5 w-3.5 text-[#00677d]" />
-                          <span>Pilihan Antrian Grup Mobil ({groups.length} Unit Armada)</span>
+                          <span>Vehicle Group Selection ({groups.length} Fleet Units)</span>
                         </label>
                         {isCustomDateMode && (
                           <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                            Inisiator Trip Baru
+                            New Trip Initiator
                           </span>
                         )}
                       </div>
@@ -912,7 +912,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                         <div className="p-2.5 rounded-xl bg-teal-50/90 border border-teal-200/80 text-[11px] text-teal-900 flex items-start gap-2 shadow-xs">
                           <Info className="h-3.5 w-3.5 text-teal-600 shrink-0 mt-0.5" />
                           <div className="leading-relaxed">
-                            <span className="font-bold">Smart Fleet Allocation:</span> Rombongan Anda otomatis dialokasikan ke unit kendaraan baru untuk menjamin keharmonisan dan kenyamanan perjalanan.
+                            <span className="font-bold">Smart Fleet Allocation:</span> Your party is automatically assigned to a new vehicle unit to ensure maximum comfort and seamless trip harmony.
                           </div>
                         </div>
                       )}
@@ -947,7 +947,7 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-xs text-[#191c1e] flex items-center gap-1.5">
                                     <Car className="h-3.5 w-3.5 text-[#00677d]" />
-                                    <span>{grp.name || `Grup Mobil #${grp.groupNumber || idx + 1}`}</span>
+                                    <span>{grp.name || `Vehicle Group #${grp.groupNumber || idx + 1}`}</span>
                                   </span>
                                   <span className="text-[10px] text-slate-500 font-medium">
                                     ({grp.driver?.vehicleModel || "HiAce Premio / Commuter VIP"})
@@ -956,16 +956,16 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
 
                                 {isFull ? (
                                   <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
-                                    Penuh (0 Kursi)
+                                    Fully Booked (0 Seats)
                                   </span>
                                 ) : isSelected ? (
                                   <span className="text-[10px] font-bold text-[#00677d] bg-sky-50 px-2.5 py-0.5 rounded-md border border-[#00677d]/30 flex items-center gap-1">
                                     <Check className="h-3 w-3" />
-                                    <span>Grup Terpilih ({remainingSeats} Sisa)</span>
+                                    <span>Selected Group ({remainingSeats} Left)</span>
                                   </span>
                                 ) : (
                                   <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
-                                    Sisa {remainingSeats} Kursi
+                                    {remainingSeats} Seats Available
                                   </span>
                                 )}
                               </div>
@@ -985,9 +985,9 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                               </div>
 
                               <div className="flex items-center justify-between text-[10px] text-slate-500 font-medium">
-                                <span>Terisi: {currentPax} / {capacity} Penumpang</span>
+                                <span>Occupancy: {currentPax} / {capacity} Passengers</span>
                                 <span>
-                                  Driver: {grp.driver?.fullName || "Ditugaskan HQ"}
+                                  Driver: {grp.driver?.fullName || "HQ Assigned"}
                                 </span>
                               </div>
                             </div>
