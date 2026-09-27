@@ -472,8 +472,10 @@ export default function AdminTripsPage() {
       setIsDeleteModalOpen(false);
       setFeedback({ type: "success", message: "Jadwal trip berhasil dihapus dari sistem." });
       loadData();
-    } catch {
-      setFeedback({ type: "error", message: "Gagal menghapus trip." });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Jadwal trip memiliki peserta terdaftar dan tidak dapat dihapus.";
+      setFeedback({ type: "error", message: msg });
+      setIsDeleteModalOpen(false);
     } finally {
       setIsDeleting(false);
     }
@@ -1437,37 +1439,72 @@ export default function AdminTripsPage() {
       {/* DELETE CONFIRMATION MODAL */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="max-w-sm p-6 bg-white">
-          <div className="space-y-3 text-center">
-            <div className="h-12 w-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
-              <Trash2 className="h-6 w-6" />
-            </div>
-            <DialogTitle className="font-heading font-extrabold text-lg text-slate-900">
-              Hapus Jadwal Trip Ini?
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Jadwal trip <strong>{deletingTrip?.id}</strong> dan alokasi grup armada terkait akan dihapus dari sistem.
-            </DialogDescription>
-          </div>
+          {(() => {
+            const participantCount =
+              deletingTrip?.currentParticipants ||
+              deletingTrip?.current_participants ||
+              deletingTrip?.participants?.length ||
+              0;
+            const hasParticipants = participantCount > 0;
 
-          <div className="flex justify-center gap-2.5 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDeleteModalOpen(false)}
-            >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={isDeleting}
-              onClick={handleDeleteConfirm}
-              className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-            >
-              {isDeleting ? "Menghapus..." : "Ya, Hapus Trip"}
-            </Button>
-          </div>
+            return (
+              <>
+                <div className="space-y-3 text-center">
+                  <div
+                    className={`h-12 w-12 rounded-full ${
+                      hasParticipants ? "bg-amber-100 text-amber-600" : "bg-rose-100 text-rose-600"
+                    } flex items-center justify-center mx-auto`}
+                  >
+                    {hasParticipants ? <AlertCircle className="h-6 w-6" /> : <Trash2 className="h-6 w-6" />}
+                  </div>
+                  <DialogTitle className="font-heading font-extrabold text-lg text-slate-900">
+                    {hasParticipants ? "Trip Memiliki Peserta Aktif" : "Hapus Jadwal Trip Ini?"}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-slate-500">
+                    Jadwal trip <strong>{deletingTrip?.id}</strong> ({deletingTrip?.destination?.title || deletingTrip?.destination?.name || "Destinasi"})
+                  </DialogDescription>
+
+                  {hasParticipants ? (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs text-left space-y-1.5 mt-2">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-800">
+                        <Users className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span>Terdaftar {participantCount} Peserta</span>
+                      </div>
+                      <p className="text-[11px] text-amber-700 leading-relaxed">
+                        Jadwal trip ini <strong>tidak dapat dihapus</strong> karena masih memiliki peserta terdaftar. Silakan batalkan atau pindahkan peserta terlebih dahulu ke jadwal trip lain sebelum menghapus.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 mt-2">
+                      Jadwal trip dan alokasi grup armada terkait akan dihapus secara permanen dari sistem.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex justify-center gap-2.5 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                  >
+                    {hasParticipants ? "Tutup" : "Batal"}
+                  </Button>
+                  {!hasParticipants && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={isDeleting}
+                      onClick={handleDeleteConfirm}
+                      className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                    >
+                      {isDeleting ? "Menghapus..." : "Ya, Hapus Trip"}
+                    </Button>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
