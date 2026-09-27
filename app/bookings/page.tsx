@@ -74,7 +74,10 @@ function MyBookingsContent() {
     async function loadBookings() {
       setIsLoading(true);
       try {
-        const data = await bookingService.getMyBookings();
+        const data = await bookingService.getMyBookings({
+          email: user?.email,
+          bookingCode: initialCode || undefined,
+        });
         if (isMounted) {
           setBookings(data);
           if (initialCode) {
@@ -92,17 +95,20 @@ function MyBookingsContent() {
         if (isMounted) setIsLoading(false);
       }
     }
-    loadBookings();
+    if (isHydrated) {
+      loadBookings();
+    }
     return () => {
       isMounted = false;
     };
-  }, [initialCode]);
+  }, [initialCode, isHydrated, user?.email]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       const data = await bookingService.getMyBookings({
+        email: user?.email,
         bookingCode: searchQuery || undefined,
       });
       setBookings(data);
@@ -464,6 +470,17 @@ function MyBookingsContent() {
                                   <Button asChild size="sm" className="bg-[#ff7f50] text-white">
                                     <Link href={`/destinations/${destSlug || "bromo-sunrise-safari"}`}>
                                       Pay Now ({formatCurrency(booking.totalAmount)})
+                                    </Link>
+                                  </Button>
+                                  <Button
+                                    asChild
+                                    size="sm"
+                                    variant="outline"
+                                    className="gap-1.5 text-slate-700 hover:text-[#00677d]"
+                                  >
+                                    <Link href={`/bookings/${encodeURIComponent(booking.bookingCode || booking.id)}/invoice`}>
+                                      <FileText className="h-3.5 w-3.5 text-[#00677d]" />
+                                      Official Invoice
                                     </Link>
                                   </Button>
                                   <Button

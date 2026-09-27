@@ -151,7 +151,7 @@ export const bookingService = {
   },
 
   async simulatePaymentSettlement(participantId: string): Promise<Payment> {
-    const sim = await this.simulatePayment(participantId, "settle");
+    await this.simulatePayment(participantId, "settle");
     return {
       id: `pay-${participantId}`,
       participantId,
