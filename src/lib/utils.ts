@@ -9,6 +9,7 @@ import type {
   BookingGroup,
   Trip,
   CheckInStatus,
+  Driver,
 } from "@/src/types";
 
 export function cn(...inputs: ClassValue[]): string {
@@ -895,5 +896,115 @@ export function extractApiErrorDetails(err: unknown): {
 
   return { message, fieldErrors };
 }
+
+export interface DriverAvailabilityResult {
+  isAvailable: boolean;
+  statusText: string;
+  reason: string;
+  badgeVariant: "default" | "secondary" | "destructive" | "outline";
+}
+
+/**
+ * Mengevaluasi ketersediaan dan status aktif driver pada tanggal tertentu (departureDate trip).
+ */
+export function evaluateDriverAvailability(
+  driver: Partial<Driver> | null | undefined,
+  targetDate?: string | Date | null
+): DriverAvailabilityResult {
+  if (!driver) {
+    return {
+      isAvailable: false,
+      statusText: "Driver Tidak Ditemukan",
+      reason: "Data driver tidak tersedia",
+      badgeVariant: "secondary",
+    };
+  }
+
+  // Base status check
+  const baseStatus = String(driver.status || "active");
+  if (baseStatus === "inactive" || baseStatus === "off_duty") {
+    return {
+      isAvailable: false,
+      statusText: baseStatus === "off_duty" ? "Sedang Libur" : "Nonaktif",
+      reason: baseStatus === "off_duty" ? "Status driver saat ini sedang libur (off duty)" : "Status driver saat ini nonaktif",
+      badgeVariant: "destructive",
+    };
+  }
+
+  if (!targetDate) {
+    const isAvail = baseStatus === "active" || baseStatus === "available" || baseStatus === "on_duty";
+    return {
+      isAvailable: isAvail,
+      statusText: isAvail ? "Aktif" : "Tidak Aktif",
+      reason: isAvail ? "Driver aktif" : "Driver tidak aktif",
+      badgeVariant: isAvail ? "default" : "secondary",
+    };
+  }
+
+  const targetDateObj = new Date(targetDate);
+  if (isNaN(targetDateObj.getTime())) {
+    const isAvail = baseStatus === "active" || baseStatus === "available" || baseStatus === "on_duty";
+    return {
+      isAvailable: isAvail,
+      statusText: isAvail ? "Aktif" : "Tidak Aktif",
+      reason: isAvail ? "Driver aktif" : "Driver tidak aktif",
+      badgeVariant: isAvail ? "default" : "secondary",
+    };
+  }
+
+  const targetDateStr = targetDateObj.toISOString().slice(0, 10);
+
+  // 1. Check inactive / leave range first (Strict Priority)
+  if (driver.inactiveStartDate) {
+    const startStr = new Date(driver.inactiveStartDate).toISOString().slice(0, 10);
+    const endStr = driver.inactiveEndDate
+      ? new Date(driver.inactiveEndDate).toISOString().slice(0, 10)
+      : "9999-12-31";
+
+    if (targetDateStr >= startStr && targetDateStr <= endStr) {
+      const startFmt = formatDate(driver.inactiveStartDate);
+      const endFmt = driver.inactiveEndDate ? formatDate(driver.inactiveEndDate) : "seterusnya";
+      return {
+        isAvailable: false,
+        statusText: "Cuti / Libur",
+        reason: `Sedang cuti / libur (${startFmt} s/d ${endFmt})`,
+        badgeVariant: "destructive",
+      };
+    }
+  }
+
+  // 2. Check active contract / duty range
+  if (driver.activeStartDate) {
+    const startStr = new Date(driver.activeStartDate).toISOString().slice(0, 10);
+    if (targetDateStr < startStr) {
+      return {
+        isAvailable: false,
+        statusText: "Belum Aktif",
+        reason: `Periode tugas belum dimulai (mulai ${formatDate(driver.activeStartDate)})`,
+        badgeVariant: "secondary",
+      };
+    }
+  }
+
+  if (driver.activeEndDate) {
+    const endStr = new Date(driver.activeEndDate).toISOString().slice(0, 10);
+    if (targetDateStr > endStr) {
+      return {
+        isAvailable: false,
+        statusText: "Kontrak Berakhir",
+        reason: `Masa tugas telah berakhir pada ${formatDate(driver.activeEndDate)}`,
+        badgeVariant: "destructive",
+      };
+    }
+  }
+
+  return {
+    isAvailable: true,
+    statusText: "Siap Bertugas",
+    reason: "Driver aktif dan tersedia pada tanggal ini",
+    badgeVariant: "default",
+  };
+}
+
 
 

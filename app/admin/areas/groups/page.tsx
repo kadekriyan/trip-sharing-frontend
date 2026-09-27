@@ -50,6 +50,8 @@ import {
   getPaymentBadge,
   getEffectiveGroupStatus,
   isTripPast,
+  evaluateDriverAvailability,
+  extractApiErrorDetails,
 } from "@/src/lib/utils";
 import type {
   BookingGroup,
@@ -200,6 +202,20 @@ export default function AdminGroupsPage() {
       return;
     }
 
+    if (createDriverId) {
+      const selectedTrip = trips.find((t) => t.id === createTripId);
+      const chosenDriver = drivers.find((d) => d.id === createDriverId);
+      if (selectedTrip && chosenDriver) {
+        const avail = evaluateDriverAvailability(chosenDriver, selectedTrip.departureDate);
+        if (!avail.isAvailable) {
+          setCreateError(
+            `Driver ${chosenDriver.fullName || chosenDriver.name} tidak dapat ditugaskan: ${avail.reason}`
+          );
+          return;
+        }
+      }
+    }
+
     setIsSubmittingCreate(true);
     setCreateError(null);
 
@@ -220,9 +236,8 @@ export default function AdminGroupsPage() {
       showSuccess("Grup armada baru berhasil ditambahkan!");
       await fetchData();
     } catch (err: unknown) {
-      setCreateError(
-        (err as { message?: string })?.message || "Gagal membuat grup armada baru."
-      );
+      const details = extractApiErrorDetails(err);
+      setCreateError(details.message || "Gagal membuat grup armada baru.");
     } finally {
       setIsSubmittingCreate(false);
     }
@@ -253,6 +268,20 @@ export default function AdminGroupsPage() {
       return;
     }
 
+    if (editDriverId && editDriverId !== editingGroup.driverId) {
+      const tripDate = editingGroup.trip?.departureDate;
+      const chosenDriver = drivers.find((d) => d.id === editDriverId);
+      if (chosenDriver && tripDate) {
+        const avail = evaluateDriverAvailability(chosenDriver, tripDate);
+        if (!avail.isAvailable) {
+          setEditError(
+            `Driver ${chosenDriver.fullName || chosenDriver.name} tidak dapat ditugaskan: ${avail.reason}`
+          );
+          return;
+        }
+      }
+    }
+
     setIsSubmittingEdit(true);
     setEditError(null);
 
@@ -272,9 +301,8 @@ export default function AdminGroupsPage() {
       showSuccess("Data grup armada berhasil diperbarui!");
       await fetchData();
     } catch (err: unknown) {
-      setEditError(
-        (err as { message?: string })?.message || "Gagal memperbarui grup armada."
-      );
+      const details = extractApiErrorDetails(err);
+      setEditError(details.message || "Gagal memperbarui grup armada.");
     } finally {
       setIsSubmittingEdit(false);
     }
@@ -293,6 +321,20 @@ export default function AdminGroupsPage() {
     e.preventDefault();
     if (!groupForDriver) return;
 
+    if (selectedDriverId && selectedDriverId !== groupForDriver.driverId) {
+      const tripDate = groupForDriver.trip?.departureDate;
+      const chosenDriver = drivers.find((d) => d.id === selectedDriverId);
+      if (chosenDriver && tripDate) {
+        const avail = evaluateDriverAvailability(chosenDriver, tripDate);
+        if (!avail.isAvailable) {
+          setDriverModalError(
+            `Driver ${chosenDriver.fullName || chosenDriver.name} tidak dapat ditugaskan: ${avail.reason}`
+          );
+          return;
+        }
+      }
+    }
+
     setIsSubmittingDriver(true);
     setDriverModalError(null);
 
@@ -307,9 +349,8 @@ export default function AdminGroupsPage() {
       );
       await fetchData();
     } catch (err: unknown) {
-      setDriverModalError(
-        (err as { message?: string })?.message || "Gagal menugaskan driver."
-      );
+      const details = extractApiErrorDetails(err);
+      setDriverModalError(details.message || "Gagal menugaskan driver.");
     } finally {
       setIsSubmittingDriver(false);
     }
@@ -835,27 +876,42 @@ export default function AdminGroupsPage() {
                       </div>
 
                       {group.driver ? (
-                        <div className="flex items-center justify-between pt-0.5">
-                          <div className="min-w-0">
-                            <span className="font-bold text-xs text-slate-900 block truncate">
-                              {group.driver.fullName || group.driver.name}
-                            </span>
-                            <span className="text-[10px] text-slate-500 block truncate">
-                              SIM: {group.driver.licenseNumber}
-                            </span>
-                          </div>
-                          {(group.driver.phoneNumber || group.driver.phone) && (
-                            <a
-                              href={`https://wa.me/${(group.driver.phoneNumber || group.driver.phone || "").replace(/[^0-9]/g, "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                              title="WhatsApp Driver"
-                            >
-                              <Phone className="h-3.5 w-3.5" />
-                            </a>
-                          )}
-                        </div>
+                        (() => {
+                          const driverAvail = departureDate
+                            ? evaluateDriverAvailability(group.driver, departureDate)
+                            : null;
+                          return (
+                            <div className="space-y-1.5 pt-0.5">
+                              <div className="flex items-center justify-between">
+                                <div className="min-w-0">
+                                  <span className="font-bold text-xs text-slate-900 block truncate">
+                                    {group.driver.fullName || group.driver.name}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 block truncate">
+                                    SIM: {group.driver.licenseNumber}
+                                  </span>
+                                </div>
+                                {(group.driver.phoneNumber || group.driver.phone) && (
+                                  <a
+                                    href={`https://wa.me/${(group.driver.phoneNumber || group.driver.phone || "").replace(/[^0-9]/g, "")}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                                    title="WhatsApp Driver"
+                                  >
+                                    <Phone className="h-3.5 w-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                              {driverAvail && !driverAvail.isAvailable && (
+                                <div className="px-2 py-1 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-[10px] font-semibold flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{driverAvail.statusText}: {driverAvail.reason}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()
                       ) : (
                         <div className="text-[11px] text-amber-700 italic flex items-center gap-1 py-1">
                           <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
@@ -1020,19 +1076,55 @@ export default function AdminGroupsPage() {
             {/* Driver & Vehicle Selectors */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Personil Driver (Opsional)</label>
-                <select
-                  value={createDriverId}
-                  onChange={(e) => setCreateDriverId(e.target.value)}
-                  className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
-                >
-                  <option value="">-- Tanpa Driver --</option>
-                  {drivers.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.fullName || d.name}
-                    </option>
-                  ))}
-                </select>
+                {(() => {
+                  const selectedCreateTrip = trips.find((t) => t.id === createTripId);
+                  const selectedCreateDriver = drivers.find((d) => d.id === createDriverId);
+                  const selectedCreateDriverAvail = selectedCreateDriver
+                    ? evaluateDriverAvailability(selectedCreateDriver, selectedCreateTrip?.departureDate)
+                    : null;
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700">Personil Driver (Opsional)</label>
+                        {selectedCreateTrip && (
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {formatDate(selectedCreateTrip.departureDate)}
+                          </span>
+                        )}
+                      </div>
+                      <select
+                        value={createDriverId}
+                        onChange={(e) => setCreateDriverId(e.target.value)}
+                        className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+                      >
+                        <option value="">-- Tanpa Driver --</option>
+                        {drivers.map((d) => {
+                          const avail = evaluateDriverAvailability(d, selectedCreateTrip?.departureDate);
+                          return (
+                            <option
+                              key={d.id}
+                              value={d.id}
+                              disabled={!avail.isAvailable}
+                            >
+                              {d.fullName || d.name} {avail.isAvailable ? "✓ [Siap]" : `✗ [${avail.statusText}]`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {selectedCreateDriverAvail && (
+                        <p
+                          className={`text-[10px] font-medium flex items-center gap-1 ${
+                            selectedCreateDriverAvail.isAvailable ? "text-emerald-600" : "text-rose-600"
+                          }`}
+                        >
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          <span>{selectedCreateDriverAvail.statusText}: {selectedCreateDriverAvail.reason}</span>
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="space-y-1.5">
@@ -1186,19 +1278,56 @@ export default function AdminGroupsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-700">Personil Driver</label>
-                <select
-                  value={editDriverId}
-                  onChange={(e) => setEditDriverId(e.target.value)}
-                  className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
-                >
-                  <option value="">-- Tanpa Driver --</option>
-                  {drivers.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.fullName || d.name}
-                    </option>
-                  ))}
-                </select>
+                {(() => {
+                  const tripDate = editingGroup?.trip?.departureDate;
+                  const selectedEditDriver = drivers.find((d) => d.id === editDriverId);
+                  const selectedEditDriverAvail = selectedEditDriver
+                    ? evaluateDriverAvailability(selectedEditDriver, tripDate)
+                    : null;
+
+                  return (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-700">Personil Driver</label>
+                        {tripDate && (
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {formatDate(tripDate)}
+                          </span>
+                        )}
+                      </div>
+                      <select
+                        value={editDriverId}
+                        onChange={(e) => setEditDriverId(e.target.value)}
+                        className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+                      >
+                        <option value="">-- Tanpa Driver --</option>
+                        {drivers.map((d) => {
+                          const avail = evaluateDriverAvailability(d, tripDate);
+                          const isCurrentDriver = d.id === editingGroup?.driverId;
+                          return (
+                            <option
+                              key={d.id}
+                              value={d.id}
+                              disabled={!avail.isAvailable && !isCurrentDriver}
+                            >
+                              {d.fullName || d.name} {avail.isAvailable ? "✓ [Siap]" : `✗ [${avail.statusText}]`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {selectedEditDriverAvail && (
+                        <p
+                          className={`text-[10px] font-medium flex items-center gap-1 ${
+                            selectedEditDriverAvail.isAvailable ? "text-emerald-600" : "text-rose-600"
+                          }`}
+                        >
+                          <AlertCircle className="h-3 w-3 shrink-0" />
+                          <span>{selectedEditDriverAvail.statusText}: {selectedEditDriverAvail.reason}</span>
+                        </p>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="space-y-1.5">
@@ -1313,19 +1442,61 @@ export default function AdminGroupsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Pilih Driver</label>
-              <select
-                value={selectedDriverId}
-                onChange={(e) => setSelectedDriverId(e.target.value)}
-                className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
-              >
-                <option value="">-- Copot Driver / Tidak Ditugaskan --</option>
-                {drivers.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.fullName || d.name} (SIM: {d.licenseNumber}) {d.vehicle?.name ? `[Armada: ${d.vehicle.name}]` : ""}
-                  </option>
-                ))}
-              </select>
+              {(() => {
+                const tripDate = groupForDriver?.trip?.departureDate;
+                const selectedModalDriver = drivers.find((d) => d.id === selectedDriverId);
+                const selectedModalDriverAvail = selectedModalDriver
+                  ? evaluateDriverAvailability(selectedModalDriver, tripDate)
+                  : null;
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700">Pilih Driver</label>
+                      {tripDate && (
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          Evaluasi: {formatDate(tripDate)}
+                        </span>
+                      )}
+                    </div>
+                    <select
+                      value={selectedDriverId}
+                      onChange={(e) => setSelectedDriverId(e.target.value)}
+                      className="w-full text-xs rounded-xl bg-slate-50 border border-slate-200 p-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#00677d]"
+                    >
+                      <option value="">-- Copot Driver / Tidak Ditugaskan --</option>
+                      {drivers.map((d) => {
+                        const avail = evaluateDriverAvailability(d, tripDate);
+                        const isCurrentDriver = d.id === groupForDriver?.driverId;
+                        return (
+                          <option
+                            key={d.id}
+                            value={d.id}
+                            disabled={!avail.isAvailable && !isCurrentDriver}
+                          >
+                            {d.fullName || d.name} {avail.isAvailable ? "✓ [Siap Bertugas]" : `✗ [${avail.statusText}: ${avail.reason}]`} (SIM: {d.licenseNumber}) {d.vehicle?.name ? `[Armada: ${d.vehicle.name}]` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {selectedModalDriverAvail && (
+                      <div
+                        className={`p-3 rounded-xl border text-xs flex items-start gap-2 mt-2 ${
+                          selectedModalDriverAvail.isAvailable
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                            : "bg-rose-50 border-rose-200 text-rose-800"
+                        }`}
+                      >
+                        <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">{selectedModalDriverAvail.statusText}: </span>
+                          <span>{selectedModalDriverAvail.reason}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">

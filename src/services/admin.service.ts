@@ -77,8 +77,16 @@ export function normalizeDriver(raw: Record<string, unknown>): Driver {
   const phoneNumber = String(raw.phoneNumber || raw.phone || user?.phone || "");
   const email = typeof raw.email === "string" ? raw.email : user?.email;
   const licenseNumber = String(raw.licenseNumber || raw.license_number || "");
+  const licenseExpiryDate = raw.licenseExpiryDate || raw.license_expiry_date ? String(raw.licenseExpiryDate || raw.license_expiry_date) : null;
+  const activeStartDate = raw.activeStartDate || raw.active_start_date ? String(raw.activeStartDate || raw.active_start_date) : null;
+  const activeEndDate = raw.activeEndDate || raw.active_end_date ? String(raw.activeEndDate || raw.active_end_date) : null;
+  const inactiveStartDate = raw.inactiveStartDate || raw.inactive_start_date ? String(raw.inactiveStartDate || raw.inactive_start_date) : null;
+  const inactiveEndDate = raw.inactiveEndDate || raw.inactive_end_date ? String(raw.inactiveEndDate || raw.inactive_end_date) : null;
   const rating = typeof raw.rating === "number" ? raw.rating : Number(raw.rating) || 0;
+  const isAvailable = raw.isAvailable !== undefined ? Boolean(raw.isAvailable) : (raw.is_available !== undefined ? Boolean(raw.is_available) : true);
   const status = (raw.status as Driver["status"]) || "active";
+  const statusReason = typeof raw.statusReason === "string" ? raw.statusReason : null;
+  const evaluationDate = typeof raw.evaluationDate === "string" ? raw.evaluationDate : null;
   const vehicle = raw.vehicle ? normalizeVehicle(raw.vehicle as Record<string, unknown>) : null;
   const vehicleModel = typeof raw.vehicleModel === "string" ? raw.vehicleModel : (typeof raw.vehicle_type === "string" ? raw.vehicle_type : vehicle?.name);
   const plateNumber = typeof raw.plateNumber === "string" ? raw.plateNumber : (typeof raw.plate_number === "string" ? raw.plate_number : (typeof raw.vehicle_plat === "string" ? raw.vehicle_plat : vehicle?.plateNumber));
@@ -94,8 +102,22 @@ export function normalizeDriver(raw: Record<string, unknown>): Driver {
     email,
     licenseNumber,
     license_number: licenseNumber,
+    licenseExpiryDate,
+    license_expiry_date: licenseExpiryDate,
+    activeStartDate,
+    active_start_date: activeStartDate,
+    activeEndDate,
+    active_end_date: activeEndDate,
+    inactiveStartDate,
+    inactive_start_date: inactiveStartDate,
+    inactiveEndDate,
+    inactive_end_date: inactiveEndDate,
     rating,
+    isAvailable,
+    is_available: isAvailable,
     status,
+    statusReason,
+    evaluationDate,
     vehicle,
     vehicleModel,
     plateNumber,
@@ -1354,6 +1376,8 @@ export const adminService = {
     isAvailable?: boolean;
     is_available?: boolean;
     search?: string;
+    date?: string;
+    tripId?: string;
   }): Promise<Driver[]> {
     try {
       const res = await apiClient.get<Driver[]>("/admin/drivers", { params });

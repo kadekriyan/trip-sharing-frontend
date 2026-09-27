@@ -22,6 +22,8 @@ import {
   Sparkles,
   Users,
   RotateCcw,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -500,35 +502,66 @@ function DriversAdminContent() {
                       )}
                     </div>
 
+                    {/* Schedule / Leave Dynamic Information */}
+                    {(driver.inactiveStartDate || driver.inactiveEndDate || driver.activeStartDate || driver.activeEndDate) && (
+                      <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 text-[11px] space-y-1">
+                        {driver.inactiveStartDate && (
+                          <div className="flex items-center gap-1.5 text-amber-700 font-medium">
+                            <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                            <span>
+                              Cuti: {formatDate(driver.inactiveStartDate)}
+                              {driver.inactiveEndDate ? ` s.d. ${formatDate(driver.inactiveEndDate)}` : " ke atas"}
+                            </span>
+                          </div>
+                        )}
+                        {driver.activeStartDate && (
+                          <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
+                            <Calendar className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                            <span>
+                              Kontrak: {formatDate(driver.activeStartDate)}
+                              {driver.activeEndDate ? ` s.d. ${formatDate(driver.activeEndDate)}` : " ke atas"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between pt-1">
-                      <Badge
-                        variant={
-                          driver.status === "on_duty"
-                            ? "azure"
-                            : isAvailable || driver.status === "active"
-                            ? "default"
+                      <div className="flex flex-col gap-0.5">
+                        <Badge
+                          variant={
+                            driver.status === "on_duty"
+                              ? "azure"
+                              : isAvailable || driver.status === "active"
+                              ? "default"
+                              : driver.status === "off_duty"
+                              ? "outline"
+                              : "secondary"
+                          }
+                          className={`capitalize text-[10px] px-2.5 py-0.5 ${
+                            driver.status === "on_duty"
+                              ? "bg-sky-50 text-sky-800 border-sky-200"
+                              : driver.status === "off_duty"
+                              ? "bg-amber-50 text-amber-800 border-amber-200"
+                              : driver.status === "inactive"
+                              ? "bg-slate-100 text-slate-600 border-slate-200"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          }`}
+                        >
+                          {driver.status === "on_duty"
+                            ? "Sedang Bertugas"
                             : driver.status === "off_duty"
-                            ? "outline"
-                            : "secondary"
-                        }
-                        className={`capitalize text-[10px] px-2.5 py-0.5 ${
-                          driver.status === "on_duty"
-                            ? "bg-sky-50 text-sky-800 border-sky-200"
-                            : driver.status === "off_duty"
-                            ? "bg-amber-50 text-amber-800 border-amber-200"
+                            ? "Cuti / Off"
                             : driver.status === "inactive"
-                            ? "bg-slate-100 text-slate-600 border-slate-200"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}
-                      >
-                        {driver.status === "on_duty"
-                          ? "Sedang Bertugas"
-                          : driver.status === "off_duty"
-                          ? "Cuti / Off"
-                          : driver.status === "inactive"
-                          ? "Non-Aktif"
-                          : "Siap Bertugas"}
-                      </Badge>
+                            ? "Non-Aktif"
+                            : "Siap Bertugas"}
+                        </Badge>
+                        {driver.statusReason && (
+                          <span className="text-[10px] text-amber-600 font-medium italic">
+                            {driver.statusReason}
+                          </span>
+                        )}
+                      </div>
 
                       <div className="flex flex-col items-end text-right">
                         <span className="text-[10px] text-slate-700 font-mono font-semibold">

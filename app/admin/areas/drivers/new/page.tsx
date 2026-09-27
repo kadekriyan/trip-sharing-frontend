@@ -11,6 +11,9 @@ import {
   Car,
   Compass,
   Loader2,
+  Calendar,
+  Clock,
+  Info,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -32,6 +35,10 @@ export default function NewDriverPage() {
   const [email, setEmail] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [licenseExpiryDate, setLicenseExpiryDate] = useState("");
+  const [activeStartDate, setActiveStartDate] = useState("");
+  const [activeEndDate, setActiveEndDate] = useState("");
+  const [inactiveStartDate, setInactiveStartDate] = useState("");
+  const [inactiveEndDate, setInactiveEndDate] = useState("");
   const [areaId, setAreaId] = useState<string>("");
   const [vehicleId, setVehicleId] = useState<string>("");
   const [status, setStatus] = useState<"active" | "on_duty" | "off_duty" | "inactive">("active");
@@ -91,6 +98,10 @@ export default function NewDriverPage() {
         email: email ? email.trim() : undefined,
         licenseNumber: licenseNumber.trim(),
         licenseExpiryDate: licenseExpiryDate ? new Date(licenseExpiryDate).toISOString() : undefined,
+        activeStartDate: activeStartDate ? new Date(activeStartDate).toISOString() : undefined,
+        activeEndDate: activeEndDate ? new Date(activeEndDate).toISOString() : undefined,
+        inactiveStartDate: inactiveStartDate ? new Date(inactiveStartDate).toISOString() : undefined,
+        inactiveEndDate: inactiveEndDate ? new Date(inactiveEndDate).toISOString() : undefined,
         areaId: areaId ? areaId : undefined,
         vehicleId: vehicleId ? vehicleId : undefined,
         status: status,
@@ -429,6 +440,100 @@ export default function NewDriverPage() {
               <p className="text-[11px] text-slate-500">
                 Pilih status operasional pengemudi. Driver dengan status &ldquo;Active&rdquo; otomatis terhitung siap ditugaskan pada armada.
               </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Section 3: Jadwal & Periode Bertugas / Cuti (Dynamic Date Schedule) */}
+        <Card className="p-6 border border-slate-100 shadow-stitch-card space-y-5 bg-white rounded-2xl">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h2 className="font-heading font-bold text-base text-[#191c1e] flex items-center gap-2">
+              <span className="h-6 w-6 rounded-full bg-[#00677d] text-white flex items-center justify-center text-xs font-bold">
+                3
+              </span>
+              Jadwal & Periode Bertugas / Cuti (Otomatisasi Status)
+            </h2>
+            <Badge variant="azure" className="text-[10px] font-bold">
+              Dynamic Date Status
+            </Badge>
+          </div>
+
+          <div className="bg-sky-50/70 border border-sky-100 rounded-xl p-3 text-[11px] text-sky-800 flex items-start gap-2">
+            <Info className="h-4 w-4 text-[#00677d] shrink-0 mt-0.5" />
+            <p>
+              Status driver dievaluasi secara dinamis berdasarkan tanggal jadwal trip. Jika tanggal trip jatuh dalam rentang <strong>Cuti / Non-Aktif</strong>, status otomatis berubah menjadi <strong>Off Duty / Cuti</strong> dan tidak dapat ditugaskan pada trip tersebut.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Active Range */}
+            <div className="space-y-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800">
+                <Calendar className="h-4 w-4 text-emerald-600" />
+                <span>Periode Kontrak / Bertugas Aktif (Opsional)</span>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Kosongkan jika driver aktif tanpa batasan tanggal kontrak tertentu.
+              </p>
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                    Mulai Aktif Bertugas
+                  </label>
+                  <Input
+                    type="date"
+                    value={activeStartDate}
+                    onChange={(e) => setActiveStartDate(e.target.value)}
+                    className="text-xs bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                    Selesai Aktif Bertugas
+                  </label>
+                  <Input
+                    type="date"
+                    value={activeEndDate}
+                    onChange={(e) => setActiveEndDate(e.target.value)}
+                    className="text-xs bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Inactive / Leave Range */}
+            <div className="space-y-3 p-4 rounded-xl bg-amber-50/50 border border-amber-100">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                <Clock className="h-4 w-4 text-amber-600" />
+                <span>Periode Cuti / Libur / Non-Aktif (Opsional)</span>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Isi rentang tanggal saat driver mengajukan cuti atau libur sementara.
+              </p>
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                    Mulai Cuti / Non-Aktif
+                  </label>
+                  <Input
+                    type="date"
+                    value={inactiveStartDate}
+                    onChange={(e) => setInactiveStartDate(e.target.value)}
+                    className="text-xs bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                    Selesai Cuti / Non-Aktif
+                  </label>
+                  <Input
+                    type="date"
+                    value={inactiveEndDate}
+                    onChange={(e) => setInactiveEndDate(e.target.value)}
+                    className="text-xs bg-white"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </Card>
