@@ -58,6 +58,8 @@ export interface Destination {
   seoOgImage?: string | null;
   customSchemaJson?: string | null;
   noIndex?: boolean;
+  isUnlisted?: boolean;
+  is_unlisted?: boolean;
   createdAt: string;
   updatedAt: string;
 }

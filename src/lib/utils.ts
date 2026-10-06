@@ -908,7 +908,7 @@ export interface DriverAvailabilityResult {
  * Mengevaluasi ketersediaan dan status aktif driver pada tanggal tertentu (departureDate trip).
  */
 export function evaluateDriverAvailability(
-  driver: Partial<Driver> | null | undefined,
+  driver: Partial<Driver> | (Record<string, unknown> & { inactive_start_date?: string | null; inactive_end_date?: string | null; active_start_date?: string | null; active_end_date?: string | null }) | null | undefined,
   targetDate?: string | Date | null
 ): DriverAvailabilityResult {
   if (!driver) {
@@ -920,50 +920,26 @@ export function evaluateDriverAvailability(
     };
   }
 
-  // Base status check
-  const baseStatus = String(driver.status || "active");
-  if (baseStatus === "inactive" || baseStatus === "off_duty") {
-    return {
-      isAvailable: false,
-      statusText: baseStatus === "off_duty" ? "Sedang Libur" : "Nonaktif",
-      reason: baseStatus === "off_duty" ? "Status driver saat ini sedang libur (off duty)" : "Status driver saat ini nonaktif",
-      badgeVariant: "destructive",
-    };
-  }
+  // Resolve target date (defaults to today if not provided)
+  const evalDate = targetDate ? new Date(targetDate) : new Date();
+  const validDate = !isNaN(evalDate.getTime()) ? evalDate : new Date();
+  const targetDateStr = validDate.toISOString().slice(0, 10);
 
-  if (!targetDate) {
-    const isAvail = baseStatus === "active" || baseStatus === "available" || baseStatus === "on_duty";
-    return {
-      isAvailable: isAvail,
-      statusText: isAvail ? "Aktif" : "Tidak Aktif",
-      reason: isAvail ? "Driver aktif" : "Driver tidak aktif",
-      badgeVariant: isAvail ? "default" : "secondary",
-    };
-  }
+  const rawInactiveStart = (driver as Record<string, unknown>).inactiveStartDate || (driver as Record<string, unknown>).inactive_start_date;
+  const rawInactiveEnd = (driver as Record<string, unknown>).inactiveEndDate || (driver as Record<string, unknown>).inactive_end_date;
+  const rawActiveStart = (driver as Record<string, unknown>).activeStartDate || (driver as Record<string, unknown>).active_start_date;
+  const rawActiveEnd = (driver as Record<string, unknown>).activeEndDate || (driver as Record<string, unknown>).active_end_date;
 
-  const targetDateObj = new Date(targetDate);
-  if (isNaN(targetDateObj.getTime())) {
-    const isAvail = baseStatus === "active" || baseStatus === "available" || baseStatus === "on_duty";
-    return {
-      isAvailable: isAvail,
-      statusText: isAvail ? "Aktif" : "Tidak Aktif",
-      reason: isAvail ? "Driver aktif" : "Driver tidak aktif",
-      badgeVariant: isAvail ? "default" : "secondary",
-    };
-  }
-
-  const targetDateStr = targetDateObj.toISOString().slice(0, 10);
+  const inactiveStartStr = rawInactiveStart ? new Date(String(rawInactiveStart)).toISOString().slice(0, 10) : null;
+  const inactiveEndStr = rawInactiveEnd ? new Date(String(rawInactiveEnd)).toISOString().slice(0, 10) : null;
+  const activeStartStr = rawActiveStart ? new Date(String(rawActiveStart)).toISOString().slice(0, 10) : null;
+  const activeEndStr = rawActiveEnd ? new Date(String(rawActiveEnd)).toISOString().slice(0, 10) : null;
 
   // 1. Check inactive / leave range first (Strict Priority)
-  if (driver.inactiveStartDate) {
-    const startStr = new Date(driver.inactiveStartDate).toISOString().slice(0, 10);
-    const endStr = driver.inactiveEndDate
-      ? new Date(driver.inactiveEndDate).toISOString().slice(0, 10)
-      : "9999-12-31";
-
-    if (targetDateStr >= startStr && targetDateStr <= endStr) {
-      const startFmt = formatDate(driver.inactiveStartDate);
-      const endFmt = driver.inactiveEndDate ? formatDate(driver.inactiveEndDate) : "seterusnya";
+  if (inactiveStartStr && inactiveEndStr) {
+    if (targetDateStr >= inactiveStartStr && targetDateStr <= inactiveEndStr) {
+      const startFmt = formatDate(String(rawInactiveStart));
+      const endFmt = formatDate(String(rawInactiveEnd));
       return {
         isAvailable: false,
         statusText: "Cuti / Libur",
@@ -971,31 +947,54 @@ export function evaluateDriverAvailability(
         badgeVariant: "destructive",
       };
     }
-  }
-
-  // 2. Check active contract / duty range
-  if (driver.activeStartDate) {
-    const startStr = new Date(driver.activeStartDate).toISOString().slice(0, 10);
-    if (targetDateStr < startStr) {
+  } else if (inactiveStartStr) {
+    if (targetDateStr >= inactiveStartStr) {
       return {
         isAvailable: false,
-        statusText: "Belum Aktif",
-        reason: `Periode tugas belum dimulai (mulai ${formatDate(driver.activeStartDate)})`,
-        badgeVariant: "secondary",
-      };
-    }
-  }
-
-  if (driver.activeEndDate) {
-    const endStr = new Date(driver.activeEndDate).toISOString().slice(0, 10);
-    if (targetDateStr > endStr) {
-      return {
-        isAvailable: false,
-        statusText: "Kontrak Berakhir",
-        reason: `Masa tugas telah berakhir pada ${formatDate(driver.activeEndDate)}`,
+        statusText: "Cuti / Libur",
+        reason: `Sedang cuti / libur (sejak ${formatDate(String(rawInactiveStart))})`,
         badgeVariant: "destructive",
       };
     }
+  } else if (inactiveEndStr) {
+    if (targetDateStr <= inactiveEndStr) {
+      return {
+        isAvailable: false,
+        statusText: "Cuti / Libur",
+        reason: `Sedang cuti / libur (hingga ${formatDate(String(rawInactiveEnd))})`,
+        badgeVariant: "destructive",
+      };
+    }
+  }
+
+  // 2. Check active contract / duty range
+  if (activeStartStr && targetDateStr < activeStartStr) {
+    return {
+      isAvailable: false,
+      statusText: "Belum Aktif",
+      reason: `Periode tugas belum dimulai (mulai ${formatDate(String(rawActiveStart))})`,
+      badgeVariant: "secondary",
+    };
+  }
+
+  if (activeEndStr && targetDateStr > activeEndStr) {
+    return {
+      isAvailable: false,
+      statusText: "Kontrak Berakhir",
+      reason: `Masa tugas telah berakhir pada ${formatDate(String(rawActiveEnd))}`,
+      badgeVariant: "destructive",
+    };
+  }
+
+  // 3. Base manual status check
+  const baseStatus = String((driver as Record<string, unknown>).status || "active");
+  if (baseStatus === "inactive" || baseStatus === "off_duty") {
+    return {
+      isAvailable: false,
+      statusText: baseStatus === "off_duty" ? "Sedang Libur" : "Nonaktif",
+      reason: baseStatus === "off_duty" ? "Status driver saat ini sedang libur (off duty)" : "Status driver saat ini nonaktif",
+      badgeVariant: "destructive",
+    };
   }
 
   return {

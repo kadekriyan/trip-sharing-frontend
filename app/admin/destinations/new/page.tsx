@@ -49,6 +49,7 @@ export default function NewDestinationPage() {
   const [seoOgImage, setSeoOgImage] = useState("");
   const [customSchemaJson, setCustomSchemaJson] = useState("");
   const [noIndex, setNoIndex] = useState(false);
+  const [isUnlisted, setIsUnlisted] = useState(false);
   const [isSeoOpen, setIsSeoOpen] = useState(false);
 
   // Inclusions & Exclusions String
@@ -171,6 +172,8 @@ export default function NewDestinationPage() {
         seoOgImage: seoOgImage.trim() || null,
         customSchemaJson: customSchemaJson.trim() || null,
         noIndex,
+        is_unlisted: isUnlisted,
+        isUnlisted: isUnlisted,
       });
 
       setFeedback({ type: "success", message: "Paket destinasi berhasil dibuat dan dipublikasikan!" });
@@ -349,6 +352,36 @@ export default function NewDestinationPage() {
                 value={meetingPoint}
                 onChange={(e) => setMeetingPoint(e.target.value)}
               />
+            </div>
+
+            {/* Pengaturan Destinasi Khusus (Unlisted) */}
+            <div className="sm:col-span-2 pt-3 border-t border-slate-100">
+              <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-2">
+                <div className="flex items-start gap-3">
+                  <input
+                    id="isUnlisted"
+                    type="checkbox"
+                    checked={isUnlisted}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setIsUnlisted(val);
+                      if (val) {
+                        setNoIndex(true);
+                      }
+                    }}
+                    className="mt-1 h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="isUnlisted" className="text-xs font-bold text-purple-950 cursor-pointer flex items-center gap-1.5">
+                      <span>🔒 Destinasi Khusus (Unlisted / Sembunyikan dari Katalog Publik)</span>
+                    </label>
+                    <p className="text-[11px] text-purple-800/90 leading-relaxed mt-0.5">
+                      Jika dicentang, destinasi ini <strong>TIDAK akan ditampilkan</strong> di katalog sharing trip publik, halaman beranda, ataupun pencarian umum.
+                      Anda dapat menyalin link langsung dan membagikannya secara privat kepada customer atau rombongan khusus.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </Card>

@@ -16,6 +16,10 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle2,
+  Copy,
+  Check,
+  Lock,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -35,6 +39,8 @@ import type { Destination } from "@/src/types";
 export default function DestinationsAdminPage() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "public" | "unlisted">("all");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Delete modal state
@@ -93,9 +99,28 @@ export default function DestinationsAdminPage() {
     }
   };
 
+  const handleCopyLink = async (dest: Destination) => {
+    const slugOrId = dest.slug || dest.id;
+    const url = `${window.location.origin}/destinations/${slugOrId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(dest.id);
+      setTimeout(() => setCopiedId(null), 2500);
+    } catch {
+      // Fallback
+    }
+  };
+
+  const publicCount = destinations.filter((d) => !d.isUnlisted && !d.is_unlisted).length;
+  const unlistedCount = destinations.filter((d) => d.isUnlisted || d.is_unlisted).length;
+
   const filtered = Array.isArray(destinations)
     ? destinations.filter((d) => {
         if (!d) return false;
+        const isUnlisted = Boolean(d.isUnlisted || d.is_unlisted);
+        if (filterType === "public" && isUnlisted) return false;
+        if (filterType === "unlisted" && !isUnlisted) return false;
+
         const title = (d.title || d.tagline || "").toLowerCase();
         const location = (d.location || "").toLowerCase();
         const query = (searchQuery || "").toLowerCase();
@@ -112,7 +137,7 @@ export default function DestinationsAdminPage() {
             Kelola Destinasi & Paket Trip
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Atur paket wisata trip sharing, jadwal keberangkatan, status aktif, dan itinerary harian.
+            Atur paket wisata trip sharing, destinasi khusus/unlisted, jadwal keberangkatan, dan itinerary.
           </p>
         </div>
 
@@ -151,16 +176,58 @@ export default function DestinationsAdminPage() {
         </div>
       )}
 
-      {/* Filter and Search */}
-      <Card className="p-4 border border-slate-100 shadow-stitch-card bg-white">
-        <div className="relative">
-          <Search className="h-4 w-4 text-slate-400 absolute left-3 top-3" />
-          <Input
-            placeholder="Cari berdasarkan nama destinasi atau lokasi..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 text-xs bg-slate-50/50 border-slate-200 focus:bg-white transition-colors"
-          />
+      {/* Filter Tabs & Search */}
+      <Card className="p-4 border border-slate-100 shadow-stitch-card bg-white space-y-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl w-fit">
+            <button
+              type="button"
+              onClick={() => setFilterType("all")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filterType === "all"
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Semua ({destinations.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType("public")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                filterType === "public"
+                  ? "bg-white text-[#00677d] shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              Katalog Publik ({publicCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType("unlisted")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                filterType === "unlisted"
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "text-purple-700 hover:text-purple-900"
+              }`}
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Khusus / Unlisted ({unlistedCount})
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="relative flex-1 sm:max-w-xs">
+            <Search className="h-4 w-4 text-slate-400 absolute left-3 top-3" />
+            <Input
+              placeholder="Cari destinasi atau lokasi..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 text-xs bg-slate-50/50 border-slate-200 focus:bg-white transition-colors"
+            />
+          </div>
         </div>
       </Card>
 
@@ -174,9 +241,13 @@ export default function DestinationsAdminPage() {
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center bg-slate-50/50 rounded-xl border border-slate-200 space-y-3">
             <PackageOpen className="h-8 w-8 text-slate-400 mx-auto" />
-            <p className="text-xs font-semibold text-slate-600">Belum ada destinasi terdaftar.</p>
+            <p className="text-xs font-semibold text-slate-600">
+              {filterType === "unlisted"
+                ? "Belum ada destinasi khusus (unlisted)."
+                : "Belum ada destinasi yang sesuai filter pencarian."}
+            </p>
             <Button asChild size="sm" variant="outline">
-              <Link href="/admin/destinations/new">Tambah Destinasi Pertama</Link>
+              <Link href="/admin/destinations/new">Tambah Destinasi Baru</Link>
             </Button>
           </div>
         ) : (
@@ -185,11 +256,15 @@ export default function DestinationsAdminPage() {
               const title = getDestinationTitle(dest);
               const price = getDestinationPrice(dest);
               const isDestActive = dest.isActive !== false;
+              const isUnlisted = Boolean(dest.isUnlisted || dest.is_unlisted);
+              const isCopied = copiedId === dest.id;
 
               return (
                 <Card
                   key={dest.id}
-                  className="overflow-hidden border border-slate-100 shadow-stitch-card group flex flex-col justify-between"
+                  className={`overflow-hidden border shadow-stitch-card group flex flex-col justify-between transition-all ${
+                    isUnlisted ? "border-purple-200 hover:border-purple-300" : "border-slate-100 hover:border-slate-200"
+                  }`}
                 >
                   <div>
                     {/* Image Container with Badges */}
@@ -204,14 +279,20 @@ export default function DestinationsAdminPage() {
                         {formatCurrency(price)}/pax
                       </div>
 
-                      <div className="absolute top-3 left-3 flex gap-1.5">
-                        <Badge
-                          variant={isDestActive ? "success" : "secondary"}
-                          className="text-[10px] font-bold shadow-sm"
-                        >
-                          {isDestActive ? "Aktif" : "Non-aktif"}
-                        </Badge>
-                        {dest.isPopular && (
+                      <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 max-w-[70%]">
+                        {isUnlisted ? (
+                          <span className="inline-flex items-center gap-1 bg-purple-900/90 backdrop-blur-sm text-purple-100 text-[10px] font-extrabold px-2 py-0.5 rounded-md shadow-sm">
+                            <Lock className="h-2.5 w-2.5" /> Khusus (Unlisted)
+                          </span>
+                        ) : (
+                          <Badge
+                            variant={isDestActive ? "success" : "secondary"}
+                            className="text-[10px] font-bold shadow-sm"
+                          >
+                            {isDestActive ? "Aktif" : "Non-aktif"}
+                          </Badge>
+                        )}
+                        {dest.isPopular && !isUnlisted && (
                           <Badge variant="coral" className="text-[10px] font-bold shadow-sm">
                             Populer ⭐
                           </Badge>
@@ -247,8 +328,8 @@ export default function DestinationsAdminPage() {
                     </div>
                   </div>
 
-                  {/* Card Actions Footer: Edit, Delete, Pratinjau */}
-                  <div className="p-4 pt-3 border-t border-slate-100 mt-2 flex items-center justify-between bg-slate-50/50">
+                  {/* Card Actions Footer: Edit, Delete, Copy Link, Pratinjau */}
+                  <div className="p-4 pt-3 border-t border-slate-100 mt-2 flex flex-wrap items-center justify-between gap-2 bg-slate-50/50">
                     <div className="flex items-center gap-1.5">
                       <Button asChild size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1 rounded-lg">
                         <Link href={`/admin/destinations/${dest.id}/edit`}>
@@ -260,16 +341,40 @@ export default function DestinationsAdminPage() {
                       <Button
                         type="button"
                         size="sm"
+                        variant="outline"
+                        onClick={() => handleCopyLink(dest)}
+                        className={`h-8 px-2.5 text-xs gap-1 rounded-lg transition-colors ${
+                          isCopied ? "bg-emerald-50 text-emerald-700 border-emerald-300 font-bold" : "text-slate-700"
+                        }`}
+                        title="Salin Link Langsung"
+                      >
+                        {isCopied ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            Tersalin
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5 text-slate-500" />
+                            Salin Link
+                          </>
+                        )}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        size="sm"
                         variant="ghost"
                         onClick={() => setDeleteTarget(dest)}
                         className="h-8 px-2 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 rounded-lg"
+                        title="Hapus Destinasi"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
 
                     <Button asChild size="sm" variant="ghost" className="h-8 text-xs text-[#00677d] gap-1">
-                      <Link href={`/destinations/${dest.slug || dest.id}`}>
+                      <Link href={`/destinations/${dest.slug || dest.id}`} target="_blank">
                         Pratinjau
                         <ChevronRight className="h-3.5 w-3.5" />
                       </Link>

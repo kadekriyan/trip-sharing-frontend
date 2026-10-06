@@ -33,12 +33,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       articleService.getAllArticles(),
     ]);
 
-    const destinationUrls: MetadataRoute.Sitemap = destinations.map((dest) => ({
-      url: `${siteUrl}/destinations/${dest.slug}`,
-      lastModified: new Date(dest.updatedAt || new Date()),
-      changeFrequency: "weekly",
-      priority: 0.85,
-    }));
+    const destinationUrls: MetadataRoute.Sitemap = destinations
+      .filter((dest) => !dest.isUnlisted && !dest.is_unlisted && !dest.noIndex)
+      .map((dest) => ({
+        url: `${siteUrl}/destinations/${dest.slug}`,
+        lastModified: new Date(dest.updatedAt || new Date()),
+        changeFrequency: "weekly",
+        priority: 0.85,
+      }));
 
     const articleUrls: MetadataRoute.Sitemap = articles.map((art) => ({
       url: `${siteUrl}/blog/${art.slug}`,

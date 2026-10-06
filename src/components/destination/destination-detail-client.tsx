@@ -722,6 +722,12 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
               <Badge variant="coral" className="font-bold text-[11px] shadow-sm">
                 Trip Sharing VIP
               </Badge>
+              {Boolean(destination.isUnlisted || destination.is_unlisted) && (
+                <span className="inline-flex items-center gap-1 bg-purple-600/90 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-md backdrop-blur-md shadow-sm">
+                  <Lock className="h-3 w-3" />
+                  Exclusive Private Link
+                </span>
+              )}
               {destination.category && (
                 <Badge variant="outline" className="text-white border-white/40 backdrop-blur-md text-[11px]">
                   {destination.category}
@@ -766,6 +772,23 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* LEFT COLUMN: OVERVIEW, FASILITAS, MANIFES (7 COLS) */}
           <div className="lg:col-span-7 space-y-6">
+            {/* EXCLUSIVE UNLISTED NOTICE BANNER */}
+            {Boolean(destination.isUnlisted || destination.is_unlisted) && (
+              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border border-purple-200/80 flex items-start gap-3.5 shadow-sm animate-in fade-in">
+                <div className="h-9 w-9 rounded-2xl bg-purple-700 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Lock className="h-4.5 w-4.5" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+                    <span>Paket Khusus &amp; Akses Privat (Exclusive Link)</span>
+                  </h3>
+                  <p className="text-[11px] text-purple-900/85 leading-relaxed">
+                    Destinasi ini disediakan khusus untuk Anda melalui tautan langsung. Pemesanan tiket, jadwal keberangkatan, dan alokasi armada sharing beroperasi normal dengan standar kenyamanan VIP.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* DESTINATION OVERVIEW */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-4">
               <h2 className="text-lg font-heading font-extrabold text-slate-900 flex items-center gap-2">

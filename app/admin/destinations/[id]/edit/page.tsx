@@ -18,6 +18,9 @@ import {
   ChevronUp,
   Code2,
   Sparkles,
+  Copy,
+  ExternalLink,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -59,6 +62,8 @@ export default function EditDestinationPage() {
   const [seoOgImage, setSeoOgImage] = useState("");
   const [customSchemaJson, setCustomSchemaJson] = useState("");
   const [noIndex, setNoIndex] = useState(false);
+  const [isUnlisted, setIsUnlisted] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [isSeoOpen, setIsSeoOpen] = useState(false);
 
   // Inclusions & Exclusions String
@@ -92,6 +97,7 @@ export default function EditDestinationPage() {
           setMeetingPoint(dest.meetingPoint || "Stasiun / Bandara Terdekat");
           setIsPopular(Boolean(dest.isPopular));
           setIsActive(dest.isActive !== undefined ? Boolean(dest.isActive) : true);
+          setIsUnlisted(Boolean(dest.isUnlisted ?? dest.is_unlisted));
 
           // SEO fields
           setSeoTitle(dest.seoTitle || "");
@@ -260,6 +266,8 @@ export default function EditDestinationPage() {
         seoOgImage: seoOgImage.trim() || null,
         customSchemaJson: customSchemaJson.trim() || null,
         noIndex,
+        is_unlisted: isUnlisted,
+        isUnlisted: isUnlisted,
       });
 
       setFeedback({ type: "success", message: "Data destinasi berhasil diperbarui!" });
@@ -302,9 +310,49 @@ export default function EditDestinationPage() {
           </div>
         </div>
 
-        <Badge variant="coral" className="text-xs font-bold px-3 py-1">
-          Max 6-Pax Standard
-        </Badge>
+        <div className="flex items-center gap-2">
+          {slug && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const origin = typeof window !== "undefined" ? window.location.origin : "";
+                const fullUrl = `${origin}/destinations/${slug}`;
+                navigator.clipboard.writeText(fullUrl);
+                setCopiedLink(true);
+                setFeedback({ type: "success", message: `Link destinasi berhasil disalin ke clipboard: ${fullUrl}` });
+                setTimeout(() => setCopiedLink(false), 3000);
+              }}
+              className="rounded-xl text-xs gap-1.5 border-purple-200 text-purple-800 bg-purple-50 hover:bg-purple-100"
+            >
+              {copiedLink ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                  Link Tersalin!
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3.5 w-3.5" />
+                  Salin Link Langsung
+                </>
+              )}
+            </Button>
+          )}
+
+          {slug && (
+            <Button asChild variant="ghost" size="sm" className="rounded-xl text-xs gap-1 text-[#00677d]">
+              <Link href={`/destinations/${slug}`} target="_blank">
+                <ExternalLink className="h-3.5 w-3.5" />
+                Buka Halaman
+              </Link>
+            </Button>
+          )}
+
+          <Badge variant="coral" className="text-xs font-bold px-3 py-1">
+            Max 6-Pax Standard
+          </Badge>
+        </div>
       </div>
 
       {feedback && (
@@ -438,6 +486,36 @@ export default function EditDestinationPage() {
             />
           </div>
 
+          {/* Pengaturan Destinasi Khusus (Unlisted) */}
+          <div className="pt-2 border-t border-slate-100">
+            <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200/80 space-y-2">
+              <div className="flex items-start gap-3">
+                <input
+                  id="isUnlisted"
+                  type="checkbox"
+                  checked={isUnlisted}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setIsUnlisted(val);
+                    if (val) {
+                      setNoIndex(true);
+                    }
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                />
+                <div className="flex-1">
+                  <label htmlFor="isUnlisted" className="text-xs font-bold text-purple-950 cursor-pointer flex items-center gap-1.5">
+                    <span>🔒 Destinasi Khusus (Unlisted / Sembunyikan dari Katalog Publik)</span>
+                  </label>
+                  <p className="text-[11px] text-purple-800/90 leading-relaxed mt-0.5">
+                    Jika dicentang, destinasi ini <strong>TIDAK akan ditampilkan</strong> di katalog sharing trip publik, halaman beranda, ataupun pencarian umum.
+                    Anda dapat menyalin link langsung dan membagikannya secara privat kepada customer atau rombongan khusus.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Flags */}
           <div className="flex flex-wrap gap-6 pt-2 border-t border-slate-100">
             <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
@@ -447,7 +525,7 @@ export default function EditDestinationPage() {
                 onChange={(e) => setIsActive(e.target.checked)}
                 className="h-4 w-4 accent-[#00677d] rounded"
               />
-              <span>Status Aktif (Tampil di Katalog Publik)</span>
+              <span>Status Aktif</span>
             </label>
 
             <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">

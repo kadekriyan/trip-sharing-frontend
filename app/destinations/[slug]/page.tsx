@@ -41,11 +41,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           "6 Pax Sharing Tour",
         ];
 
+  const isUnlisted = Boolean(destination.isUnlisted || destination.is_unlisted);
+
   return {
     title: pageTitle,
     description: pageDescription,
     keywords,
-    robots: destination.noIndex
+    robots: (destination.noIndex || isUnlisted)
       ? {
           index: false,
           follow: false,
