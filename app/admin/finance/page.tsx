@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DollarSign,
   TrendingUp,
@@ -58,8 +59,31 @@ import type {
   Vehicle,
 } from "@/src/types";
 
-export default function AdminFinancePage() {
-  const [activeTab, setActiveTab] = useState<"overview" | "driver_collect" | "driver_payroll" | "vendor_settlement" | "operational">("overview");
+function AdminFinanceContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
+  const [activeTab, setActiveTab] = useState<"overview" | "driver_collect" | "driver_payroll" | "vendor_settlement" | "operational">(
+    (tabParam as any) || "overview"
+  );
+
+  useEffect(() => {
+    if (
+      tabParam === "overview" ||
+      tabParam === "driver_collect" ||
+      tabParam === "driver_payroll" ||
+      tabParam === "vendor_settlement" ||
+      tabParam === "operational"
+    ) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tab: "overview" | "driver_collect" | "driver_payroll" | "vendor_settlement" | "operational") => {
+    setActiveTab(tab);
+    router.replace(`/admin/finance?tab=${tab}`, { scroll: false });
+  };
 
   // Global & Data States
   const [isLoading, setIsLoading] = useState(true);
@@ -443,7 +467,7 @@ export default function AdminFinancePage() {
         <div className="flex items-center gap-1.5 overflow-x-auto p-1 scrollbar-none">
           <button
             type="button"
-            onClick={() => setActiveTab("overview")}
+            onClick={() => handleTabChange("overview")}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               activeTab === "overview"
                 ? "bg-[#00677d] text-white shadow-sm"
@@ -456,7 +480,7 @@ export default function AdminFinancePage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("driver_collect")}
+            onClick={() => handleTabChange("driver_collect")}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               activeTab === "driver_collect"
                 ? "bg-[#00677d] text-white shadow-sm"
@@ -469,7 +493,7 @@ export default function AdminFinancePage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("driver_payroll")}
+            onClick={() => handleTabChange("driver_payroll")}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               activeTab === "driver_payroll"
                 ? "bg-[#00677d] text-white shadow-sm"
@@ -482,7 +506,7 @@ export default function AdminFinancePage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("vendor_settlement")}
+            onClick={() => handleTabChange("vendor_settlement")}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               activeTab === "vendor_settlement"
                 ? "bg-[#00677d] text-white shadow-sm"
@@ -495,7 +519,7 @@ export default function AdminFinancePage() {
 
           <button
             type="button"
-            onClick={() => setActiveTab("operational")}
+            onClick={() => handleTabChange("operational")}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${
               activeTab === "operational"
                 ? "bg-[#00677d] text-white shadow-sm"
@@ -1812,5 +1836,22 @@ export default function AdminFinancePage() {
         </Dialog>
       )}
     </div>
+  );
+}
+
+export default function AdminFinancePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-96 items-center justify-center">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-[#00677d]" />
+            <p className="text-xs text-slate-500 font-medium">Memuat modul finance &amp; penagihan...</p>
+          </div>
+        </div>
+      }
+    >
+      <AdminFinanceContent />
+    </Suspense>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -22,6 +22,10 @@ import {
   ChevronUp,
   KeyRound,
   Receipt,
+  TrendingUp,
+  Wallet,
+  Handshake,
+  Wrench,
 } from "lucide-react";
 import { Badge } from "@/src/components/ui/badge";
 import { AdminGuard } from "@/src/components/auth/admin-guard";
@@ -40,17 +44,41 @@ interface NavItem {
   subItems?: SubNavItem[];
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+function SidebarNavContent({
+  onNavigate,
+}: {
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [areasSubmenuOpen, setAreasSubmenuOpen] = useState(true);
+  const searchParams = useSearchParams();
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
+    "Wilayah Operasional": true,
+    "Finance & Penagihan": true,
+  });
+
+  const toggleSubmenu = (label: string) => {
+    setOpenSubmenus((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
 
   const navigationItems: NavItem[] = [
     { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
     { label: "Jadwal Trip", href: "/admin/trips", icon: Calendar },
     { label: "Manajemen Peserta", href: "/admin/participants", icon: Users },
-    { label: "Finance & Penagihan", href: "/admin/finance", icon: Receipt },
+    {
+      label: "Finance & Penagihan",
+      href: "/admin/finance",
+      icon: Receipt,
+      subItems: [
+        { label: "Overview & Laba Rugi", href: "/admin/finance?tab=overview", icon: TrendingUp },
+        { label: "Tagihan & Setoran Driver", href: "/admin/finance?tab=driver_collect", icon: Receipt },
+        { label: "Payroll Driver (2-Mingguan)", href: "/admin/finance?tab=driver_payroll", icon: Wallet },
+        { label: "Settlement Vendor", href: "/admin/finance?tab=vendor_settlement", icon: Handshake },
+        { label: "Operasional & Log Armada", href: "/admin/finance?tab=operational", icon: Wrench },
+      ],
+    },
     { label: "Katalog Destinasi", href: "/admin/destinations", icon: MapPin },
     {
       label: "Wilayah Operasional",
@@ -68,26 +96,163 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Ganti Password", href: "/admin/settings/password", icon: KeyRound },
   ];
 
-  const getBreadcrumbTitle = () => {
-    if (pathname === "/admin") return "Overview";
-    if (pathname.startsWith("/admin/finance")) {
-      return "Finance & Penagihan";
-    }
-    if (pathname.startsWith("/admin/settings/password")) {
-      return "Pengaturan Akun / Ganti Password";
-    }
-    if (pathname.startsWith("/admin/areas/groups") || pathname.startsWith("/admin/groups")) {
-      return "Wilayah Operasional / Grub Armada";
-    }
-    if (pathname.startsWith("/admin/areas/drivers") || pathname.startsWith("/admin/drivers")) {
-      return "Wilayah Operasional / Personil Driver";
-    }
-    if (pathname.startsWith("/admin/areas")) {
-      return "Wilayah Operasional / Daftar Wilayah";
-    }
-    return pathname.replace("/admin", "").replace("/", "") || "Overview";
-  };
+  return (
+    <nav className="p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)]">
+      {navigationItems.map((item) => {
+        const Icon = item.icon;
 
+        // Handle item with submenus
+        if (item.subItems) {
+          const isOpen = openSubmenus[item.label] ?? true;
+          let isParentActive = false;
+
+          if (item.href === "/admin/finance") {
+            isParentActive = pathname.startsWith("/admin/finance");
+          } else if (item.href === "/admin/areas") {
+            isParentActive =
+              pathname.startsWith("/admin/areas") ||
+              pathname.startsWith("/admin/groups") ||
+              pathname.startsWith("/admin/drivers");
+          }
+
+          return (
+            <div key={item.label} className="space-y-1">
+              <div
+                onClick={() => toggleSubmenu(item.label)}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
+                  isParentActive && !isOpen
+                    ? "bg-[#00677d] text-white shadow-sm shadow-[#00677d]/20"
+                    : isParentActive
+                    ? "bg-slate-100 text-[#00677d]"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-4 w-4 ${isParentActive ? "text-[#00677d]" : "text-slate-400"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {isOpen ? (
+                  <ChevronUp className="h-3.5 w-3.5 opacity-60" />
+                ) : (
+                  <ChevronDown className="h-3.5 w-3.5 opacity-60" />
+                )}
+              </div>
+
+              {isOpen && (
+                <div className="pl-3 ml-4 border-l-2 border-slate-200 space-y-1 pt-0.5">
+                  {item.subItems.map((sub) => {
+                    const SubIcon = sub.icon;
+                    let isSubActive = false;
+
+                    if (item.href === "/admin/finance") {
+                      const currentTab = searchParams.get("tab") || "overview";
+                      if (sub.href.includes("tab=driver_collect")) {
+                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "driver_collect";
+                      } else if (sub.href.includes("tab=driver_payroll")) {
+                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "driver_payroll";
+                      } else if (sub.href.includes("tab=vendor_settlement")) {
+                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "vendor_settlement";
+                      } else if (sub.href.includes("tab=operational")) {
+                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "operational";
+                      } else {
+                        // Overview
+                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "overview";
+                      }
+                    } else if (sub.href === "/admin/areas") {
+                      isSubActive =
+                        pathname === "/admin/areas" ||
+                        (pathname.startsWith("/admin/areas/") &&
+                          !pathname.startsWith("/admin/areas/groups") &&
+                          !pathname.startsWith("/admin/areas/drivers"));
+                    } else if (sub.href === "/admin/areas/groups") {
+                      isSubActive =
+                        pathname.startsWith("/admin/areas/groups") ||
+                        pathname.startsWith("/admin/groups");
+                    } else if (sub.href === "/admin/areas/drivers") {
+                      isSubActive =
+                        pathname.startsWith("/admin/areas/drivers") ||
+                        pathname.startsWith("/admin/drivers");
+                    }
+
+                    return (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        onClick={onNavigate}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition-all ${
+                          isSubActive
+                            ? "bg-[#00677d] text-white shadow-xs font-bold"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
+                        }`}
+                      >
+                        <SubIcon className={`h-3.5 w-3.5 ${isSubActive ? "text-white" : "text-slate-400"}`} />
+                        <span>{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // Regular Single Nav Item
+        const isActive =
+          item.href === "/admin"
+            ? pathname === "/admin"
+            : pathname.startsWith(item.href);
+
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+              isActive
+                ? "bg-[#00677d] text-white shadow-sm shadow-[#00677d]/20"
+                : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
+            }`}
+          >
+            <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function BreadcrumbText() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  if (pathname === "/admin") return "Overview";
+  if (pathname.startsWith("/admin/finance")) {
+    const tab = searchParams.get("tab");
+    if (tab === "driver_collect") return "Finance / Tagihan & Setoran Driver";
+    if (tab === "driver_payroll") return "Finance / Payroll Driver (2-Mingguan)";
+    if (tab === "vendor_settlement") return "Finance / Settlement Vendor";
+    if (tab === "operational") return "Finance / Biaya Operasional & Log Armada";
+    return "Finance / Overview & Laba Rugi";
+  }
+  if (pathname.startsWith("/admin/settings/password")) {
+    return "Pengaturan Akun / Ganti Password";
+  }
+  if (pathname.startsWith("/admin/areas/groups") || pathname.startsWith("/admin/groups")) {
+    return "Wilayah Operasional / Grub Armada";
+  }
+  if (pathname.startsWith("/admin/areas/drivers") || pathname.startsWith("/admin/drivers")) {
+    return "Wilayah Operasional / Personil Driver";
+  }
+  if (pathname.startsWith("/admin/areas")) {
+    return "Wilayah Operasional / Daftar Wilayah";
+  }
+  return pathname.replace("/admin", "").replace("/", "") || "Overview";
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { user, logout } = useAuth();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   return (
     <AdminGuard>
@@ -131,107 +296,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
 
             {/* Nav Links */}
-            <nav className="p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)]">
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-
-                // Handle item with submenus (e.g. Wilayah Operasional)
-                if (item.subItems) {
-                  const isParentActive =
-                    pathname.startsWith("/admin/areas") ||
-                    pathname.startsWith("/admin/groups") ||
-                    pathname.startsWith("/admin/drivers");
-
-                  return (
-                    <div key={item.label} className="space-y-1">
-                      <div
-                        onClick={() => setAreasSubmenuOpen((prev) => !prev)}
-                        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-                          isParentActive && !areasSubmenuOpen
-                            ? "bg-[#00677d] text-white shadow-sm shadow-[#00677d]/20"
-                            : isParentActive
-                            ? "bg-slate-100 text-[#00677d]"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className={`h-4 w-4 ${isParentActive ? "text-[#00677d]" : "text-slate-400"}`} />
-                          <span>{item.label}</span>
-                        </div>
-                        {areasSubmenuOpen ? (
-                          <ChevronUp className="h-3.5 w-3.5 opacity-60" />
-                        ) : (
-                          <ChevronDown className="h-3.5 w-3.5 opacity-60" />
-                        )}
-                      </div>
-
-                      {areasSubmenuOpen && (
-                        <div className="pl-3 ml-4 border-l-2 border-slate-200 space-y-1 pt-0.5">
-                          {item.subItems.map((sub) => {
-                            const SubIcon = sub.icon;
-                            let isSubActive = false;
-
-                            if (sub.href === "/admin/areas") {
-                              isSubActive =
-                                pathname === "/admin/areas" ||
-                                (pathname.startsWith("/admin/areas/") &&
-                                  !pathname.startsWith("/admin/areas/groups") &&
-                                  !pathname.startsWith("/admin/areas/drivers"));
-                            } else if (sub.href === "/admin/areas/groups") {
-                              isSubActive =
-                                pathname.startsWith("/admin/areas/groups") ||
-                                pathname.startsWith("/admin/groups");
-                            } else if (sub.href === "/admin/areas/drivers") {
-                              isSubActive =
-                                pathname.startsWith("/admin/areas/drivers") ||
-                                pathname.startsWith("/admin/drivers");
-                            }
-
-                            return (
-                              <Link
-                                key={sub.href}
-                                href={sub.href}
-                                onClick={() => setMobileSidebarOpen(false)}
-                                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[11px] font-semibold transition-all ${
-                                  isSubActive
-                                    ? "bg-[#00677d] text-white shadow-xs font-bold"
-                                    : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
-                                }`}
-                              >
-                                <SubIcon className={`h-3.5 w-3.5 ${isSubActive ? "text-white" : "text-slate-400"}`} />
-                                <span>{sub.label}</span>
-                              </Link>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                // Regular Single Nav Item
-                const isActive =
-                  item.href === "/admin"
-                    ? pathname === "/admin"
-                    : pathname.startsWith(item.href);
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? "bg-[#00677d] text-white shadow-sm shadow-[#00677d]/20"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-[#00677d]"
-                    }`}
-                  >
-                    <Icon className={`h-4 w-4 ${isActive ? "text-white" : "text-slate-400"}`} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+            <Suspense fallback={<div className="p-4 text-xs text-slate-400">Loading nav...</div>}>
+              <SidebarNavContent onNavigate={() => setMobileSidebarOpen(false)} />
+            </Suspense>
           </div>
 
           {/* Sidebar Bottom: Staff Profile & Exit */}
@@ -268,7 +335,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </aside>
 
-
         {/* Main Content Area */}
         <main className="flex-1 md:pl-64 min-h-screen">
           {/* Top bar on desktop */}
@@ -277,7 +343,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <span>Trip Sharing Operations Control</span>
               <span>/</span>
               <span className="text-[#00677d] font-bold">
-                {getBreadcrumbTitle()}
+                <Suspense fallback="Overview">
+                  <BreadcrumbText />
+                </Suspense>
               </span>
             </div>
 
