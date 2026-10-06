@@ -3,7 +3,7 @@
 import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -50,7 +50,6 @@ function SidebarNavContent({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
     "Wilayah Operasional": true,
     "Finance & Penagihan": true,
@@ -72,11 +71,11 @@ function SidebarNavContent({
       href: "/admin/finance",
       icon: Receipt,
       subItems: [
-        { label: "Overview & Laba Rugi", href: "/admin/finance?tab=overview", icon: TrendingUp },
-        { label: "Tagihan & Setoran Driver", href: "/admin/finance?tab=driver_collect", icon: Receipt },
-        { label: "Payroll Driver (2-Mingguan)", href: "/admin/finance?tab=driver_payroll", icon: Wallet },
-        { label: "Settlement Vendor", href: "/admin/finance?tab=vendor_settlement", icon: Handshake },
-        { label: "Operasional & Log Armada", href: "/admin/finance?tab=operational", icon: Wrench },
+        { label: "Overview & Laba Rugi", href: "/admin/finance", icon: TrendingUp },
+        { label: "Tagihan & Setoran Driver", href: "/admin/finance/driver-collect", icon: Receipt },
+        { label: "Payroll Driver (2-Mingguan)", href: "/admin/finance/driver-payroll", icon: Wallet },
+        { label: "Settlement Vendor", href: "/admin/finance/vendor-settlement", icon: Handshake },
+        { label: "Operasional & Log Armada", href: "/admin/finance/operational", icon: Wrench },
       ],
     },
     { label: "Katalog Destinasi", href: "/admin/destinations", icon: MapPin },
@@ -145,18 +144,10 @@ function SidebarNavContent({
                     let isSubActive = false;
 
                     if (item.href === "/admin/finance") {
-                      const currentTab = searchParams.get("tab") || "overview";
-                      if (sub.href.includes("tab=driver_collect")) {
-                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "driver_collect";
-                      } else if (sub.href.includes("tab=driver_payroll")) {
-                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "driver_payroll";
-                      } else if (sub.href.includes("tab=vendor_settlement")) {
-                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "vendor_settlement";
-                      } else if (sub.href.includes("tab=operational")) {
-                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "operational";
+                      if (sub.href === "/admin/finance") {
+                        isSubActive = pathname === "/admin/finance";
                       } else {
-                        // Overview
-                        isSubActive = pathname.startsWith("/admin/finance") && currentTab === "overview";
+                        isSubActive = pathname === sub.href || pathname.startsWith(sub.href + "/");
                       }
                     } else if (sub.href === "/admin/areas") {
                       isSubActive =
@@ -224,17 +215,13 @@ function SidebarNavContent({
 
 function BreadcrumbText() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   if (pathname === "/admin") return "Overview";
-  if (pathname.startsWith("/admin/finance")) {
-    const tab = searchParams.get("tab");
-    if (tab === "driver_collect") return "Finance / Tagihan & Setoran Driver";
-    if (tab === "driver_payroll") return "Finance / Payroll Driver (2-Mingguan)";
-    if (tab === "vendor_settlement") return "Finance / Settlement Vendor";
-    if (tab === "operational") return "Finance / Biaya Operasional & Log Armada";
-    return "Finance / Overview & Laba Rugi";
-  }
+  if (pathname === "/admin/finance/driver-collect") return "Finance / Tagihan & Setoran Driver";
+  if (pathname === "/admin/finance/driver-payroll") return "Finance / Payroll Driver (2-Mingguan)";
+  if (pathname === "/admin/finance/vendor-settlement") return "Finance / Settlement Vendor";
+  if (pathname === "/admin/finance/operational") return "Finance / Biaya Operasional & Log Armada";
+  if (pathname === "/admin/finance" || pathname.startsWith("/admin/finance")) return "Finance / Overview & Laba Rugi";
   if (pathname.startsWith("/admin/settings/password")) {
     return "Pengaturan Akun / Ganti Password";
   }
