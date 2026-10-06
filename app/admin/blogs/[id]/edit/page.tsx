@@ -140,7 +140,7 @@ export default function EditBlogArticlePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20">
+    <div className="w-full space-y-8 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
