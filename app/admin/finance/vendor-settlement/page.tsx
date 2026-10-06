@@ -32,7 +32,6 @@ import {
 } from "@/src/components/ui/dialog";
 import { financeService } from "@/src/services/finance.service";
 import { formatCurrency, formatDate } from "@/src/lib/utils";
-import { FinanceNavTabs } from "@/src/components/admin/finance/finance-nav-tabs";
 import { PrintSlipModal } from "@/src/components/admin/finance/print-slip-modal";
 import type { VendorSettlementSlip } from "@/src/types";
 
@@ -272,9 +271,6 @@ export default function VendorSettlementPage() {
           </Button>
         </div>
       </div>
-
-      {/* Reusable Horizontal Sub-menu Navigation */}
-      <FinanceNavTabs />
 
       {/* Action Feedback Banner */}
       {actionFeedback && (

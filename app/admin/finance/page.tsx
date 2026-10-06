@@ -46,7 +46,6 @@ import { financeService } from "@/src/services/finance.service";
 import { adminService } from "@/src/services/admin.service";
 import { formatCurrency, formatDate } from "@/src/lib/utils";
 import { ImageUploader } from "@/src/components/ui/image-uploader";
-import { FinanceNavTabs } from "@/src/components/admin/finance/finance-nav-tabs";
 import { PrintSlipModal } from "@/src/components/admin/finance/print-slip-modal";
 import type {
   FinanceTransaction,
@@ -264,9 +263,6 @@ export default function FinanceOverviewPage() {
           </button>
         </div>
       )}
-
-      {/* SUB-MENU TABS NAVIGATION */}
-      <FinanceNavTabs unsettledDriverCount={unsettledCount} />
 
       {/* DATE RANGE FILTER */}
       <Card className="p-4 border border-slate-100 shadow-stitch-card bg-white">

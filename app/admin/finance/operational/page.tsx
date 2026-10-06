@@ -34,7 +34,6 @@ import {
 import { financeService } from "@/src/services/finance.service";
 import { adminService } from "@/src/services/admin.service";
 import { formatCurrency, formatDate } from "@/src/lib/utils";
-import { FinanceNavTabs } from "@/src/components/admin/finance/finance-nav-tabs";
 import type { FinanceTransaction, Vehicle } from "@/src/types";
 
 export default function OperationalFinancePage() {
@@ -262,9 +261,6 @@ export default function OperationalFinancePage() {
           </Button>
         </div>
       </div>
-
-      {/* Reusable Horizontal Sub-menu Navigation */}
-      <FinanceNavTabs />
 
       {/* Action Feedback Banner */}
       {actionFeedback && (

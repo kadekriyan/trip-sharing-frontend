@@ -28,7 +28,6 @@ import {
 } from "@/src/components/ui/dialog";
 import { financeService } from "@/src/services/finance.service";
 import { formatCurrency, formatDate } from "@/src/lib/utils";
-import { FinanceNavTabs } from "@/src/components/admin/finance/finance-nav-tabs";
 import { PrintSlipModal } from "@/src/components/admin/finance/print-slip-modal";
 import type { DriverManifestSummaryItem } from "@/src/types";
 
@@ -198,9 +197,6 @@ export default function DriverCollectPage() {
           </button>
         </div>
       )}
-
-      {/* SUB-MENU TABS NAVIGATION */}
-      <FinanceNavTabs unsettledDriverCount={unsettledCount} />
 
       {/* DRIVER MANIFEST RECONCILIATION TABLE */}
       <Card className="border border-slate-100 shadow-stitch-card bg-white overflow-hidden">
