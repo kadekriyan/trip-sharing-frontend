@@ -717,4 +717,145 @@ export interface InvoiceData {
   };
 }
 
+// -------------------------------------------------------------
+// FINANCE, BILLING & SETTLEMENT TYPES
+// -------------------------------------------------------------
+
+export type TransactionType = 'INCOME' | 'EXPENSE';
+
+export type TransactionCategory =
+  | 'GUEST_COLLECT'
+  | 'MERCHANT_COMMISSION'
+  | 'MODAL_REFUND'
+  | 'OTHER_INCOME'
+  | 'DRIVER_MODAL'
+  | 'DRIVER_FEE'
+  | 'DRIVER_TRANSPORT'
+  | 'VENDOR_TICKET'
+  | 'VENDOR_RENTAL'
+  | 'VENDOR_PARKING'
+  | 'OP_ADMIN_SALARY'
+  | 'OP_CAR_WASH'
+  | 'OP_RENT'
+  | 'OP_UTILITIES'
+  | 'OP_MAINTENANCE'
+  | 'OTHER_EXPENSE';
+
+export interface FinanceTransaction {
+  id: string;
+  transactionNumber: string;
+  type: TransactionType;
+  category: TransactionCategory | string;
+  amount: number;
+  paymentMethod: 'CASH' | 'TRANSFER' | 'MIDTRANS' | string;
+  status: 'PENDING' | 'CONFIRMED' | 'SETTLED' | 'CANCELLED' | string;
+  transactionDate: string;
+  tripId?: string | null;
+  bookingGroupId?: string | null;
+  driverId?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  vehicleId?: string | null;
+  vehiclePlate?: string | null;
+  vendorName?: string | null;
+  receiptProofUrl?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  trip?: {
+    id: string;
+    destinationName?: string;
+    departureDate?: string;
+  } | null;
+}
+
+export interface CashflowSummary {
+  period: {
+    startDate: string | null;
+    endDate: string | null;
+  };
+  totalIncome: number;
+  totalExpense: number;
+  netProfit: number;
+  estimatedTax: number;
+  taxRatePercentage: number;
+  categoryBreakdown: Record<string, number>;
+  totalTransactions: number;
+}
+
+export interface DriverManifestSummaryItem {
+  bookingGroupId: string;
+  groupNumber: number;
+  tripId: string;
+  destinationName: string;
+  departureDate: string;
+  driverId?: string | null;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  vehiclePlate?: string | null;
+  totalParticipants: number;
+  totalManifestAmount: number;
+  paidCount: number;
+  pendingCount: number;
+  uncollectedGuestAmount: number;
+  recordedSetoran: number;
+  recordedDriverModal: number;
+  isSettled: boolean;
+  participants: Array<{
+    id: string;
+    full_name: string;
+    total_amount: number | null;
+    payment_status: string;
+    package_type: string;
+    pickup_location?: string | null;
+  }>;
+}
+
+export interface DriverSettlementSlip {
+  id: string;
+  slipNumber: string;
+  driverId: string;
+  driverName?: string | null;
+  driverPhone?: string | null;
+  periodStart: string;
+  periodEnd: string;
+  packageType: 'ALL_IN' | 'TRANSPORT_ONLY' | 'MIXED' | string;
+  totalTrips: number;
+  totalDriverFee: number;
+  totalTransportAllowance: number;
+  totalBonusOrCommission: number;
+  totalDeductions: number;
+  netAmount: number;
+  status: 'DRAFT' | 'DRIVER_CONFIRMED' | 'PAID' | 'CANCELLED' | string;
+  confirmedAt?: string | null;
+  paidAt?: string | null;
+  paymentProofUrl?: string | null;
+  notes?: string | null;
+  breakdownDetails?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VendorSettlementSlip {
+  id: string;
+  slipNumber: string;
+  vendorName: string;
+  category: 'TICKET' | 'RENTAL_JEEP' | 'PARKING_VIP' | 'OTHER' | string;
+  periodStart: string;
+  periodEnd: string;
+  totalItems: number;
+  totalAmount: number;
+  status: 'DRAFT' | 'VENDOR_CONFIRMED' | 'PAID' | 'CANCELLED' | string;
+  confirmedAt?: string | null;
+  paidAt?: string | null;
+  paymentProofUrl?: string | null;
+  notes?: string | null;
+  breakdownDetails?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
 

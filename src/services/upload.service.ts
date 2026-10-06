@@ -9,7 +9,7 @@ export interface UploadResult {
   size?: number;
 }
 
-export type UploadFolder = "destinations" | "articles" | "general";
+export type UploadFolder = "destinations" | "articles" | "finance" | "finance-receipts" | "general";
 
 export const uploadService = {
   /**

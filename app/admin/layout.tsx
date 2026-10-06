@@ -21,6 +21,7 @@ import {
   ChevronDown,
   ChevronUp,
   KeyRound,
+  Receipt,
 } from "lucide-react";
 import { Badge } from "@/src/components/ui/badge";
 import { AdminGuard } from "@/src/components/auth/admin-guard";
@@ -49,6 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
     { label: "Jadwal Trip", href: "/admin/trips", icon: Calendar },
     { label: "Manajemen Peserta", href: "/admin/participants", icon: Users },
+    { label: "Finance & Penagihan", href: "/admin/finance", icon: Receipt },
     { label: "Katalog Destinasi", href: "/admin/destinations", icon: MapPin },
     {
       label: "Wilayah Operasional",
@@ -68,6 +70,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const getBreadcrumbTitle = () => {
     if (pathname === "/admin") return "Overview";
+    if (pathname.startsWith("/admin/finance")) {
+      return "Finance & Penagihan";
+    }
     if (pathname.startsWith("/admin/settings/password")) {
       return "Pengaturan Akun / Ganti Password";
     }
