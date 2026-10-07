@@ -66,7 +66,7 @@ export function PrintSlipModal({ viewSlipModal, onClose }: PrintSlipModalProps) 
             </div>
           </div>
           <DialogDescription className="text-xs text-slate-500">
-            Pratinjau dokumen resmi operasional Share Tour Jogja.
+            Pratinjau dokumen resmi operasional Java Shared Tour.
           </DialogDescription>
         </DialogHeader>
 
@@ -80,7 +80,7 @@ export function PrintSlipModal({ viewSlipModal, onClose }: PrintSlipModalProps) 
           {/* HEADER */}
           <div className="text-center border-b border-dashed border-slate-300 pb-3 space-y-1">
             <h2 className="font-extrabold text-base tracking-tight text-[#00677d]">
-              SHARE TOUR JOGJA
+              JAVA SHARED TOUR
             </h2>
             <p className="text-[11px] text-slate-500">
               Jl. Malioboro No. 45, D.I. Yogyakarta · Telp/WA: 0812-3456-7890

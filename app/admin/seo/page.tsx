@@ -177,9 +177,9 @@ export default function AdminSeoSettingsPage() {
       const defaultOrg = {
         "@context": "https://schema.org",
         "@type": "Organization",
-        name: "Share Tour Jogja",
-        url: "https://sharingtouryogyakarta.com",
-        logo: "https://sharingtouryogyakarta.com/images/logo.png",
+        name: "Java Shared Tour",
+        url: "https://javasharedtour.co.id",
+        logo: "https://javasharedtour.co.id/images/logo.png",
         description: settings.metaDescription || DEFAULT_SEO_SETTINGS.metaDescription,
         contactPoint: {
           "@type": "ContactPoint",
@@ -507,7 +507,7 @@ export default function AdminSeoSettingsPage() {
                     type="text"
                     value={siteTitleTemplate}
                     onChange={(e) => setSiteTitleTemplate(e.target.value)}
-                    placeholder="%s | Share Tour Jogja"
+                    placeholder="%s | Java Shared Tour"
                     className="text-sm"
                     required
                   />

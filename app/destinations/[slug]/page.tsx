@@ -13,16 +13,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!destination) {
     return {
-      title: "Tour Package Not Found | Share Tour Jogja",
+      title: "Tour Package Not Found | Java Shared Tour",
       description: "The tour destination you are looking for was not found or is no longer available.",
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://javasharedtour.co.id";
   const ogImageUrl = destination.seoOgImage || destination.coverImage || `${siteUrl}/images/hero-bromo.png`;
   const pageTitle =
     destination.seoTitle ||
-    `${destination.title} — Yogyakarta Sharing Tour (Max 6 Pax)`;
+    `${destination.title} — Java Sharing Tour (Max 6 Pax)`;
   const pageDescription =
     destination.seoDescription ||
     destination.shortDescription ||
@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
           destination.location,
           destination.category || "Tour",
           "Trip Sharing",
-          "Open Trip Yogyakarta",
+          "Open Trip Java",
           "6 Pax Sharing Tour",
         ];
 
@@ -57,7 +57,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: pageTitle,
       description: pageDescription,
       url: `${siteUrl}/destinations/${destination.slug}`,
-      siteName: "Share Tour Jogja",
+      siteName: "Java Shared Tour",
       images: [
         {
           url: ogImageUrl,
@@ -108,7 +108,7 @@ export default async function DestinationDetailPage({ params }: PageProps) {
           touristType: "Open Trip / Solo Traveler",
           provider: {
             "@type": "Organization",
-            name: "Share Tour Jogja",
+            name: "Java Shared Tour",
             url: siteUrl,
           },
           offers: {

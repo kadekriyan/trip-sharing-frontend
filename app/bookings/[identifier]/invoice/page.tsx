@@ -219,7 +219,7 @@ export default function BookingInvoicePage() {
                     !issuer.tagline.toLowerCase().includes("teman berbagi") &&
                     !issuer.tagline.toLowerCase().includes("platform petualangan")
                       ? issuer.tagline
-                      : "Yogyakarta Tour & Trip Sharing Adventure Platform"}
+                      : "Java Tour & Trip Sharing Adventure Platform"}
                   </span>
                 </div>
               </div>
@@ -232,7 +232,7 @@ export default function BookingInvoicePage() {
                 <span>
                   Email:{" "}
                   <strong className="text-slate-700">
-                    {issuer.supportEmail && !issuer.supportEmail.includes("support@tripsharing.id")
+                    {issuer.supportEmail && !issuer.supportEmail.includes("support@javasharedtour.co.id") && !issuer.supportEmail.includes("support@tripsharing.id")
                       ? issuer.supportEmail
                       : "dejaayajax@gmail.com"}
                   </strong>
@@ -615,12 +615,12 @@ export default function BookingInvoicePage() {
           {/* LEGAL DISCLAIMER / FOOTER */}
           <div className="pt-3 sm:pt-4 print:pt-1.5 border-t border-slate-200 text-center space-y-0.5 text-[11px] print:text-[8.5px] text-slate-400 leading-tight">
             <p>
-              This document is officially generated and validated by the computerized system of <strong>Share Tour Jogja</strong>.
+              This document is officially generated and validated by the computerized system of <strong>Java Shared Tour</strong>.
             </p>
             <p>
               For invoice inquiries or support, please contact our customer service at{" "}
               <strong className="text-slate-600">
-                {issuer.supportEmail && !issuer.supportEmail.includes("support@tripsharing.id")
+                {issuer.supportEmail && !issuer.supportEmail.includes("support@javasharedtour.co.id") && !issuer.supportEmail.includes("support@tripsharing.id")
                   ? issuer.supportEmail
                   : "dejaayajax@gmail.com"}
               </strong>

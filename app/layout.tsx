@@ -44,9 +44,9 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: seo.metaDescription,
     keywords: seo.keywords,
-    authors: [{ name: "Share Tour Jogja Team" }],
-    creator: "Share Tour Jogja",
-    publisher: "Share Tour Jogja",
+    authors: [{ name: "Java Shared Tour Team" }],
+    creator: "Java Shared Tour",
+    publisher: "Java Shared Tour",
     formatDetection: {
       email: false,
       address: false,
@@ -56,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: seo.siteTitleDefault,
       description: seo.metaDescription,
       url: siteUrl,
-      siteName: "Share Tour Jogja",
+      siteName: "Java Shared Tour",
       images: [
         {
           url: ogImage,
@@ -115,7 +115,7 @@ export default async function RootLayout({
       jsonLdOrg = {
         "@context": "https://schema.org",
         "@type": "Organization",
-        name: "Share Tour Jogja",
+        name: "Java Shared Tour",
         url: siteUrl,
         logo: `${siteUrl}/images/logo.png`,
         description: seo.metaDescription,
@@ -132,7 +132,7 @@ export default async function RootLayout({
     jsonLdOrg = {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "Share Tour Jogja",
+      name: "Java Shared Tour",
       url: siteUrl,
       logo: `${siteUrl}/images/logo.png`,
       description: seo.metaDescription,

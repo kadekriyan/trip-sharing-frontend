@@ -18,14 +18,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!article) {
     return {
-      title: "Artikel Tidak Ditemukan | Blog Share Tour Jogja",
+      title: "Artikel Tidak Ditemukan | Blog Java Shared Tour",
       description: "Artikel yang Anda cari tidak ditemukan.",
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://sharingtouryogyakarta.com";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://javasharedtour.co.id";
   const ogImageUrl = article.seoOgImage || article.coverImage || `${siteUrl}/images/hero-bromo.png`;
-  const pageTitle = article.seoTitle || `${article.title} | Blog Wisata & Tips Tour Jogja`;
+  const pageTitle = article.seoTitle || `${article.title} | Blog Wisata & Tips Java Shared Tour`;
   const pageDescription = article.seoDescription || article.excerpt || article.title;
   const keywords =
     article.seoKeywords && article.seoKeywords.length > 0
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: pageTitle,
     description: pageDescription,
     keywords: keywords.length > 0 ? keywords : undefined,
-    authors: [{ name: article.author?.name || "Redaksi Share Tour Jogja" }],
+    authors: [{ name: article.author?.name || "Redaksi Java Shared Tour" }],
     robots: article.noIndex
       ? {
           index: false,
@@ -47,7 +47,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: pageTitle,
       description: pageDescription,
       url: `${siteUrl}/blog/${article.slug}`,
-      siteName: "Share Tour Jogja",
+      siteName: "Java Shared Tour",
       images: [
         {
           url: ogImageUrl,
@@ -118,11 +118,11 @@ export default async function BlogDetailPage({ params }: PageProps) {
       dateModified: article.updatedAt || article.publishedAt,
       author: {
         "@type": "Person",
-        name: article.author?.name || "Redaksi Share Tour Jogja",
+        name: article.author?.name || "Redaksi Java Shared Tour",
       },
       publisher: {
         "@type": "Organization",
-        name: "Share Tour Jogja",
+        name: "Java Shared Tour",
         logo: `${siteUrl}/images/logo.png`,
       },
       mainEntityOfPage: {

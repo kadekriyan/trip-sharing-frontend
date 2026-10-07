@@ -284,7 +284,7 @@ export function BlogRichEditor({
     if (!imageUrl.trim()) return;
 
     const fullSrc = getImageUrl(imageUrl.trim());
-    const altText = imageAlt.trim() || "Gambar Artikel Share Trip Jogja";
+    const altText = imageAlt.trim() || "Gambar Artikel Java Shared Tour";
 
     let alignClass = "mx-auto my-6 text-center max-w-2xl";
     if (imageAlign === "left") alignClass = "float-left mr-6 mb-4 max-w-sm";

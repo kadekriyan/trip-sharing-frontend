@@ -163,8 +163,8 @@ export function printTicketVoucher(data: TicketPrintPayload): void {
   <div class="ticket-card">
     <div class="ticket-header">
       <span class="badge">Official E-Voucher</span>
-      <div class="title">${data.destinationTitle || "Share Tour Jogja"}</div>
-      <div class="subtitle">Yogyakarta Open Trip & Sharing Tour Platform</div>
+      <div class="title">${data.destinationTitle || "Java Shared Tour"}</div>
+      <div class="subtitle">Java Open Trip & Sharing Tour Platform</div>
     </div>
     <div class="ticket-body">
       <div class="qr-container">

@@ -68,18 +68,18 @@ export function Footer() {
               <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-gradient-to-br from-[#00677d] to-[#00a3c4] p-1.5 shadow-sm">
                 <Image
                   src="/images/logo.png"
-                  alt="Share Tour Jogja Logo"
+                  alt="Java Shared Tour Logo"
                   width={40}
                   height={40}
                   className="h-full w-full object-contain brightness-110"
                 />
               </div>
               <span className="font-heading text-lg font-bold text-[#00677d]">
-                Share Tour Jogja
+                Java Shared Tour
               </span>
             </Link>
             <p className="text-sm text-slate-500 leading-relaxed">
-              The premier Yogyakarta sharing tour platform connecting travelers in comfortable, affordable, and friendly group adventures.
+              The premier Java sharing tour platform connecting travelers in comfortable, affordable, and friendly group adventures across Java.
             </p>
           </div>
 
@@ -163,7 +163,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© 2026 Share Tour Jogja. All Rights Reserved.</p>
+          <p>© 2026 Java Shared Tour. All Rights Reserved.</p>
           <div className="flex items-center gap-4">
             <span>Midtrans Verified Merchant</span>
             <span>•</span>

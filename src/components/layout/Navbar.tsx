@@ -54,7 +54,7 @@ export function Navbar() {
           <div className="relative h-11 w-11 overflow-hidden rounded-xl bg-gradient-to-br from-[#00677d] to-[#00a3c4] p-1.5 shadow-md shadow-[#00677d]/15 transition-transform group-hover:scale-105">
             <Image
               src="/images/logo.png"
-              alt="Share Tour Jogja Logo"
+              alt="Java Shared Tour Logo"
               width={44}
               height={44}
               className="h-full w-full object-contain brightness-110"
@@ -63,10 +63,10 @@ export function Navbar() {
           </div>
           <div className="flex flex-col">
             <span className="font-heading text-lg font-bold tracking-tight text-[#00677d] leading-tight">
-              Share Tour Jogja
+              Java Shared Tour
             </span>
             <span className="text-[11px] font-medium text-slate-500">
-              Open Trip & Sharing Tour Yogyakarta
+              Open Trip & Java Sharing Tours
             </span>
           </div>
         </Link>

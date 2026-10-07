@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: pageSeo.title,
       description: pageSeo.description,
       url: siteUrl,
-      siteName: "Share Tour Jogja",
+      siteName: "Java Shared Tour",
       images: [
         {
           url: pageSeo.ogImage,
@@ -253,16 +253,16 @@ export default async function HomePage() {
                 <div className="relative z-10 space-y-4">
                   <div className="flex justify-between items-start">
                     <Badge variant="coral" className="text-xs font-bold px-3 py-1 shadow-md">
-                      Share Tour Jogja
+                      Java Shared Tour
                     </Badge>
                     <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm">
-                      Yogyakarta Tours
+                      Java Tours
                     </div>
                   </div>
 
                   <div className="pt-2">
                     <span className="text-xs font-bold tracking-wider uppercase text-[#ff7f50] block">
-                      Yogyakarta Sharing Tour Platform
+                      Java Sharing Tour Platform
                     </span>
                     <h2 className="font-heading font-extrabold text-2xl sm:text-3xl text-white mt-1 leading-tight">
                       Great Adventures, Shared Savings.

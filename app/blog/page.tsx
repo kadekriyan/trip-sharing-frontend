@@ -19,23 +19,23 @@ export async function generateMetadata(): Promise<Metadata> {
       follow: !pageSeo.noIndex,
     },
     openGraph: {
-      title: `${pageSeo.title} — Share Tour Jogja`,
+      title: `${pageSeo.title} — Java Shared Tour`,
       description: pageSeo.description,
       url: `${siteUrl}/blog`,
-      siteName: "Share Tour Jogja",
+      siteName: "Java Shared Tour",
       images: [
         {
           url: pageSeo.ogImage,
           width: 1200,
           height: 630,
-          alt: "Blog Wisata & Tips Share Tour Jogja",
+          alt: "Blog Wisata & Tips Java Shared Tour",
         },
       ],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: `${pageSeo.title} — Share Tour Jogja`,
+      title: `${pageSeo.title} — Java Shared Tour`,
       description: pageSeo.description,
       images: [pageSeo.ogImage],
     },

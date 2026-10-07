@@ -479,7 +479,7 @@ export function printGroupManifest(group: BookingGroup): void {
     <!-- Header -->
     <div class="header">
       <div>
-        <div class="brand-title">SHARE TOUR JOGJA</div>
+        <div class="brand-title">JAVA SHARED TOUR</div>
         <div class="brand-sub">Platform Trip Sharing & Wisata Rombongan Terpercaya</div>
       </div>
       <div class="doc-meta">
@@ -608,13 +608,13 @@ export function printGroupManifest(group: BookingGroup): void {
 
       <div class="sign-box">
         <div class="sign-title">Koordinator Operasional</div>
-        <div class="sign-name">Admin Share Tour</div>
+        <div class="sign-name">Admin Java Shared Tour</div>
       </div>
     </div>
 
     <!-- Footer Note -->
     <div style="text-align: center; margin-top: 12px; font-size: 8.5px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 5px;">
-      Dokumen ini sah dikeluarkan oleh Sistem Informasi Manajemen Operasional Share Tour Jogja dan berfungsi sebagai manifes perjalanan resmi.
+      Dokumen ini sah dikeluarkan oleh Sistem Informasi Manajemen Operasional Java Shared Tour dan berfungsi sebagai manifes perjalanan resmi.
     </div>
   </div>
 </body>
