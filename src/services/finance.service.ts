@@ -201,4 +201,18 @@ export const financeService = {
     );
     return res.data;
   },
+
+  /**
+   * Update Vendor Settlement Slip Details
+   */
+  async updateVendorSlip(
+    id: string,
+    payload: Record<string, any>
+  ): Promise<VendorSettlementSlip> {
+    const res = await apiClient.put<VendorSettlementSlip>(
+      `/finance/vendor-slips/${id}`,
+      payload
+    );
+    return res.data;
+  },
 };

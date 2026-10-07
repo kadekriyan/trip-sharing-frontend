@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Eye,
   Check,
+  Edit2,
   Ticket,
   Car,
   MapPin,
@@ -45,6 +46,7 @@ export default function VendorSettlementPage() {
 
   // Modals
   const [isVendorSlipModalOpen, setIsVendorSlipModalOpen] = useState(false);
+  const [editingSlip, setEditingSlip] = useState<VendorSettlementSlip | null>(null);
   const [viewSlipModal, setViewSlipModal] = useState<{ type: "driver" | "vendor" | "deposit"; data: any } | null>(null);
 
   // Form States - Vendor Settlement Slip
@@ -65,6 +67,33 @@ export default function VendorSettlementPage() {
     setVendorPeriodStart(start.toISOString().split("T")[0]);
     setVendorPeriodEnd(end.toISOString().split("T")[0]);
   }, []);
+
+  const openCreateModal = () => {
+    setEditingSlip(null);
+    initDates();
+    setVendorName("");
+    setVendorCategory("TICKET");
+    setVendorTotalItems(1);
+    setVendorTotalAmount(0);
+    setVendorNotes("");
+    setIsVendorSlipModalOpen(true);
+  };
+
+  const openEditModal = (slip: VendorSettlementSlip) => {
+    setEditingSlip(slip);
+    setVendorName(slip.vendorName || "");
+    setVendorCategory((slip.category as any) || "TICKET");
+    setVendorPeriodStart(
+      slip.periodStart ? new Date(slip.periodStart).toISOString().split("T")[0] : ""
+    );
+    setVendorPeriodEnd(
+      slip.periodEnd ? new Date(slip.periodEnd).toISOString().split("T")[0] : ""
+    );
+    setVendorTotalItems(Number(slip.totalItems) || 1);
+    setVendorTotalAmount(Number(slip.totalAmount) || 0);
+    setVendorNotes(slip.notes || "");
+    setIsVendorSlipModalOpen(true);
+  };
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -87,8 +116,8 @@ export default function VendorSettlementPage() {
     loadData();
   }, [initDates, loadData]);
 
-  // Handle Create Vendor Slip
-  const handleCreateVendorSlip = async (e: React.FormEvent) => {
+  // Handle Create or Update Vendor Slip
+  const handleSubmitVendorSlip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!vendorName.trim()) {
       alert("Nama vendor wajib diisi");
@@ -101,27 +130,46 @@ export default function VendorSettlementPage() {
 
     setIsSubmitting(true);
     try {
-      const newSlip = await financeService.createVendorSlip({
-        vendorName: vendorName.trim(),
-        category: vendorCategory,
-        periodStart: vendorPeriodStart,
-        periodEnd: vendorPeriodEnd,
-        totalItems: Number(vendorTotalItems) || 1,
-        totalAmount: Number(vendorTotalAmount) || 0,
-        notes: vendorNotes.trim() || undefined,
-      });
+      if (editingSlip) {
+        const updated = await financeService.updateVendorSlip(editingSlip.id, {
+          vendorName: vendorName.trim(),
+          category: vendorCategory,
+          periodStart: vendorPeriodStart,
+          periodEnd: vendorPeriodEnd,
+          totalItems: Number(vendorTotalItems) || 1,
+          totalAmount: Number(vendorTotalAmount) || 0,
+          notes: vendorNotes.trim() || undefined,
+        });
 
-      setIsVendorSlipModalOpen(false);
-      setVendorName("");
-      setVendorTotalAmount(0);
-      setVendorNotes("");
-      setActionFeedback({
-        type: "success",
-        message: `Slip settlement vendor ${newSlip.slipNumber || ""} berhasil dibuat dalam status DRAFT.`,
-      });
+        setIsVendorSlipModalOpen(false);
+        setEditingSlip(null);
+        setActionFeedback({
+          type: "success",
+          message: `Slip settlement vendor ${updated.slipNumber || ""} berhasil diperbarui.`,
+        });
+      } else {
+        const newSlip = await financeService.createVendorSlip({
+          vendorName: vendorName.trim(),
+          category: vendorCategory,
+          periodStart: vendorPeriodStart,
+          periodEnd: vendorPeriodEnd,
+          totalItems: Number(vendorTotalItems) || 1,
+          totalAmount: Number(vendorTotalAmount) || 0,
+          notes: vendorNotes.trim() || undefined,
+        });
+
+        setIsVendorSlipModalOpen(false);
+        setVendorName("");
+        setVendorTotalAmount(0);
+        setVendorNotes("");
+        setActionFeedback({
+          type: "success",
+          message: `Slip settlement vendor ${newSlip.slipNumber || ""} berhasil dibuat dalam status DRAFT.`,
+        });
+      }
       await loadData();
     } catch (err: any) {
-      alert(err?.message || "Gagal membuat slip settlement vendor");
+      alert(err?.message || (editingSlip ? "Gagal memperbarui slip settlement vendor" : "Gagal membuat slip settlement vendor"));
     } finally {
       setIsSubmitting(false);
     }
@@ -263,7 +311,7 @@ export default function VendorSettlementPage() {
           </Button>
           <Button
             size="sm"
-            onClick={() => setIsVendorSlipModalOpen(true)}
+            onClick={openCreateModal}
             className="bg-[#00677d] hover:bg-[#005264] text-white flex items-center gap-1.5 shadow-sm"
           >
             <Plus className="w-4 h-4" />
@@ -479,6 +527,19 @@ export default function VendorSettlementPage() {
                           Slip
                         </Button>
 
+                        {(slip.status === "DRAFT" || slip.status === "VENDOR_CONFIRMED") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEditModal(slip)}
+                            className="h-8 px-2.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50"
+                            title="Ubah rincian slip pra-persetujuan"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-1" />
+                            Edit
+                          </Button>
+                        )}
+
                         {slip.status === "DRAFT" && (
                           <Button
                             size="sm"
@@ -510,20 +571,24 @@ export default function VendorSettlementPage() {
         )}
       </Card>
 
-      {/* Modal: Buat Slip Settlement Vendor */}
+      {/* Modal: Buat / Edit Slip Settlement Vendor */}
       <Dialog open={isVendorSlipModalOpen} onOpenChange={setIsVendorSlipModalOpen}>
         <DialogContent className="max-w-lg bg-white p-6 rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-[#00677d]" />
-              Buat Slip Settlement Vendor 2-Mingguan
+              {editingSlip
+                ? `Edit Slip Settlement Vendor (${editingSlip.slipNumber})`
+                : "Buat Slip Settlement Vendor 2-Mingguan"}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
-              Buat rincian tagihan rekanan tiket wisata, sewa armada/jeep, atau fasilitas parkir.
+              {editingSlip
+                ? "Ubah data rincian pra-slip sebelum status disetujui / dicairkan."
+                : "Buat rincian tagihan rekanan tiket wisata, sewa armada/jeep, atau fasilitas parkir."}
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleCreateVendorSlip} className="space-y-4 mt-3">
+          <form onSubmit={handleSubmitVendorSlip} className="space-y-4 mt-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Nama Vendor / Rekanan *
@@ -628,7 +693,10 @@ export default function VendorSettlementPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsVendorSlipModalOpen(false)}
+                onClick={() => {
+                  setIsVendorSlipModalOpen(false);
+                  setEditingSlip(null);
+                }}
                 disabled={isSubmitting}
               >
                 Batal
@@ -643,6 +711,8 @@ export default function VendorSettlementPage() {
                     <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
                     Menyimpan...
                   </>
+                ) : editingSlip ? (
+                  "Simpan Perubahan"
                 ) : (
                   "Simpan Slip Vendor"
                 )}
