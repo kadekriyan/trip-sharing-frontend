@@ -48,7 +48,6 @@ import {
   getDestinationPrice,
   formatDate,
   getImageUrl,
-  parsePickupLocation,
   sanitizePhoneNumber,
   getEarliestBookingDate,
 } from "@/src/lib/utils";
@@ -57,13 +56,9 @@ import { TripCalendarPicker } from "@/src/components/destination/trip-calendar-p
 import { GooglePlacesAutocomplete } from "@/src/components/ui/google-places-autocomplete";
 import { CountryCombobox } from "@/src/components/ui/country-combobox";
 import {
-  hasCountryConflict,
   findConflictingCountriesInGroup,
-  isGroupCompatibleWithTraveler,
-  isGroupCompatibleWithMultipleTravelers,
   findBestCompatibleGroup,
   checkInternalBookingConflicts,
-  canonicalizeCountry,
 } from "@/src/lib/country-conflict";
 import type { Destination, BookingGroup, Trip, Participant, BulkBookingPayload, CreateBookingPayload } from "@/src/types";
 import { DestinationReviews } from "@/src/components/destination/destination-reviews";
