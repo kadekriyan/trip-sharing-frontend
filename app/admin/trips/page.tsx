@@ -25,6 +25,9 @@ import {
   Phone,
   ShieldCheck,
   ExternalLink,
+  Send,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/src/components/ui/button";
 import { Badge } from "@/src/components/ui/badge";
@@ -37,6 +40,7 @@ import {
   DialogDescription,
 } from "@/src/components/ui/dialog";
 import { adminService } from "@/src/services/admin.service";
+import { reviewService } from "@/src/services/review.service";
 import {
   formatCurrency,
   formatDate,
@@ -50,7 +54,7 @@ import {
   parsePickupLocation,
 } from "@/src/lib/utils";
 import { checkInternalBookingConflicts } from "@/src/lib/country-conflict";
-import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload, TripStatus, Participant, BookingGroup } from "@/src/types";
+import type { Trip, Destination, Driver, CreateTripPayload, UpdateTripPayload, TripStatus, Participant, BookingGroup, SendReviewInvitesResponse } from "@/src/types";
 
 export default function AdminTripsPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -96,6 +100,109 @@ export default function AdminTripsPage() {
 
   // Notification / Feedback State
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Complete Trip & Review Invitation States
+  const [actionLoadingTripId, setActionLoadingTripId] = useState<string | null>(null);
+
+  // Send Review Invites via WhatsApp Modal State
+  const [sendInvitesTrip, setSendInvitesTrip] = useState<Trip | null>(null);
+  const [isSendInvitesModalOpen, setIsSendInvitesModalOpen] = useState(false);
+  const [isSendingInvites, setIsSendingInvites] = useState(false);
+  const [sendInvitesResult, setSendInvitesResult] = useState<SendReviewInvitesResponse | null>(null);
+
+  // Copy Review Links Modal State
+  const [copyLinksTrip, setCopyLinksTrip] = useState<Trip | null>(null);
+  const [isCopyLinksModalOpen, setIsCopyLinksModalOpen] = useState(false);
+  const [isLoadingLinks, setIsLoadingLinks] = useState(false);
+  const [copyLinksData, setCopyLinksData] = useState<SendReviewInvitesResponse | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCompleteTrip = async (trip: Trip) => {
+    try {
+      setActionLoadingTripId(trip.id);
+      await reviewService.completeTrip(trip.id);
+      setTrips((prev) =>
+        prev.map((t) => (t.id === trip.id ? { ...t, status: "completed" as TripStatus } : t))
+      );
+      setFeedback({
+        type: "success",
+        message: `Trip ${trip.id} berhasil ditandai sebagai Selesai (Completed). Anda kini dapat mengirimkan tautan review ke seluruh peserta.`,
+      });
+    } catch (err: unknown) {
+      setFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "Gagal menyelesaikan trip",
+      });
+    } finally {
+      setActionLoadingTripId(null);
+    }
+  };
+
+  const handleOpenSendInvitesModal = (trip: Trip) => {
+    setSendInvitesTrip(trip);
+    setSendInvitesResult(null);
+    setIsSendInvitesModalOpen(true);
+  };
+
+  const handleSendInvites = async () => {
+    if (!sendInvitesTrip) return;
+    try {
+      setIsSendingInvites(true);
+      const res = await reviewService.sendTripReviewInvites(sendInvitesTrip.id);
+      setSendInvitesResult(res);
+      setFeedback({
+        type: "success",
+        message: `Undangan review berhasil diproses via Fonnte WhatsApp Gateway: ${res.sentCount} terkirim, ${res.failedCount} gagal.`,
+      });
+    } catch (err: unknown) {
+      setFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "Gagal mengirim undangan review via WhatsApp",
+      });
+    } finally {
+      setIsSendingInvites(false);
+    }
+  };
+
+  const handleOpenCopyLinksModal = async (trip: Trip) => {
+    setCopyLinksTrip(trip);
+    setCopyLinksData(null);
+    setIsCopyLinksModalOpen(true);
+    setIsLoadingLinks(true);
+    try {
+      const res = await reviewService.getTripReviewLinks(trip.id);
+      setCopyLinksData(res);
+    } catch (err: unknown) {
+      setFeedback({
+        type: "error",
+        message: err instanceof Error ? err.message : "Gagal mengambil daftar link review peserta",
+      });
+    } finally {
+      setIsLoadingLinks(false);
+    }
+  };
+
+  const handleCopyLink = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCopyAllLinks = async () => {
+    if (!copyLinksData || !copyLinksTrip) return;
+    const formatted = copyLinksData.results
+      .map(
+        (r, idx) =>
+          `${idx + 1}. *${r.fullName}* (${r.phoneNumber})\nLink: ${r.reviewUrl}`
+      )
+      .join("\n\n");
+    const fullText = `*DAFTAR LINK ULASAN TRIP: ${copyLinksData.destinationTitle || ""}*\nTanggal: ${formatDate(copyLinksData.departureDate || copyLinksTrip.departureDate || "")}\n\n${formatted}\n\n_Mohon bantu berikan ulasan jujur Anda untuk peningkatan kualitas layanan kami._`;
+    await handleCopyLink(fullText, "all");
+  };
 
   // Helper to link trips, groups, drivers, and participants bidirectionally
   const linkTripsAndParticipants = (
@@ -771,7 +878,51 @@ export default function AdminTripsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end md:self-auto">
+                  <div className="flex flex-wrap items-center gap-2 self-end md:self-auto">
+                    {/* COMPLETE TRIP BUTTON (If not yet completed) */}
+                    {!(trip.status === "completed" || getEffectiveTripStatus(trip.status, trip.departureDate, trip.returnDate) === "completed") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={actionLoadingTripId === trip.id}
+                        onClick={() => handleCompleteTrip(trip)}
+                        className="h-8 text-xs font-bold gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                        title="Tandai perjalanan ini sudah selesai terlaksana"
+                      >
+                        {actionLoadingTripId === trip.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        )}
+                        <span>Selesaikan Trip</span>
+                      </Button>
+                    )}
+
+                    {/* REVIEW ACTIONS (Only if trip is completed) */}
+                    {(trip.status === "completed" || getEffectiveTripStatus(trip.status, trip.departureDate, trip.returnDate) === "completed") && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handleOpenSendInvitesModal(trip)}
+                          className="h-8 text-xs font-bold gap-1.5 bg-[#25D366] hover:bg-[#1ebd59] text-white shadow-xs"
+                          title="Kirim link review ke semua peserta via WhatsApp (Fonnte)"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          <span>Kirim Link Review</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenCopyLinksModal(trip)}
+                          className="h-8 text-xs font-bold gap-1.5 text-sky-700 border-sky-300 hover:bg-sky-50"
+                          title="Salin tautan ulasan peserta secara manual jika WhatsApp bermasalah"
+                        >
+                          <Copy className="h-3.5 w-3.5 text-sky-600" />
+                          <span>Salin Link Review</span>
+                        </Button>
+                      </>
+                    )}
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -1505,6 +1656,289 @@ export default function AdminTripsPage() {
               </>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+      {/* SEND REVIEW INVITES MODAL (FONNTE WHATSAPP GATEWAY) */}
+      <Dialog open={isSendInvitesModalOpen} onOpenChange={setIsSendInvitesModalOpen}>
+        <DialogContent className="max-w-xl rounded-3xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                <Send className="h-5 w-5" />
+              </span>
+              <div>
+                <DialogTitle className="font-heading font-extrabold text-xl text-[#191c1e]">
+                  Kirim Undangan Review Peserta
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500">
+                  Broadcast pesan WhatsApp via Fonnte Gateway ke seluruh peserta trip yang terdaftar di manifest.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {sendInvitesTrip && (
+            <div className="space-y-5 pt-2">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#191c1e] text-sm">
+                    {getDestinationTitle(sendInvitesTrip.destination)}
+                  </span>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    Trip #{sendInvitesTrip.id}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-3 text-slate-500 text-[11px]">
+                  <span>Tanggal: {formatDate(sendInvitesTrip.departureDate)}</span>
+                  <span>•</span>
+                  <span>Peserta: {sendInvitesTrip.groups?.reduce((acc, g) => acc + (g.currentParticipants || 0), 0) || 0} pax</span>
+                </div>
+              </div>
+
+              {!sendInvitesResult ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 text-xs text-emerald-900 space-y-2">
+                    <p className="font-bold flex items-center gap-1.5 text-emerald-800">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                      Mekanisme Verifikasi Ulasan Otomatis
+                    </p>
+                    <ul className="list-disc list-inside space-y-1 text-emerald-800/90 text-[11px] leading-relaxed">
+                      <li>Setiap peserta akan menerima tautan ulasan unik berkeamanan tinggi yang hanya dapat diisi 1 kali.</li>
+                      <li>Nomor tujuan diambil dari nomor WhatsApp pada manifest peserta yang sudah lunas.</li>
+                      <li>Hasil review akan masuk ke moderasi admin sebelum diterbitkan di destinasi.</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex justify-end gap-2.5 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsSendInvitesModalOpen(false)}
+                      disabled={isSendingInvites}
+                    >
+                      Batal
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={isSendingInvites}
+                      onClick={handleSendInvites}
+                      className="bg-[#25D366] hover:bg-[#1ebd59] text-white font-bold gap-2"
+                    >
+                      {isSendingInvites ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Mengirim Broadcast WA...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4" />
+                          <span>Kirim Sekarang via Fonnte</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 animate-in fade-in">
+                  {/* Results Summary */}
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="p-3 rounded-xl bg-slate-100">
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">Total</span>
+                      <span className="font-heading font-extrabold text-lg text-slate-800">
+                        {sendInvitesResult.totalParticipants}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-emerald-50 text-emerald-700">
+                      <span className="text-[10px] block uppercase font-bold">Terkirim</span>
+                      <span className="font-heading font-extrabold text-lg">
+                        {sendInvitesResult.sentCount}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-rose-50 text-rose-700">
+                      <span className="text-[10px] block uppercase font-bold">Gagal</span>
+                      <span className="font-heading font-extrabold text-lg">
+                        {sendInvitesResult.failedCount}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Recipient Status List */}
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-60 overflow-y-auto divide-y divide-slate-100 text-xs">
+                    {sendInvitesResult.results.map((r) => (
+                      <div key={r.participantId} className="p-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-800 truncate">{r.fullName}</p>
+                          <p className="text-[11px] text-slate-500 font-mono">{r.phoneNumber}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {r.status === "SENT" && (
+                            <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">Terkirim</Badge>
+                          )}
+                          {r.status === "SKIPPED" && (
+                            <Badge variant="outline" className="text-slate-600 text-[10px]">Sudah Ulas</Badge>
+                          )}
+                          {r.status === "FAILED" && (
+                            <Badge className="bg-rose-100 text-rose-800 text-[10px]">Gagal</Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {sendInvitesResult.failedCount > 0 && (
+                    <p className="text-[11px] text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                      Catatan: Beberapa nomor gagal menerima pesan WA otomatis. Anda dapat menggunakan tombol <strong>Salin Link Review</strong> untuk mengirimkan tautan secara manual.
+                    </p>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setIsSendInvitesModalOpen(false)}
+                      className="bg-[#00677d] hover:bg-[#005264] text-white font-bold"
+                    >
+                      Selesai
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* COPY REVIEW LINKS MODAL (MANUAL FALLBACK) */}
+      <Dialog open={isCopyLinksModalOpen} onOpenChange={setIsCopyLinksModalOpen}>
+        <DialogContent className="max-w-2xl rounded-3xl p-6 sm:p-7 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-xl bg-sky-50 text-sky-600">
+                <Copy className="h-5 w-5" />
+              </span>
+              <div>
+                <DialogTitle className="font-heading font-extrabold text-xl text-[#191c1e]">
+                  Salin Tautan Ulasan Peserta
+                </DialogTitle>
+                <DialogDescription className="text-xs text-slate-500">
+                  Cadangan jika pengiriman WhatsApp otomatis bermasalah. Salin tautan ulasan individual untuk dikirimkan langsung ke peserta.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {copyLinksTrip && (
+            <div className="space-y-4 pt-2">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                <div>
+                  <span className="font-bold text-[#191c1e] text-sm block">
+                    {getDestinationTitle(copyLinksTrip.destination)}
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    Keberangkatan: {formatDate(copyLinksTrip.departureDate)}
+                  </span>
+                </div>
+                {copyLinksData && copyLinksData.results.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyAllLinks}
+                    className="font-bold text-xs gap-1.5 text-sky-700 border-sky-300 hover:bg-sky-50 shrink-0"
+                  >
+                    {copiedKey === "all" ? (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>Semua Tersalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5 text-sky-600" />
+                        <span>Salin Semua Format WA</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              {isLoadingLinks ? (
+                <div className="py-12 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#00677d]" />
+                  <span>Membuat dan mengambil tautan ulasan peserta...</span>
+                </div>
+              ) : copyLinksData && copyLinksData.results.length > 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {copyLinksData.results.map((item) => (
+                    <div
+                      key={item.participantId}
+                      className="p-3.5 rounded-2xl border border-slate-200 bg-white shadow-2xs space-y-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-[#191c1e]">{item.fullName}</span>
+                          <span className="text-slate-400">•</span>
+                          <span className="font-mono text-[11px] text-slate-500">{item.phoneNumber}</span>
+                        </div>
+                        {item.isSubmitted ? (
+                          <Badge className="bg-emerald-100 text-emerald-800 text-[10px]">
+                            Sudah Mengisi {item.rating ? `(⭐ ${item.rating})` : ""}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-amber-700 border-amber-300 text-[10px]">
+                            Belum Mengisi
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Input
+                          readOnly
+                          value={item.reviewUrl}
+                          className="h-8 text-xs font-mono bg-slate-50 text-slate-600 select-all"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCopyLink(item.reviewUrl, item.participantId)}
+                          className="h-8 shrink-0 text-xs font-semibold gap-1"
+                        >
+                          {copiedKey === item.participantId ? (
+                            <>
+                              <Check className="h-3.5 w-3.5 text-emerald-600" />
+                              <span className="text-emerald-700">Tersalin!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3.5 w-3.5" />
+                              <span>Salin</span>
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  Tidak ada peserta berstatus lunas yang ditemukan pada trip ini.
+                </div>
+              )}
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCopyLinksModalOpen(false)}
+                >
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -26,6 +26,7 @@ import {
   Wallet,
   Handshake,
   Wrench,
+  Star,
 } from "lucide-react";
 import { Badge } from "@/src/components/ui/badge";
 import { AdminGuard } from "@/src/components/auth/admin-guard";
@@ -66,6 +67,7 @@ function SidebarNavContent({
     { label: "Dashboard Overview", href: "/admin", icon: LayoutDashboard },
     { label: "Jadwal Trip", href: "/admin/trips", icon: Calendar },
     { label: "Manajemen Peserta", href: "/admin/participants", icon: Users },
+    { label: "Moderasi Ulasan", href: "/admin/reviews", icon: Star },
     {
       label: "Finance & Penagihan",
       href: "/admin/finance",

@@ -41,6 +41,7 @@ export interface Destination {
   itinerary: ItineraryDay[];
   rating: number;
   totalReviews: number;
+  total_reviews?: number;
   isPopular?: boolean;
   isActive?: boolean;
   meetingPoint: string;
@@ -833,7 +834,7 @@ export interface DriverSettlementSlip {
   paidAt?: string | null;
   paymentProofUrl?: string | null;
   notes?: string | null;
-  breakdownDetails?: any;
+  breakdownDetails?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -852,10 +853,129 @@ export interface VendorSettlementSlip {
   paidAt?: string | null;
   paymentProofUrl?: string | null;
   notes?: string | null;
-  breakdownDetails?: any;
+  breakdownDetails?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
+
+// -------------------------------------------------------------
+// REVIEW & RATING TYPES (Phase 14)
+// -------------------------------------------------------------
+
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface Review {
+  id: string;
+  destinationId?: string;
+  destination_id?: string;
+  destinationTitle?: string;
+  destinationSlug?: string;
+  destination?: {
+    id: string;
+    name?: string;
+    title?: string;
+    slug?: string;
+    cover_image?: string;
+    image_url?: string;
+  };
+  tripId?: string;
+  trip_id?: string;
+  tripDepartureDate?: string;
+  trip?: {
+    id: string;
+    departure_date?: string;
+    departureDate?: string;
+    status?: string;
+  };
+  participantId?: string;
+  participant_id?: string;
+  participantName?: string;
+  participant?: {
+    id: string;
+    fullName?: string;
+    full_name?: string;
+    phoneNumber?: string;
+    phone_number?: string;
+    booking_code?: string;
+  };
+  userId?: string | null;
+  user_id?: string | null;
+  rating: number; // 1 - 5
+  comment: string;
+  status: ReviewStatus;
+  rejectionReason?: string | null;
+  rejection_reason?: string | null;
+  admin_notes?: string | null;
+  adminReply?: string | null;
+  admin_reply?: string | null;
+  repliedAt?: string | null;
+  replied_at?: string | null;
+  admin_reply_at?: string | null;
+  repliedBy?: string | null;
+  replied_by?: string | null;
+  reviewToken?: string;
+  review_token?: string;
+  isSubmitted?: boolean;
+  is_submitted?: boolean;
+  submittedAt?: string | null;
+  submitted_at?: string | null;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+}
+
+export interface ReviewTokenVerification {
+  token: string;
+  isValid: boolean;
+  isSubmitted: boolean;
+  tripId: string;
+  departureDate: string;
+  destinationId: string;
+  destinationTitle: string;
+  destinationSlug?: string;
+  destinationImage?: string;
+  participantId: string;
+  participantName: string;
+}
+
+export interface SubmitReviewPayload {
+  rating: number;
+  comment: string;
+}
+
+export interface ModerateReviewPayload {
+  status: 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+  rejection_reason?: string;
+  admin_notes?: string;
+}
+
+export interface AdminReplyPayload {
+  adminReply?: string;
+  reply?: string;
+}
+
+export interface SendReviewInvitesResponse {
+  tripId?: string;
+  destinationTitle?: string;
+  departureDate?: string;
+  totalParticipants: number;
+  sentCount: number;
+  failedCount: number;
+  results: Array<{
+    participantId: string;
+    fullName: string;
+    phoneNumber: string;
+    reviewToken: string;
+    reviewUrl: string;
+    status: 'SENT' | 'FAILED' | 'SKIPPED';
+    isSubmitted?: boolean;
+    rating?: number | null;
+    error?: string;
+  }>;
+}
+
 
 
 
