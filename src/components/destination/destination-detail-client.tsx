@@ -66,6 +66,7 @@ import {
   canonicalizeCountry,
 } from "@/src/lib/country-conflict";
 import type { Destination, BookingGroup, Trip, Participant, BulkBookingPayload, CreateBookingPayload } from "@/src/types";
+import { DestinationReviews } from "@/src/components/destination/destination-reviews";
 
 export interface BookingItemState {
   id: string;
@@ -372,6 +373,32 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
     }
   };
 
+  // Evaluasi Konflik Geopolitik & Alokasi Armada Cerdas
+  const requestedNationalities = useMemo(() => {
+    return bookingItems.map((b) => b.nationality || "Indonesia");
+  }, [bookingItems]);
+
+  const internalBookingConflict = useMemo(() => {
+    return checkInternalBookingConflicts(requestedNationalities);
+  }, [requestedNationalities]);
+
+  const compatibleGroup = useMemo(() => {
+    if (!groups || groups.length === 0) return null;
+    return findBestCompatibleGroup(groups, requestedNationalities, bookingItems.length);
+  }, [groups, requestedNationalities, bookingItems.length]);
+
+  const currentDefaultGroup = groups[0] || null;
+  const currentDefaultGroupConflicts = useMemo(() => {
+    if (!currentDefaultGroup) return [];
+    const parts = currentDefaultGroup.participants || [];
+    const allFound = new Set<string>();
+    for (const nat of requestedNationalities) {
+      const confs = findConflictingCountriesInGroup(nat, parts);
+      confs.forEach((c) => allFound.add(c));
+    }
+    return Array.from(allFound);
+  }, [currentDefaultGroup, requestedNationalities]);
+
   if (!destination) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
@@ -409,32 +436,6 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
     ? transportPrice
     : allInPrice;
   const totalAmount = effectiveBasePrice * bookingItems.length;
-
-  // Evaluasi Konflik Geopolitik & Alokasi Armada Cerdas
-  const requestedNationalities = useMemo(() => {
-    return bookingItems.map((b) => b.nationality || "Indonesia");
-  }, [bookingItems]);
-
-  const internalBookingConflict = useMemo(() => {
-    return checkInternalBookingConflicts(requestedNationalities);
-  }, [requestedNationalities]);
-
-  const compatibleGroup = useMemo(() => {
-    if (!groups || groups.length === 0) return null;
-    return findBestCompatibleGroup(groups, requestedNationalities, bookingItems.length);
-  }, [groups, requestedNationalities, bookingItems.length]);
-
-  const currentDefaultGroup = groups[0] || null;
-  const currentDefaultGroupConflicts = useMemo(() => {
-    if (!currentDefaultGroup) return [];
-    const parts = currentDefaultGroup.participants || [];
-    const allFound = new Set<string>();
-    for (const nat of requestedNationalities) {
-      const confs = findConflictingCountriesInGroup(nat, parts);
-      confs.forEach((c) => allFound.add(c));
-    }
-    return Array.from(allFound);
-  }, [currentDefaultGroup, requestedNationalities]);
 
   const isSmartSegregationActive = currentDefaultGroupConflicts.length > 0;
 
@@ -855,6 +856,15 @@ export function DestinationDetailClient({ initialDestination }: DestinationDetai
                   )}
                 </div>
               </div>
+            )}
+
+            {/* REVIEWS & RATINGS SECTION */}
+            {destination && (
+              <DestinationReviews
+                destinationIdOrSlug={destination.slug || String(destination.id)}
+                initialRating={Number(destination.rating || 0)}
+                initialTotalReviews={Number(destination.totalReviews || destination.total_reviews || 0)}
+              />
             )}
           </div>
 

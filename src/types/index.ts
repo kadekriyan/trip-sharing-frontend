@@ -41,6 +41,7 @@ export interface Destination {
   itinerary: ItineraryDay[];
   rating: number;
   totalReviews: number;
+  total_reviews?: number;
   isPopular?: boolean;
   isActive?: boolean;
   meetingPoint: string;
@@ -865,26 +866,63 @@ export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Review {
   id: string;
-  destinationId: string;
+  destinationId?: string;
+  destination_id?: string;
   destinationTitle?: string;
   destinationSlug?: string;
-  tripId: string;
+  destination?: {
+    id: string;
+    name?: string;
+    title?: string;
+    slug?: string;
+    cover_image?: string;
+    image_url?: string;
+  };
+  tripId?: string;
+  trip_id?: string;
   tripDepartureDate?: string;
-  participantId: string;
+  trip?: {
+    id: string;
+    departure_date?: string;
+    departureDate?: string;
+    status?: string;
+  };
+  participantId?: string;
+  participant_id?: string;
   participantName?: string;
+  participant?: {
+    id: string;
+    fullName?: string;
+    full_name?: string;
+    phoneNumber?: string;
+    phone_number?: string;
+    booking_code?: string;
+  };
   userId?: string | null;
+  user_id?: string | null;
   rating: number; // 1 - 5
   comment: string;
   status: ReviewStatus;
   rejectionReason?: string | null;
+  rejection_reason?: string | null;
+  admin_notes?: string | null;
   adminReply?: string | null;
+  admin_reply?: string | null;
   repliedAt?: string | null;
+  replied_at?: string | null;
+  admin_reply_at?: string | null;
   repliedBy?: string | null;
+  replied_by?: string | null;
   reviewToken?: string;
-  isSubmitted: boolean;
+  review_token?: string;
+  isSubmitted?: boolean;
+  is_submitted?: boolean;
   submittedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  submitted_at?: string | null;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
 }
 
 export interface ReviewTokenVerification {
@@ -909,13 +947,19 @@ export interface SubmitReviewPayload {
 export interface ModerateReviewPayload {
   status: 'APPROVED' | 'REJECTED';
   rejectionReason?: string;
+  rejection_reason?: string;
+  admin_notes?: string;
 }
 
 export interface AdminReplyPayload {
-  adminReply: string;
+  adminReply?: string;
+  reply?: string;
 }
 
 export interface SendReviewInvitesResponse {
+  tripId?: string;
+  destinationTitle?: string;
+  departureDate?: string;
   totalParticipants: number;
   sentCount: number;
   failedCount: number;
@@ -926,6 +970,8 @@ export interface SendReviewInvitesResponse {
     reviewToken: string;
     reviewUrl: string;
     status: 'SENT' | 'FAILED' | 'SKIPPED';
+    isSubmitted?: boolean;
+    rating?: number | null;
     error?: string;
   }>;
 }
