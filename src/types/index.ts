@@ -833,7 +833,7 @@ export interface DriverSettlementSlip {
   paidAt?: string | null;
   paymentProofUrl?: string | null;
   notes?: string | null;
-  breakdownDetails?: any;
+  breakdownDetails?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -852,10 +852,84 @@ export interface VendorSettlementSlip {
   paidAt?: string | null;
   paymentProofUrl?: string | null;
   notes?: string | null;
-  breakdownDetails?: any;
+  breakdownDetails?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
+
+// -------------------------------------------------------------
+// REVIEW & RATING TYPES (Phase 14)
+// -------------------------------------------------------------
+
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface Review {
+  id: string;
+  destinationId: string;
+  destinationTitle?: string;
+  destinationSlug?: string;
+  tripId: string;
+  tripDepartureDate?: string;
+  participantId: string;
+  participantName?: string;
+  userId?: string | null;
+  rating: number; // 1 - 5
+  comment: string;
+  status: ReviewStatus;
+  rejectionReason?: string | null;
+  adminReply?: string | null;
+  repliedAt?: string | null;
+  repliedBy?: string | null;
+  reviewToken?: string;
+  isSubmitted: boolean;
+  submittedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewTokenVerification {
+  token: string;
+  isValid: boolean;
+  isSubmitted: boolean;
+  tripId: string;
+  departureDate: string;
+  destinationId: string;
+  destinationTitle: string;
+  destinationSlug?: string;
+  destinationImage?: string;
+  participantId: string;
+  participantName: string;
+}
+
+export interface SubmitReviewPayload {
+  rating: number;
+  comment: string;
+}
+
+export interface ModerateReviewPayload {
+  status: 'APPROVED' | 'REJECTED';
+  rejectionReason?: string;
+}
+
+export interface AdminReplyPayload {
+  adminReply: string;
+}
+
+export interface SendReviewInvitesResponse {
+  totalParticipants: number;
+  sentCount: number;
+  failedCount: number;
+  results: Array<{
+    participantId: string;
+    fullName: string;
+    phoneNumber: string;
+    reviewToken: string;
+    reviewUrl: string;
+    status: 'SENT' | 'FAILED' | 'SKIPPED';
+    error?: string;
+  }>;
+}
+
 
 
 
