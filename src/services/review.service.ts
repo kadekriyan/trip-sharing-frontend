@@ -129,7 +129,13 @@ export const reviewService = {
    * Kirim balasan resmi pengelola atas ulasan
    */
   async replyReview(id: string, payload: AdminReplyPayload): Promise<Review> {
-    const res = await apiClient.post<Review>(`/admin/reviews/${id}/reply`, payload);
+    const replyContent = payload.adminReply || payload.reply || "";
+    const body = {
+      adminReply: replyContent,
+      admin_reply: replyContent,
+      reply: replyContent,
+    };
+    const res = await apiClient.post<Review>(`/admin/reviews/${id}/reply`, body);
     if (!res.success || !res.data) {
       throw new Error(res.message || "Gagal menyimpan balasan pengelola");
     }

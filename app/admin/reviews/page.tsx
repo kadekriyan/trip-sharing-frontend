@@ -181,6 +181,7 @@ export default function AdminReviewsPage() {
     try {
       setIsReplying(true);
       const updated = await reviewService.replyReview(replyTarget.id, {
+        adminReply: replyText.trim(),
         reply: replyText.trim(),
       });
       setReviews((prev) =>
